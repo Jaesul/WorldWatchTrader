@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import { SpringboardLink } from '@/components/Navigation';
 import { Page } from '@/components/PageLayout';
 import { Pay } from '@/components/Pay';
 import { Transaction } from '@/components/Transaction';
@@ -14,7 +15,7 @@ export default async function Home() {
     <>
       <Page.Header className="p-0">
         <TopBar
-          title="Nico is a homosexual"
+          title="Home"
           endAdornment={
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold capitalize">
@@ -26,6 +27,9 @@ export default async function Home() {
         />
       </Page.Header>
       <Page.Main className="flex flex-col items-center justify-start gap-4 mb-16">
+        <p className="w-full text-center text-sm text-neutral-600">
+          <SpringboardLink href="/listings">Open listings (UX springboard)</SpringboardLink>
+        </p>
         <UserInfo />
         <Verify action="test-action" />
         <Pay />
