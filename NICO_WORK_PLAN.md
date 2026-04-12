@@ -29,7 +29,7 @@ Jae should implement your specs with **`src/components/ui/*`** (shadcn) unless i
 
 All of **your** screens live under **`/design/...`**. Those routes are **public**: normal **Chrome/Safari/Firefox on `http://localhost:3000`** — **no World App**, **no ngrok**, **no tunnel**, **no sign-in**.
 
-The gray bar at the top links between these pages.
+The gray bar at the top links between these pages. It also has **Jae sandbox** → [`/design/jae`](http://localhost:3000/design/jae) (his listings/messages stubs — separate sky-colored bar).
 
 **Do not rely on** `/home`, `/profile`, or `/` for your day-to-day work — those are tied to the real mini-app shell (sign-in, World, etc.). Jae will **copy your layout/copy** from `/design` into those routes when integrating.
 

@@ -128,3 +128,8 @@
     @apply font-sans;
   }
 }
+
+/* /design preview: toggle via DesignChromeToggle */
+html[data-design-minimal='true'] [data-design-chrome] {
+  display: none !important;
+}

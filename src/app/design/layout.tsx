@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { DesignChromeToggle } from '@/components/design/DesignChromeToggle';
+
 /**
  * Public UX sandbox for browser-only iteration (no World App / tunnel / sign-in).
  * Jae merges these layouts into (protected) routes when wiring real auth & MiniKit.
@@ -8,7 +10,7 @@ import type { ReactNode } from 'react';
 export default function DesignLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      <header className="z-20 border-b border-border bg-card px-4 py-3">
+      <header data-design-chrome className="z-20 border-b border-border bg-card px-4 py-3">
         <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
           <strong>Design preview</strong> — runs on normal localhost. No World App, ngrok, or
           tunnel needed. Fake data is OK.
@@ -29,9 +31,14 @@ export default function DesignLayout({ children }: { children: ReactNode }) {
           >
             Other profile (demo)
           </Link>
+          <span className="text-muted-foreground">|</span>
+          <Link href="/design/jae" className="underline-offset-4 hover:underline">
+            Jae sandbox
+          </Link>
         </nav>
       </header>
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <DesignChromeToggle />
     </div>
   );
 }

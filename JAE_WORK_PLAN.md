@@ -1,10 +1,14 @@
 # Jae — work plan (Listings, Messages, Pay wiring)
 
+**Build location:** Ship **all** Jae-owned UI (listings, messages, pay shells, related chrome) under **`/design/jae/*`** first on localhost. Treat **`/listings`**, **`/messages`**, and other app routes as the **port target** after the design sandbox is stable and wired with auth, MiniKit, and the database.
+
+**Mobile-first (mini app):** Design and review **every** Jae surface in a **phone-sized viewport first** (World App). Prefer touch-friendly targets, vertical scrolling, and layouts that read well on a narrow screen; then add wider breakpoints if needed. Listing browse uses a **two-column grid on mobile** so the shop floor feels dense like a native marketplace.
+
 ## Who is doing what
 
 | Person | Role | What they own in this project |
 |--------|------|--------------------------------|
-| **Jae** | SWE (+ UX prompts for **your** surfaces) | **Marketplace core:** **Listings** (discover watches, create a post, open a post, **public** Q&A on the post), **private Messages** (DM threads), **MiniKit pay** to seller, **deals + reviews** in the database, and wiring that powers **reputation numbers** on [Nico’s profile screens](./NICO_WORK_PLAN.md). You work in **real app routes** (`/listings`, `/messages`, …) with auth / World when needed, and you **port** Nico’s **`/design/*`** UI into production when integrating. |
+| **Jae** | SWE (+ UX prompts for **your** surfaces) | **Marketplace core:** **Listings** (discover watches, create a post, open a post, **public** Q&A on the post), **private Messages** (DM threads), **MiniKit pay** to seller, **deals + reviews** in the database, and wiring that powers **reputation numbers** on [Nico’s profile screens](./NICO_WORK_PLAN.md). Use **`/design/jae/*`** as **your** primary build location for all of the above (same idea as Nico’s `/design`); **real** routes (`/listings`, `/messages`, …) are the port target once wired with auth / World. |
 | **Nico** | UX (prompts) | **Landing, Home, My profile, Other people’s profiles** — all iterated on **`/design/*`** in localhost only. See [Nico’s work plan](./NICO_WORK_PLAN.md). |
 
 **Handoff:** Nico’s prompts → you implement with **shadcn** under `src/app/design/*` first (optional fast path), then merge layouts into `(protected)` / `/` and connect **MiniKit**, **NextAuth**, **Supabase/Drizzle**.
@@ -34,9 +38,26 @@
 | **Pay flow** (from listing) | **Commit money** — direct to seller | **MiniKit.pay** in World App; your **shadcn** shells for confirm/summary. **World ID required** to pay. After pay, **deal + review** data feeds **Nico’s reputation** UI. |
 | **Reviews** (after pay) | **Reputation input** | One review per deal (or your chosen rule). Aggregates show on **profiles** — coordinate fields (stars vs thumbs) with Nico. |
 
-**Nico** does **not** own these routes day-to-day; he works on **`/design/*`**. You implement his **profile** work there first, then port. For **listings/messages**, you own prompts + code on **`/listings`**, **`/messages`**, etc.
+**Nico** does **not** own these routes day-to-day; he works on **`/design/*`**. You implement his **profile** work there first, then port. For **listings/messages**, you own prompts + code — **build and iterate in `/design/jae/*` first**, then port to **`/listings`**, **`/messages`**, etc.
 
 **Stubs today:** sign in (when using protected stack) → bottom tabs **Listings** & **Messages**. From Listings, use **Add listing** and **Example listing** links.
+
+### Your design sandbox — `/design/jae` (localhost, no tunnel)
+
+**Default workspace:** this is where **all** Jae marketplace UI is built until port time — not a one-off stub folder.
+
+Mirrors Nico’s **`/design/*`** pattern but **under your name**: use these to iterate **listings + messages** in the browser before World integration. The **sky** bar is your sub-nav; the **amber** bar above is Nico’s global `/design` nav (includes a **Jae sandbox** link).
+
+| Route | Role |
+|-------|------|
+| `/design/jae` | Hub + links |
+| `/design/jae/home` | Home-style placeholder |
+| `/design/jae/listings` | Browse stub |
+| `/design/jae/listings/new` | New listing form stub |
+| `/design/jae/listings/[id]` | Detail + public comments stub |
+| `/design/jae/messages` | Private inbox stub |
+
+Implement with **shadcn** here first, then port to **`/listings`**, **`/messages`**, etc.
 
 ---
 
@@ -44,6 +65,7 @@
 
 - Build **listings, comments, messages, and surrounding chrome** with **shadcn/ui** (`src/components/ui/*`). Prompt LLMs with **“use shadcn only”** — not MUI, Bootstrap, Chakra, etc.
 - **World kit / MiniKit** is OK where the platform owns the flow (e.g. pay sheet). If a generated screen **looks wrong**, ask: **is this shadcn?** and refactor to shadcn primitives.
+- **Layout:** **Mobile-oriented** by default — assume a narrow viewport; use **Badge** (and other shadcn primitives) for compact metadata such as **seller** on listing cards.
 
 ---
 

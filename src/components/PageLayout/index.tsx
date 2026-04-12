@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { twMerge } from 'tailwind-merge';
 
 /**
@@ -14,15 +14,20 @@ export const Page = (props: { children: ReactNode; className?: string }) => {
   );
 };
 
-const Header = (props: { children: ReactNode; className?: string }) => {
+const Header = ({
+  children,
+  className,
+  ...rest
+}: { children: ReactNode; className?: string } & ComponentPropsWithoutRef<'header'>) => {
   return (
     <header
       className={twMerge(
         'bg-white flex flex-col justify-center px-6 pt-6 pb-3 z-10',
-        clsx(props.className),
+        clsx(className),
       )}
+      {...rest}
     >
-      {props.children}
+      {children}
     </header>
   );
 };

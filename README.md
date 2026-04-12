@@ -20,7 +20,7 @@ This template is a way for you to quickly get started with authentication and ex
 8. Continue to developer.worldcoin.org and make sure your app is connected to the right ngrok url
 9. [Optional] For Verify and Send Transaction to work you need to do some more setup in the dev portal. The steps are outlined in the respective component files.
 
-**UX sandbox (browser only, no World):** open [http://localhost:3000/design](http://localhost:3000/design) — see [`NICO_WORK_PLAN.md`](./NICO_WORK_PLAN.md).
+**UX sandbox (browser only, no World):** Nico — [http://localhost:3000/design](http://localhost:3000/design) ([`NICO_WORK_PLAN.md`](./NICO_WORK_PLAN.md)). Jae — [http://localhost:3000/design/jae](http://localhost:3000/design/jae) ([`JAE_WORK_PLAN.md`](./JAE_WORK_PLAN.md)).
 
 ## Authentication
 
