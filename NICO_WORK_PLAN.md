@@ -2,10 +2,12 @@
 
 ## Who is doing what
 
-| Person | Role | What they own in this project |
-|--------|------|--------------------------------|
-| **Nico** | UX (prompts; no code required) | **First impression & identity:** how we explain the app (**Landing**), what users see when they’re “in” the app (**Home**), and how **people** look—**your own profile** vs **someone else’s profile**. All of that is designed on **`/design/*`** in a normal browser (no World App). |
-| **Jae** | Engineer | **Marketplace motion:** **Listings** (browse, post, detail, **public** Q&A), **private Messages**, **pay**, deals/reviews, database, World/MiniKit. He implements your prompts in code and later **merges** your `/design` UI into the real mini-app routes. |
+
+| Person   | Role                           | What they own in this project                                                                                                                                                                                                                                                          |
+| -------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nico** | UX (prompts; no code required) | **First impression & identity:** how we explain the app (**Landing**), what users see when they’re “in” the app (**Home**), and how **people** look—**your own profile** vs **someone else’s profile**. All of that is designed on `**/design/*`** in a normal browser (no World App). |
+| **Jae**  | Engineer                       | **Marketplace motion:** **Listings** (browse, post, detail, **public** Q&A), **private Messages**, **pay**, deals/reviews, database, World/MiniKit. He implements your prompts in code and later **merges** your `/design` UI into the real mini-app routes.                           |
+
 
 **Related doc:** [Jae’s work plan](./JAE_WORK_PLAN.md) — listings, messages, pay, backend.
 
@@ -18,16 +20,16 @@
 Product UI in this repo is built with **[shadcn/ui](https://ui.shadcn.com/)** (on Tailwind). When you prompt ChatGPT, Cursor, etc.:
 
 - **Ask explicitly** for **shadcn/ui** components only (Button, Card, Dialog, Sheet, Input, Badge, Avatar, etc.). **Do not** ask for Material UI, Bootstrap, Chakra, random CSS frameworks, or “custom HTML only” unless Jae agrees for an exception.
-- **World Mini App shell:** Jae may still use **`@worldcoin/mini-apps-ui-kit-react`** for a few wallet-native flows (pay, verify). Your **landing / home / profile** prompts should stay **shadcn** so everything matches.
+- **World Mini App shell:** Jae may still use `**@worldcoin/mini-apps-ui-kit-react`** for a few wallet-native flows (pay, verify). Your **landing / home / profile** prompts should stay **shadcn** so everything matches.
 - **If the output looks off** (weird spacing, alien buttons, wrong patterns): **stop and ask** — *“Is this using shadcn/ui components? Regenerate using shadcn only.”*
 
-Jae should implement your specs with **`src/components/ui/*`** (shadcn) unless it’s an intentional World kit surface.
+Jae should implement your specs with `**src/components/ui/*`** (shadcn) unless it’s an intentional World kit surface.
 
 ---
 
 ## Important: where you work (browser only)
 
-All of **your** screens live under **`/design/...`**. Those routes are **public**: normal **Chrome/Safari/Firefox on `http://localhost:3000`** — **no World App**, **no ngrok**, **no tunnel**, **no sign-in**.
+All of **your** screens live under `**/design/...`**. Those routes are **public**: normal **Chrome/Safari/Firefox on `http://localhost:3000`** — **no World App**, **no ngrok**, **no tunnel**, **no sign-in**.
 
 The gray bar at the top links between these pages. It also has **Jae sandbox** → [`/design/jae`](http://localhost:3000/design/jae) (his listings/messages stubs — separate sky-colored bar).
 
@@ -39,32 +41,36 @@ The gray bar at the top links between these pages. It also has **Jae sandbox** �
 
 **Landing vs Home (easy mix-up):**
 
-- **Landing** answers: *What is this product? Why should I care? How do I get in?* It’s the **story and entry**—often the first thing a **new** visitor sees (value prop, trust hook, primary CTAs like “Get started” / “Sign in”). In the design sandbox: **`/design`**.
-- **Home** answers: *I’m already “inside”—what’s next?* It’s a **hub**: shortcuts (e.g. browse listings, messages), gentle prompts (e.g. “Verify to list”), maybe a calm empty state—not usually a repeat of the full marketing pitch. In the design sandbox: **`/design/home`** (pretend the user is signed in, e.g. fake “Alex”).
+- **Landing** answers: *What is this product? Why should I care? How do I get in?* It’s the **story and entry**—often the first thing a **new** visitor sees (value prop, trust hook, primary CTAs like “Get started” / “Sign in”). In the design sandbox: `**/design`**.
+- **Home** answers: *I’m already “inside”—what’s next?* It’s a **hub**: shortcuts (e.g. browse listings, messages), gentle prompts (e.g. “Verify to list”), maybe a calm empty state—not usually a repeat of the full marketing pitch. In the design sandbox: `**/design/home`** (pretend the user is signed in, e.g. fake “Alex”).
 
 **Two different “profiles” (same layout idea, different job):**
 
-| Page | URL (design) | **Whose** identity? | **User job-to-be-done** |
-|------|----------------|---------------------|-------------------------|
-| **My profile** | `/design/profile` | **Me** — the logged-in person | See **my** verification, wallet, demo “connected” socials, **my** reputation; future: edit/manage **my** presentation. |
+
+| Page                       | URL (design)                       | **Whose** identity?                         | **User job-to-be-done**                                                                                                     |
+| -------------------------- | ---------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **My profile**             | `/design/profile`                  | **Me** — the logged-in person               | See **my** verification, wallet, demo “connected” socials, **my** reputation; future: edit/manage **my** presentation.      |
 | **Someone else’s profile** | `/design/u/demo-seller` (any slug) | **Another member** (e.g. seller on a watch) | **Decide if I trust them** before a deal: **their** World ID state, **their** reputation, read-only; optional Report/Block. |
+
 
 Think **Instagram: your profile tab** vs **opening someone else’s profile** from a post.
 
 **Quick open list**
 
-| Screen | URL |
-|--------|-----|
-| Landing | `http://localhost:3000/design` |
-| Home | `http://localhost:3000/design/home` |
-| My profile | `http://localhost:3000/design/profile` |
+
+| Screen               | URL                                                                      |
+| -------------------- | ------------------------------------------------------------------------ |
+| Landing              | `http://localhost:3000/design`                                           |
+| Home                 | `http://localhost:3000/design/home`                                      |
+| My profile           | `http://localhost:3000/design/profile`                                   |
 | Other user’s profile | `http://localhost:3000/design/u/demo-seller` (swap slug while designing) |
+
 
 ---
 
 ## Toolkit — things you can use (no database required)
 
-Use these so screens feel **real** before Supabase or World data exists. You don’t have to write code—**ask Jae** (or put it in your prompt) to drop in **hardcoded / mock** values on `/design/*` pages.
+Use these so screens feel **real** before Supabase or World data exists. You don’t have to write code—**ask Jae** (or put it in your prompt) to drop in **hardcoded / mock** values on `/design/`* pages.
 
 ### Fake people (names, wallets, verification)
 
@@ -133,7 +139,6 @@ Mock data for /design/home:
   - Check: open Terminal (Mac) or PowerShell / Command Prompt (Windows) and run:
     - `node -v` → should print a version like `v20.x` or `v22.x`
     - `npm -v` → should print a version number
-
 - **Editor (optional)** — VS Code or Cursor if you want to peek at files; **not required** for UX prompts.
 
 ### 2) Get the code on your computer
@@ -164,7 +169,7 @@ git pull
 git checkout -b nico/design-ui
 ```
 
-Use branch name **`nico/design-ui`** (or whatever Jae agrees on). **Only you** commit on this branch for layout/copy experiments if Jae sets that up; otherwise you only run locally and send prompts to Jae.
+Use branch name `**nico/design-ui**` (or whatever Jae agrees on). **Only you** commit on this branch for layout/copy experiments if Jae sets that up; otherwise you only run locally and send prompts to Jae.
 
 ### 4) Install dependencies (once per clone)
 
@@ -184,7 +189,7 @@ Wait until the terminal says something like **“Ready”** and shows **port 300
 
 Open in your browser:
 
-- **http://localhost:3000/design**
+- **[http://localhost:3000/design](http://localhost:3000/design)**
 
 If **port 3000 is busy**, Jae may tell you to run:
 
@@ -192,7 +197,7 @@ If **port 3000 is busy**, Jae may tell you to run:
 npm run dev -- -p 3001
 ```
 
-Then open **http://localhost:3001/design** instead.
+Then open **[http://localhost:3001/design](http://localhost:3001/design)** instead.
 
 ### 6) Stop the server
 
@@ -202,36 +207,40 @@ In the terminal where `npm run dev` is running, press **Ctrl+C**.
 
 ## Daily workflow (short)
 
-1. `cd` into the project folder.  
-2. `git pull` (or ask Jae when to pull).  
-3. `git checkout nico/design-ui` (your branch).  
-4. `npm run dev`  
-5. Open **http://localhost:3000/design** and use the top links.  
+1. `cd` into the project folder.
+2. `git pull` (or ask Jae when to pull).
+3. `git checkout nico/design-ui` (your branch).
+4. `npm run dev`
+5. Open **[http://localhost:3000/design](http://localhost:3000/design)** and use the top links.
 6. Write prompts (below) and send them to Jae or Cursor.
 
 ---
 
 ## If something breaks (before calling Jae)
 
-| Problem | Try this |
-|---------|----------|
-| `command not found: npm` | Node isn’t installed or terminal was opened before install — restart terminal or reinstall Node LTS. |
-| `EACCES` / permission errors on `npm install` | Don’t use `sudo`; ask Jae — may need to fix folder permissions or use `nvm`. |
-| Page won’t load | Confirm terminal still shows `dev` running; try another browser; try `http://127.0.0.1:3000/design`. |
-| Blank / error screen | Screenshot **browser** + **terminal** for Jae. |
+
+| Problem                                       | Try this                                                                                             |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `command not found: npm`                      | Node isn’t installed or terminal was opened before install — restart terminal or reinstall Node LTS. |
+| `EACCES` / permission errors on `npm install` | Don’t use `sudo`; ask Jae — may need to fix folder permissions or use `nvm`.                         |
+| Page won’t load                               | Confirm terminal still shows `dev` running; try another browser; try `http://127.0.0.1:3000/design`. |
+| Blank / error screen                          | Screenshot **browser** + **terminal** for Jae.                                                       |
+
 
 ---
 
 ## Springboard — what you see today
 
-Under **`/design`**, pages start as **short placeholders**. Your job is to replace them with real structure, copy, and states via **prompt packs** (and Jae or AI implements in code).
+Under `**/design`**, pages start as **short placeholders**. Your job is to replace them with real structure, copy, and states via **prompt packs** (and Jae or AI implements in code).
 
-| Screen | URL | Purpose (reminder) | Your design focus |
-|--------|-----|--------------------|-------------------|
-| **Landing** | `/design` | Sell the idea + get people in | Headline, subtext, CTAs, optional “how it works” |
-| **Home** | `/design/home` | Orient signed-in users; what’s next | Shortcuts, trust cues, verify nudges, empty states (fake user OK) |
-| **My profile** | `/design/profile` | **My** identity & reputation | Avatar, World ID badge, wallet, demo social chips, stats strip |
-| **Other profile** | `/design/u/...` | **Their** trust surface | Read-only layout, trust line, optional Report/Block |
+
+| Screen            | URL               | Purpose (reminder)                  | Your design focus                                                 |
+| ----------------- | ----------------- | ----------------------------------- | ----------------------------------------------------------------- |
+| **Landing**       | `/design`         | Sell the idea + get people in       | Headline, subtext, CTAs, optional “how it works”                  |
+| **Home**          | `/design/home`    | Orient signed-in users; what’s next | Shortcuts, trust cues, verify nudges, empty states (fake user OK) |
+| **My profile**    | `/design/profile` | **My** identity & reputation        | Avatar, World ID badge, wallet, demo social chips, stats strip    |
+| **Other profile** | `/design/u/...`   | **Their** trust surface             | Read-only layout, trust line, optional Report/Block               |
+
 
 **Jae’s pages** (**Listings**, **Messages**, pay on listing) are separate; align with him on **tone**, **fee wording**, and **tab labels** when the full shell ships.
 
@@ -304,8 +313,8 @@ Output: section-by-section copy, layout order, AND a separate list titled “Mod
 
 ## Jae — SWE checklist (Nico surfaces)
 
-- [ ] Implement Nico’s UX in **`src/app/design/*`** first (browser-only), using **shadcn** (`src/components/ui/*`). Add shadcn components with `npx shadcn@latest add …` as needed.  
-- [ ] When ready for World: **port** the same layout/copy to **`src/app/page.tsx`**, **`(protected)/home`**, **`(protected)/profile`**, **`/u/...`** and wire auth, MiniKit, World ID.
+- Implement Nico’s UX in `**src/app/design/***` first (browser-only), using **shadcn** (`src/components/ui/*`). Add shadcn components with `npx shadcn@latest add …` as needed.  
+- When ready for World: **port** the same layout/copy to `**src/app/page.tsx`**, `**(protected)/home`**, `**(protected)/profile**`, `**/u/...**` and wire auth, MiniKit, World ID.
 
 ---
 
@@ -338,13 +347,13 @@ Output: top-to-bottom layout + exact strings.
 
 ## Jae — Profile depth (after integration)
 
-- [ ] Persist verification + wire real data to **production** profile routes (not required for Nico’s `/design` mocks).
+- Persist verification + wire real data to **production** profile routes (not required for Nico’s `/design` mocks).
 
 ---
 
 ## UX — Prompt pack C: Reputation on profile (later)
 
-When real deals exist, refine how numbers look on **production** profile — see [`TEAM_WORK_PLAN.md`](./TEAM_WORK_PLAN.md) Tier 4 profile bits. Keep prompts **shadcn/ui**-based (e.g. Badge, Card stats rows).
+When real deals exist, refine how numbers look on **production** profile — see `[TEAM_WORK_PLAN.md](./TEAM_WORK_PLAN.md)` Tier 4 profile bits. Keep prompts **shadcn/ui**-based (e.g. Badge, Card stats rows).
 
 ---
 
@@ -356,11 +365,13 @@ Optional **Prompt pack D:** one paragraph + one sentence for **“fees = gas onl
 
 ## Quick URL map (your design workspace)
 
-| Path | Role |
-|------|------|
-| `/design` | Landing — product story + entry |
-| `/design/home` | Home — hub after “I’m in” |
-| `/design/profile` | My profile — **self** |
+
+| Path                 | Role                                   |
+| -------------------- | -------------------------------------- |
+| `/design`            | Landing — product story + entry        |
+| `/design/home`       | Home — hub after “I’m in”              |
+| `/design/profile`    | My profile — **self**                  |
 | `/design/u/[handle]` | Other user’s profile — **trust check** |
+
 
 **Production** (after Jae merges): `/`, `/home`, `/profile`, `/u/...` — you don’t need to run those for UX iteration.

@@ -1,5 +1,6 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
+import Link from 'next/link';
+import { DesignNav } from '@/components/design/DesignNav';
 
 import { DesignChromeToggle } from '@/components/design/DesignChromeToggle';
 
@@ -9,7 +10,7 @@ import { DesignChromeToggle } from '@/components/design/DesignChromeToggle';
  */
 export default function DesignLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="flex h-dvh flex-col bg-background">
       <header data-design-chrome className="z-20 border-b border-border bg-card px-4 py-3">
         <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
           <strong>Design preview</strong> — runs on normal localhost. No World App, ngrok, or
@@ -37,7 +38,8 @@ export default function DesignLayout({ children }: { children: ReactNode }) {
           </Link>
         </nav>
       </header>
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      <DesignNav />
       <DesignChromeToggle />
     </div>
   );

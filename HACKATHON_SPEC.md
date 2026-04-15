@@ -12,14 +12,16 @@ We are **not** choosing NextAuth from scratch; we **standardize on this pattern*
 
 ### Decisions (what we are committing to)
 
-| Layer | Choice | Role |
-|--------|--------|------|
-| **App** | Next.js (App Router) | Mini app shell, API routes, SSR where needed |
-| **UI backbone** | **shadcn/ui** (+ Tailwind) | App chrome, forms, tables, dialogs — default component layer |
-| **World UI / flows** | `@worldcoin/mini-apps-ui-kit-react` + MiniKit | World-specific primitives and flows where docs / UI kit are the source of truth |
-| **ORM** | **Drizzle** | Schema-as-code, typed queries, migrations |
-| **Database** | **Supabase** | Managed Postgres (hosting, dashboard, optional auth/storage later); Drizzle targets the Postgres connection |
-| **Auth** | **NextAuth** + wallet Credentials + JWT sessions | Same mental model as the community example; optional later: DB user records keyed by `walletAddress` |
+
+| Layer                | Choice                                           | Role                                                                                                        |
+| -------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| **App**              | Next.js (App Router)                             | Mini app shell, API routes, SSR where needed                                                                |
+| **UI backbone**      | **shadcn/ui** (+ Tailwind)                       | App chrome, forms, tables, dialogs — default component layer                                                |
+| **World UI / flows** | `@worldcoin/mini-apps-ui-kit-react` + MiniKit    | World-specific primitives and flows where docs / UI kit are the source of truth                             |
+| **ORM**              | **Drizzle**                                      | Schema-as-code, typed queries, migrations                                                                   |
+| **Database**         | **Supabase**                                     | Managed Postgres (hosting, dashboard, optional auth/storage later); Drizzle targets the Postgres connection |
+| **Auth**             | **NextAuth** + wallet Credentials + JWT sessions | Same mental model as the community example; optional later: DB user records keyed by `walletAddress`        |
+
 
 ### Integration notes
 
