@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         hostname: 'img.chrono24.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
     ],
   },
   allowedDevOrigins: ['*'], // Add your dev origin here

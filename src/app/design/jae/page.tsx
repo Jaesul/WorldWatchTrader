@@ -10,9 +10,8 @@ export default function DesignJaeHubPage() {
           <p className="text-xs font-medium text-muted-foreground">Design route — /design/jae</p>
           <h1 className="text-2xl font-semibold text-foreground">Jae — design hub</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Same pattern as Nico’s <code className="rounded bg-muted px-1">/design</code> routes,
-            scoped to <strong>your</strong> work: listings, comments, messages, pay shells (shadcn).
-            Use the sky bar to move between stubs.
+            Your standalone sandbox for Jae-owned work: listings, messages, and pay shells.
+            Use the sky bar to move between routes while you iterate in localhost.
           </p>
         </div>
         <ul className="flex flex-col gap-2 text-sm">

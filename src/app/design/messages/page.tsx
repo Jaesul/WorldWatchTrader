@@ -89,8 +89,6 @@ export default function MessagesPage() {
     search.trim() === '' || t.seller.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const showRecent = !focused && search.trim() === '';
-
   return (
     <div className="flex flex-col">
       <div className="border-b border-border px-4 pb-3 pt-5">

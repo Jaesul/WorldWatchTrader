@@ -1,100 +1,205 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
+import {
+  Bookmark,
+  FlaskConical,
+  MessageSquare,
+  Newspaper,
+  ShieldUser,
+} from 'lucide-react';
 
 const tabs = [
   {
     key: 'feed',
-    label: 'Feed',
     href: '/design',
     icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" strokeWidth={active ? 2.2 : 1.8} stroke="currentColor" className="size-6">
-        <rect x="3" y="3" width="7" height="7" rx="1.5" />
-        <rect x="14" y="3" width="7" height="7" rx="1.5" />
-        <rect x="3" y="14" width="7" height="7" rx="1.5" />
-        <rect x="14" y="14" width="7" height="7" rx="1.5" />
-      </svg>
+      <Newspaper strokeWidth={active ? 2.2 : 1.8} className="size-6" />
     ),
   },
   {
     key: 'messages',
-    label: 'Messages',
     href: '/design/messages',
     icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" strokeWidth={active ? 2.2 : 1.8} stroke="currentColor" className="size-6">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
-  },
-  {
-    key: 'post',
-    label: '',
-    href: '/design/post',
-    icon: (_active: boolean) => (
-      <span className="flex items-center justify-center size-12 rounded-full bg-foreground text-background shadow-lg">
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.4} stroke="currentColor" className="size-6">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </span>
+      <MessageSquare strokeWidth={active ? 2.2 : 1.8} className="size-6" />
     ),
   },
   {
     key: 'saved',
-    label: 'Saved',
     href: '/design/saved',
     icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2.2 : 1.8} stroke="currentColor" className="size-6">
-        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-      </svg>
+      <Bookmark
+        fill={active ? 'currentColor' : 'none'}
+        strokeWidth={active ? 2.2 : 1.8}
+        className="size-6"
+      />
     ),
   },
   {
     key: 'profile',
-    label: 'Profile',
     href: '/design/profile',
     icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" strokeWidth={active ? 2.2 : 1.8} stroke="currentColor" className="size-6">
-        <circle cx="12" cy="8" r="4" />
-        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-      </svg>
+      <ShieldUser strokeWidth={active ? 2.2 : 1.8} className="size-6" />
+    ),
+  },
+  {
+    key: 'design-menu',
+    href: '#',
+    icon: (active: boolean) => (
+      <FlaskConical strokeWidth={active ? 2.2 : 1.8} className="size-6" />
     ),
   },
 ];
 
 export function DesignNav() {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   function isActive(key: string) {
     if (key === 'feed') return pathname === '/design';
     if (key === 'messages') return pathname.startsWith('/design/messages');
-    if (key === 'post') return pathname === '/design/post';
     if (key === 'saved') return pathname === '/design/saved';
     if (key === 'profile') return pathname === '/design/profile';
+    if (key === 'design-menu') return menuOpen;
     return false;
   }
 
   return (
-    <nav className="sticky bottom-0 z-30 flex items-end justify-around border-t border-border bg-card px-2 pb-[env(safe-area-inset-bottom,0px)]" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-      {tabs.map((tab) => {
-        const active = isActive(tab.key);
-        const isCenter = tab.key === 'post';
-        return (
-          <Link
-            key={tab.key}
-            href={tab.href}
-            className={`flex flex-col items-center gap-0.5 py-2 ${isCenter ? '-mt-5' : ''} ${active ? 'text-foreground' : 'text-muted-foreground'} transition-colors hover:text-foreground`}
-          >
-            {tab.icon(active)}
-            {tab.label ? (
-              <span className={`text-[10px] font-medium ${active ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {tab.label}
-              </span>
-            ) : null}
-          </Link>
-        );
-      })}
-    </nav>
+    <>
+      <nav className="sticky bottom-0 z-30 flex items-center border-t border-border bg-card px-2">
+        {tabs.map((tab, index) => {
+          const active = isActive(tab.key);
+          const baseClass = `flex min-h-14 flex-1 items-center justify-center py-3 ${active ? 'text-foreground' : 'text-muted-foreground'} transition-colors hover:text-foreground`;
+
+          if (tab.key === 'design-menu') {
+            return (
+              <div key={tab.key} className="flex flex-1 items-center">
+                {index > 0 ? <div aria-hidden className="h-6 w-px bg-border" /> : null}
+                <button
+                  type="button"
+                  className={baseClass}
+                  aria-label="testing routes"
+                  onClick={() => setMenuOpen(true)}
+                >
+                  {tab.icon(active)}
+                </button>
+              </div>
+            );
+          }
+
+          return (
+            <div key={tab.key} className="flex flex-1 items-center">
+              {index > 0 ? <div aria-hidden className="h-6 w-px bg-border" /> : null}
+              <Link href={tab.href} className={baseClass} aria-label={tab.key}>
+                {tab.icon(active)}
+              </Link>
+            </div>
+          );
+        })}
+      </nav>
+
+      {menuOpen ? (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/45 p-4 sm:items-center">
+          <button
+            type="button"
+            aria-label="Close design menu overlay"
+            className="absolute inset-0"
+            onClick={() => setMenuOpen(false)}
+          />
+          <div className="relative z-10 flex w-full max-w-md flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Design navigation</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Localhost-only design links and sandbox routes.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                onClick={() => setMenuOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+              <strong>Design preview</strong> — runs on normal localhost. No World App, ngrok, or
+              tunnel needed. Fake data is OK.
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Global design routes
+              </p>
+              <Link
+                href="/design"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Landing
+              </Link>
+              <Link
+                href="/design/home"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Home
+              </Link>
+              <Link
+                href="/design/profile"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Profile
+              </Link>
+              <Link
+                href="/design/u/demo-seller"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Other profile (demo)
+              </Link>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Jae sandbox
+              </p>
+              <Link
+                href="/design/jae"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Hub
+              </Link>
+              <Link
+                href="/design/jae/home"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Home
+              </Link>
+              <Link
+                href="/design/jae/listings"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Listings
+              </Link>
+              <Link
+                href="/design/jae/messages"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Messages
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

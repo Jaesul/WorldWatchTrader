@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   getMessages,
@@ -40,15 +40,17 @@ function ListingCard({ listing }: { listing: NonNullable<ThreadMessage['listing'
   );
 }
 
-export default function ChatThreadPage({ params }: { params: { id: string } }) {
+export default function ChatThreadPage() {
+  const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
   const listingParam = searchParams.get('listing');
+  const threadId = params.id;
 
-  const seller = SELLER_INFO[params.id] ?? { name: 'Seller', handle: params.id.replace('seller-', ''), verified: false };
+  const seller = SELLER_INFO[threadId] ?? { name: 'Seller', handle: threadId.replace('seller-', ''), verified: false };
   const initials = seller.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
 
-  const [messages, setMessages] = useState<ThreadMessage[]>(() => getMessages(params.id));
+  const [messages, setMessages] = useState<ThreadMessage[]>(() => getMessages(threadId));
   const [draft, setDraft] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -58,7 +60,7 @@ export default function ChatThreadPage({ params }: { params: { id: string } }) {
   type StagedListing = NonNullable<ThreadMessage['listing']>;
   const [staged, setStaged] = useState<StagedListing | null>(() => {
     if (!listingParam) return null;
-    if (hasListingRef(params.id, listingParam)) return null; // already sent before
+    if (hasListingRef(threadId, listingParam)) return null; // already sent before
     const listing = getListingById(listingParam);
     if (!listing) return null;
     return { id: listing.id, model: listing.model, price: formatPrice(listing.price), active: true };
@@ -68,19 +70,18 @@ export default function ChatThreadPage({ params }: { params: { id: string } }) {
   // update the staged listing accordingly.
   useEffect(() => {
     if (!listingParam) return;
-    if (hasListingRef(params.id, listingParam)) return;
+    if (hasListingRef(threadId, listingParam)) return;
     const listing = getListingById(listingParam);
     if (!listing) return;
     setStaged({ id: listing.id, model: listing.model, price: formatPrice(listing.price), active: true });
     // Auto-focus the textarea so the user can start typing immediately
     setTimeout(() => textareaRef.current?.focus(), 50);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listingParam]);
+  }, [listingParam, threadId]);
 
   // Keep local messages in sync when we navigate back to this thread
   useEffect(() => {
-    setMessages(getMessages(params.id));
-  }, [params.id]);
+    setMessages(getMessages(threadId));
+  }, [threadId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -97,12 +98,12 @@ export default function ChatThreadPage({ params }: { params: { id: string } }) {
       sentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       listing: staged ?? undefined,
     };
-    addMessage(params.id, msg);
-    setMessages(getMessages(params.id));
+    addMessage(threadId, msg);
+    setMessages(getMessages(threadId));
     setDraft('');
     setStaged(null);
     // Clean the ?listing= param from the URL without pushing a new history entry
-    router.replace(`/design/messages/${params.id}`);
+    router.replace(`/design/messages/${threadId}`);
   }
 
   const canSend = draft.trim().length > 0 || staged !== null;
@@ -184,7 +185,7 @@ export default function ChatThreadPage({ params }: { params: { id: string } }) {
               <button
                 onClick={() => {
                   setStaged(null);
-                  router.replace(`/design/messages/${params.id}`);
+                  router.replace(`/design/messages/${threadId}`);
                 }}
                 className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted-foreground/20 text-muted-foreground transition-colors hover:bg-muted-foreground/30 hover:text-foreground"
                 aria-label="Remove listing"
