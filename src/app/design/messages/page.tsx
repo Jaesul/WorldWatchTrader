@@ -6,17 +6,17 @@ import { getMessages, getLastMessage } from '@/lib/design/thread-store';
 
 interface KnownThread {
   id: string;
-  seller: { name: string; handle: string; verified: boolean };
+  seller: { name: string; handle: string; verified: boolean; avatar: string };
 }
 
 const KNOWN_THREADS: KnownThread[] = [
-  { id: 'seller-alexkim', seller: { name: 'Alex Kim', handle: 'alexkim', verified: true } },
-  { id: 'seller-harbortime', seller: { name: 'Harbor Time Co.', handle: 'harbortime', verified: true } },
-  { id: 'seller-marcor', seller: { name: 'Marco R.', handle: 'marcor', verified: false } },
-  { id: 'seller-cristianv', seller: { name: 'Cristian V.', handle: 'cristianv', verified: true } },
-  { id: 'seller-julesw', seller: { name: 'Jules W.', handle: 'julesw', verified: false } },
-  { id: 'seller-dmitril', seller: { name: 'Dmitri L.', handle: 'dmitril', verified: true } },
-  { id: 'seller-yukit', seller: { name: 'Yuki T.', handle: 'yukit', verified: true } },
+  { id: 'seller-alexkim', seller: { name: 'Alex Kim', handle: 'alexkim', verified: true, avatar: 'https://i.pravatar.cc/150?u=alexkim' } },
+  { id: 'seller-harbortime', seller: { name: 'Harbor Time Co.', handle: 'harbortime', verified: true, avatar: 'https://i.pravatar.cc/150?u=harbortime' } },
+  { id: 'seller-marcor', seller: { name: 'Marco R.', handle: 'marcor', verified: false, avatar: 'https://i.pravatar.cc/150?u=marcor' } },
+  { id: 'seller-cristianv', seller: { name: 'Cristian V.', handle: 'cristianv', verified: true, avatar: 'https://i.pravatar.cc/150?u=cristianv' } },
+  { id: 'seller-julesw', seller: { name: 'Jules W.', handle: 'julesw', verified: false, avatar: 'https://i.pravatar.cc/150?u=julesw' } },
+  { id: 'seller-dmitril', seller: { name: 'Dmitri L.', handle: 'dmitril', verified: true, avatar: 'https://i.pravatar.cc/150?u=dmitril' } },
+  { id: 'seller-yukit', seller: { name: 'Yuki T.', handle: 'yukit', verified: true, avatar: 'https://i.pravatar.cc/150?u=yukit' } },
 ];
 
 function Initials({ name }: { name: string }) {
@@ -45,9 +45,11 @@ function ThreadRow({ thread }: { thread: KnownThread }) {
   return (
     <Link href={`/design/messages/${thread.id}`} className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-muted/30">
       <div className="relative shrink-0">
-        <div className="flex size-11 items-center justify-center rounded-full bg-foreground text-sm font-semibold text-background">
-          <Initials name={thread.seller.name} />
-        </div>
+        <img
+          src={thread.seller.avatar}
+          alt={thread.seller.name}
+          className="size-11 rounded-full object-cover bg-foreground"
+        />
         {thread.seller.verified && (
           <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-blue-500 ring-2 ring-background">
             <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="size-2.5">
@@ -120,9 +122,11 @@ export default function MessagesPage() {
                   href={`/design/messages/${t.id}`}
                   className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-muted/30 border-b border-border last:border-0"
                 >
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">
-                    <Initials name={t.seller.name} />
-                  </div>
+                  <img
+                    src={t.seller.avatar}
+                    alt={t.seller.name}
+                    className="size-8 shrink-0 rounded-full object-cover bg-foreground"
+                  />
                   <span className="text-sm font-medium text-foreground">{t.seller.name}</span>
                   {t.seller.verified && (
                     <span className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-full bg-blue-500">

@@ -78,15 +78,17 @@ export default async function PublicProfilePage({
   const { handle } = await params;
   const seller = SELLER_DATA[handle] ?? FALLBACK;
 
-  const initials = seller.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+  const avatarUrl = `https://i.pravatar.cc/150?u=${handle}`;
 
   return (
     <div className="mx-auto max-w-lg pb-10">
       <div className="px-4 pb-4 pt-6">
         <div className="flex items-start gap-4">
-          <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-foreground text-xl font-bold text-background">
-            {initials}
-          </div>
+          <img
+            src={avatarUrl}
+            alt={seller.name}
+            className="size-16 shrink-0 rounded-full object-cover bg-foreground"
+          />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-lg font-semibold text-foreground">{seller.name}</h1>

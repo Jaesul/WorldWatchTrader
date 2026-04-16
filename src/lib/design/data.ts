@@ -4,6 +4,8 @@ export interface Seller {
   name: string;
   handle: string;
   badges: Badge[];
+  /** Pravatar URL per NICO_WORK_PLAN — https://i.pravatar.cc/150?u=<seed> */
+  avatar: string;
 }
 
 export interface Listing {
@@ -16,9 +18,24 @@ export interface Listing {
   postedAt: string;
   likes: number;
   seller: Seller;
-  /** Verified Unsplash CDN URL for the primary photo */
-  photo: string;
+  /** Verified Unsplash CDN URLs — first is the primary/hero, remainder are additional angles */
+  photos: string[];
 }
+
+// ── Shared photo pool ──────────────────────────────────────────────────────
+const P = {
+  rolexSub:      'https://images.unsplash.com/photo-1611243705491-71487c2ed137?auto=format&fit=crop&w=800&q=80',
+  rolexDJ:       'https://images.unsplash.com/photo-1526045431048-f857369baa09?auto=format&fit=crop&w=800&q=80',
+  rolexGMT:      'https://images.unsplash.com/photo-1605101232508-283d0cd4909e?auto=format&fit=crop&w=800&q=80',
+  omegaSpeed:    'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=800&q=80',
+  omegaSea:      'https://images.unsplash.com/photo-1556453007-ee036169934b?auto=format&fit=crop&w=800&q=80',
+  apRO:          'https://images.unsplash.com/photo-1617714651073-17a0fcd14f9e?auto=format&fit=crop&w=800&q=80',
+  apOffshore:    'https://images.unsplash.com/photo-1615029530759-79e0ca82371a?auto=format&fit=crop&w=800&q=80',
+  patekNautilus: 'https://images.unsplash.com/photo-1600003014755-ba31aa59c4b6?auto=format&fit=crop&w=800&q=80',
+  cartier:       'https://images.unsplash.com/photo-1677445166019-4fa91a090e49?auto=format&fit=crop&w=800&q=80',
+  tudor:         'https://images.unsplash.com/photo-1670404160620-a3a86428560e?auto=format&fit=crop&w=800&q=80',
+  grandSeiko:    'https://images.unsplash.com/photo-1674208884812-cdc0b4bc1cf0?auto=format&fit=crop&w=800&q=80',
+} as const;
 
 export const LISTINGS: Listing[] = [
   // ── Alex Kim — 3 listings ─────────────────────────────────────────────
@@ -32,8 +49,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'Full set',
     postedAt: '2h ago',
     likes: 14,
-    seller: { name: 'Alex Kim', handle: 'alexkim', badges: ['world-verified', 'power-seller'] },
-    photo: 'https://images.unsplash.com/photo-1611243705491-71487c2ed137?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Alex Kim', handle: 'alexkim', badges: ['world-verified', 'power-seller'], avatar: 'https://i.pravatar.cc/150?u=alexkim' },
+    photos: [P.rolexSub, P.rolexDJ, P.rolexGMT],
   },
   {
     id: '8',
@@ -45,8 +62,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'Full set',
     postedAt: '1d ago',
     likes: 8,
-    seller: { name: 'Alex Kim', handle: 'alexkim', badges: ['world-verified', 'power-seller'] },
-    photo: 'https://images.unsplash.com/photo-1526045431048-f857369baa09?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Alex Kim', handle: 'alexkim', badges: ['world-verified', 'power-seller'], avatar: 'https://i.pravatar.cc/150?u=alexkim' },
+    photos: [P.rolexDJ, P.rolexSub, P.rolexGMT],
   },
   {
     id: '9',
@@ -58,8 +75,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'Full set',
     postedAt: '3d ago',
     likes: 27,
-    seller: { name: 'Alex Kim', handle: 'alexkim', badges: ['world-verified', 'power-seller'] },
-    photo: 'https://images.unsplash.com/photo-1605101232508-283d0cd4909e?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Alex Kim', handle: 'alexkim', badges: ['world-verified', 'power-seller'], avatar: 'https://i.pravatar.cc/150?u=alexkim' },
+    photos: [P.rolexGMT, P.rolexSub, P.rolexDJ],
   },
 
   // ── Harbor Time — 2 listings ──────────────────────────────────────────
@@ -73,8 +90,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'None',
     postedAt: '5h ago',
     likes: 7,
-    seller: { name: 'Harbor Time Co.', handle: 'harbortime', badges: ['world-verified'] },
-    photo: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Harbor Time Co.', handle: 'harbortime', badges: ['world-verified'], avatar: 'https://i.pravatar.cc/150?u=harbortime' },
+    photos: [P.omegaSpeed, P.omegaSea, P.tudor],
   },
   {
     id: '10',
@@ -86,8 +103,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'Full set',
     postedAt: '2d ago',
     likes: 11,
-    seller: { name: 'Harbor Time Co.', handle: 'harbortime', badges: ['world-verified'] },
-    photo: 'https://images.unsplash.com/photo-1556453007-ee036169934b?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Harbor Time Co.', handle: 'harbortime', badges: ['world-verified'], avatar: 'https://i.pravatar.cc/150?u=harbortime' },
+    photos: [P.omegaSea, P.omegaSpeed, P.tudor],
   },
 
   // ── Cristian V. — 2 listings ──────────────────────────────────────────
@@ -101,8 +118,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'Full set',
     postedAt: '2d ago',
     likes: 31,
-    seller: { name: 'Cristian V.', handle: 'cristianv', badges: ['world-verified', 'power-seller'] },
-    photo: 'https://images.unsplash.com/photo-1617714651073-17a0fcd14f9e?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Cristian V.', handle: 'cristianv', badges: ['world-verified', 'power-seller'], avatar: 'https://i.pravatar.cc/150?u=cristianv' },
+    photos: [P.apRO, P.apOffshore, P.patekNautilus],
   },
   {
     id: '11',
@@ -114,8 +131,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'Box only',
     postedAt: '4d ago',
     likes: 19,
-    seller: { name: 'Cristian V.', handle: 'cristianv', badges: ['world-verified', 'power-seller'] },
-    photo: 'https://images.unsplash.com/photo-1615029530759-79e0ca82371a?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Cristian V.', handle: 'cristianv', badges: ['world-verified', 'power-seller'], avatar: 'https://i.pravatar.cc/150?u=cristianv' },
+    photos: [P.apOffshore, P.apRO, P.patekNautilus],
   },
 
   // ── Single-listing sellers ─────────────────────────────────────────────
@@ -129,8 +146,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'Box only',
     postedAt: '1d ago',
     likes: 42,
-    seller: { name: 'Marco R.', handle: 'marcor', badges: ['power-seller'] },
-    photo: 'https://images.unsplash.com/photo-1600003014755-ba31aa59c4b6?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Marco R.', handle: 'marcor', badges: ['power-seller'], avatar: 'https://i.pravatar.cc/150?u=marcor' },
+    photos: [P.patekNautilus, P.apRO, P.cartier],
   },
   {
     id: '5',
@@ -142,8 +159,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'Box only',
     postedAt: '3d ago',
     likes: 9,
-    seller: { name: 'Jules W.', handle: 'julesw', badges: [] },
-    photo: 'https://images.unsplash.com/photo-1677445166019-4fa91a090e49?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Jules W.', handle: 'julesw', badges: [], avatar: 'https://i.pravatar.cc/150?u=julesw' },
+    photos: [P.cartier, P.patekNautilus, P.grandSeiko],
   },
   {
     id: '6',
@@ -155,8 +172,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'None',
     postedAt: '4d ago',
     likes: 5,
-    seller: { name: 'Dmitri L.', handle: 'dmitril', badges: ['world-verified'] },
-    photo: 'https://images.unsplash.com/photo-1670404160620-a3a86428560e?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Dmitri L.', handle: 'dmitril', badges: ['world-verified'], avatar: 'https://i.pravatar.cc/150?u=dmitril' },
+    photos: [P.tudor, P.omegaSpeed, P.omegaSea],
   },
   {
     id: '7',
@@ -168,8 +185,8 @@ export const LISTINGS: Listing[] = [
     boxPapers: 'Full set',
     postedAt: '5d ago',
     likes: 19,
-    seller: { name: 'Yuki T.', handle: 'yukit', badges: ['world-verified'] },
-    photo: 'https://images.unsplash.com/photo-1674208884812-cdc0b4bc1cf0?auto=format&fit=crop&w=800&q=80',
+    seller: { name: 'Yuki T.', handle: 'yukit', badges: ['world-verified'], avatar: 'https://i.pravatar.cc/150?u=yukit' },
+    photos: [P.grandSeiko, P.cartier, P.patekNautilus],
   },
 ];
 

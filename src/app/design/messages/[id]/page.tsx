@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { Forward } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   getMessages,
@@ -12,14 +13,14 @@ import {
 } from '@/lib/design/thread-store';
 import { getListingById, formatPrice } from '@/lib/design/data';
 
-const SELLER_INFO: Record<string, { name: string; handle: string; verified: boolean }> = {
-  'seller-alexkim': { name: 'Alex Kim', handle: 'alexkim', verified: true },
-  'seller-harbortime': { name: 'Harbor Time Co.', handle: 'harbortime', verified: true },
-  'seller-marcor': { name: 'Marco R.', handle: 'marcor', verified: false },
-  'seller-cristianv': { name: 'Cristian V.', handle: 'cristianv', verified: true },
-  'seller-julesw': { name: 'Jules W.', handle: 'julesw', verified: false },
-  'seller-dmitril': { name: 'Dmitri L.', handle: 'dmitril', verified: true },
-  'seller-yukit': { name: 'Yuki T.', handle: 'yukit', verified: true },
+const SELLER_INFO: Record<string, { name: string; handle: string; verified: boolean; avatar: string }> = {
+  'seller-alexkim': { name: 'Alex Kim', handle: 'alexkim', verified: true, avatar: 'https://i.pravatar.cc/150?u=alexkim' },
+  'seller-harbortime': { name: 'Harbor Time Co.', handle: 'harbortime', verified: true, avatar: 'https://i.pravatar.cc/150?u=harbortime' },
+  'seller-marcor': { name: 'Marco R.', handle: 'marcor', verified: false, avatar: 'https://i.pravatar.cc/150?u=marcor' },
+  'seller-cristianv': { name: 'Cristian V.', handle: 'cristianv', verified: true, avatar: 'https://i.pravatar.cc/150?u=cristianv' },
+  'seller-julesw': { name: 'Jules W.', handle: 'julesw', verified: false, avatar: 'https://i.pravatar.cc/150?u=julesw' },
+  'seller-dmitril': { name: 'Dmitri L.', handle: 'dmitril', verified: true, avatar: 'https://i.pravatar.cc/150?u=dmitril' },
+  'seller-yukit': { name: 'Yuki T.', handle: 'yukit', verified: true, avatar: 'https://i.pravatar.cc/150?u=yukit' },
 };
 
 function ListingCard({ listing }: { listing: NonNullable<ThreadMessage['listing']> }) {
@@ -121,9 +122,11 @@ export default function ChatThreadPage() {
         </Link>
         <Link href={`/design/u/${seller.handle}`} className="flex items-center gap-2.5">
           <div className="relative">
-            <div className="flex size-9 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">
-              {initials}
-            </div>
+            <img
+              src={seller.avatar}
+              alt={seller.name}
+              className="size-9 rounded-full object-cover bg-foreground"
+            />
             {seller.verified && (
               <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-blue-500 ring-1 ring-background">
                 <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-2">
@@ -215,12 +218,13 @@ export default function ChatThreadPage() {
               className="flex-1 resize-none rounded-2xl border border-border bg-muted/40 px-3.5 py-2 text-sm outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
             />
             <Button
-              size="sm"
-              className="shrink-0 rounded-full px-4"
+              size="icon"
+              className="shrink-0 rounded-full"
               onClick={sendMessage}
               disabled={!canSend}
+              aria-label="Send message"
             >
-              Send
+              <Forward className="size-4" />
             </Button>
           </div>
         </div>

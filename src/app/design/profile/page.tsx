@@ -23,9 +23,11 @@ export default function ProfilePage() {
     <div className="mx-auto max-w-lg pb-10">
       <div className="relative px-4 pb-4 pt-6">
         <div className="flex items-start gap-4">
-          <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-foreground text-xl font-bold text-background">
-            NK
-          </div>
+          <img
+            src="https://i.pravatar.cc/150?u=me-user"
+            alt="Nico K."
+            className="size-16 shrink-0 rounded-full object-cover bg-foreground"
+          />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-semibold text-foreground">Nico K.</h1>

@@ -2,23 +2,24 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Box,
+  Bookmark,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Heart,
-  MessageCircle,
-  MessagesSquare,
+  Reply,
   MoreHorizontal,
   Search,
-  ShieldCheck,
+  Send,
   Star,
   X,
 } from 'lucide-react';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -167,39 +168,145 @@ function SellerInitials({ name }: { name: string }) {
   return <>{(parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase()}</>;
 }
 
+function PhotoCarousel({ photos, alt }: { photos: string[]; alt: string }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || photos.length <= 1) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveIdx(Number((entry.target as HTMLElement).dataset.idx));
+          }
+        }
+      },
+      { root: container, threshold: 0.6 },
+    );
+    container.querySelectorAll('[data-idx]').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [photos.length]);
+
+  function scrollTo(idx: number) {
+    const container = containerRef.current;
+    if (!container) return;
+    container.scrollTo({ left: idx * container.offsetWidth, behavior: 'smooth' });
+  }
+
+  return (
+    <div className="relative">
+      <div
+        ref={containerRef}
+        className="flex snap-x snap-mandatory overflow-x-auto"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {photos.map((src, i) => (
+          <div key={i} data-idx={i} className="aspect-[4/3] w-full shrink-0 snap-start">
+            <Image
+              src={src}
+              alt={`${alt} — ${i + 1} of ${photos.length}`}
+              width={1200}
+              height={900}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        ))}
+      </div>
+
+      {photos.length > 1 && (
+        <>
+          {activeIdx > 0 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); scrollTo(activeIdx - 1); }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70"
+              aria-label="Previous photo"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+          )}
+          {activeIdx < photos.length - 1 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); scrollTo(activeIdx + 1); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70"
+              aria-label="Next photo"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          )}
+
+          <span className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+            {activeIdx + 1}/{photos.length}
+          </span>
+
+          <div className="absolute bottom-2.5 left-0 right-0 flex justify-center gap-1.5">
+            {photos.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); scrollTo(i); }}
+                className={cn(
+                  'size-1.5 rounded-full transition-all',
+                  i === activeIdx ? 'scale-125 bg-white' : 'bg-white/50',
+                )}
+                aria-label={`Photo ${i + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 type FakeComment = {
   id: string;
   author: string;
+  avatar: string;
   body: string;
   timeLabel: string;
+  likes: number;
 };
 
 function buildFakeComments(listing: Listing): FakeComment[] {
   const variants = [
     {
       author: 'Marco K.',
+      avatar: 'https://i.pravatar.cc/150?u=marco-k',
       body: `Is the ${listing.model} still available, and are there any scratches on the clasp?`,
       timeLabel: '14m ago',
+      likes: 7,
     },
     {
       author: 'Nina P.',
+      avatar: 'https://i.pravatar.cc/150?u=nina-p',
       body: `Love this one. ${listing.boxPapers} and ${listing.condition.toLowerCase()} makes it really compelling.`,
       timeLabel: '39m ago',
+      likes: 12,
     },
     {
       author: 'Samir T.',
+      avatar: 'https://i.pravatar.cc/150?u=samir-t',
       body: `Would you consider a trade plus cash, or are you only looking for a straight sale?`,
       timeLabel: '1h ago',
+      likes: 4,
     },
     {
       author: 'Jess A.',
+      avatar: 'https://i.pravatar.cc/150?u=jess-a',
       body: `Can you share a movement shot and maybe a quick lume photo in messages?`,
       timeLabel: '3h ago',
+      likes: 9,
     },
     {
       author: 'Theo R.',
+      avatar: 'https://i.pravatar.cc/150?u=theo-r',
       body: `Price feels fair for a ${listing.condition.toLowerCase()} example. Curious how much traction you’ve had so far.`,
       timeLabel: '5h ago',
+      likes: 3,
     },
   ];
 
@@ -218,129 +325,6 @@ function createInitialComments() {
 function commentInitials(name: string) {
   const parts = name.split(' ');
   return (parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '');
-}
-
-function CommentsDrawer({
-  comments,
-  listing,
-  onAddComment,
-  onClose,
-}: {
-  comments: FakeComment[];
-  listing: Listing;
-  onAddComment: (listingId: string, body: string) => void;
-  onClose: () => void;
-}) {
-  const [draft, setDraft] = useState('');
-  const [open, setOpen] = useState(true);
-
-  useEffect(() => {
-    setOpen(true);
-  }, [listing.id]);
-
-  useEffect(() => {
-    if (open) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      onClose();
-    }, DRAWER_ANIMATION_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [open, onClose]);
-
-  function submitComment() {
-    const trimmed = draft.trim();
-    if (!trimmed) return;
-    onAddComment(listing.id, trimmed);
-    setDraft('');
-  }
-
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetContent
-        side="bottom"
-        className="mx-auto flex w-full max-w-lg flex-col rounded-t-2xl border-x px-0"
-      >
-        <SheetTitle className="sr-only">Comments for {listing.model}</SheetTitle>
-        <SheetDescription className="sr-only">
-          Public comments on {listing.model}
-        </SheetDescription>
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-        </div>
-
-        <div className="border-b px-5 pb-4 pt-2">
-          <div className="mb-3 flex justify-end">
-            <SheetClose asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Close comments">
-                <X className="size-4" />
-              </Button>
-            </SheetClose>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold text-foreground">Comments</h2>
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{listing.model}</p>
-            </div>
-            <Badge variant="outline" className="gap-1 font-normal">
-              <MessageCircle className="size-3" />
-              {comments.length}
-            </Badge>
-          </div>
-        </div>
-
-        <div className="max-h-[55dvh] flex-1 overflow-y-auto px-5 py-4">
-          <div className="flex flex-col gap-3">
-            {comments.map((comment) => (
-              <Card key={comment.id} className="gap-0 py-0 shadow-none">
-                <CardHeader className="px-4 py-3">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="bg-foreground text-background after:border-foreground/10">
-                      <AvatarFallback className="bg-foreground text-xs font-semibold text-background">
-                        {commentInitials(comment.author).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <CardTitle className="text-sm font-semibold">{comment.author}</CardTitle>
-                        <CardDescription className="text-xs">{comment.timeLabel}</CardDescription>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="px-4 pb-4 pt-0">
-                  <p className="text-sm leading-relaxed text-foreground/85">{comment.body}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t bg-background px-5 py-4">
-          <div className="flex flex-col gap-3">
-            <Textarea
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Add a public comment..."
-              className="min-h-24 resize-none"
-            />
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground">
-                Comments are public on the listing thread.
-              </p>
-              <Button onClick={submitComment} disabled={!draft.trim()}>
-                <MessageCircle className="size-4" />
-                Comment
-              </Button>
-            </div>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
 }
 
 function ListingDrawer({ listing, onClose }: { listing: Listing; onClose: () => void }) {
@@ -386,14 +370,8 @@ function ListingDrawer({ listing, onClose }: { listing: Listing; onClose: () => 
             </SheetClose>
           </div>
 
-          <div className="mb-4 aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border/60">
-            <Image
-              src={listing.photo}
-              alt={listing.model}
-              width={1200}
-              height={900}
-              className="h-full w-full object-cover"
-            />
+          <div className="mb-4 overflow-hidden rounded-xl bg-muted ring-1 ring-border/60">
+            <PhotoCarousel photos={listing.photos} alt={listing.model} />
           </div>
 
           <h2 className="mb-3 text-lg font-semibold leading-snug text-foreground">{listing.model}</h2>
@@ -406,17 +384,6 @@ function ListingDrawer({ listing, onClose }: { listing: Listing; onClose: () => 
             </div>
           </div>
 
-          <div className="mb-3 flex flex-wrap gap-2">
-            <Badge variant="outline" className="gap-1 font-normal">
-              <ShieldCheck className="size-3" />
-              {listing.condition}
-            </Badge>
-            <Badge variant="outline" className="gap-1 font-normal">
-              <Box className="size-3" />
-              {listing.boxPapers}
-            </Badge>
-          </div>
-
           <p className="mb-4 text-sm leading-relaxed text-foreground/80">{listing.description}</p>
 
           <Card className="mb-5 gap-0 py-0 shadow-none">
@@ -425,6 +392,7 @@ function ListingDrawer({ listing, onClose }: { listing: Listing; onClose: () => 
               className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/30"
             >
               <Avatar size="lg" className="bg-foreground text-background after:border-foreground/10">
+                <AvatarImage src={listing.seller.avatar} alt={listing.seller.name} />
                 <AvatarFallback className="bg-foreground text-xs font-semibold text-background">
                   <SellerInitials name={listing.seller.name} />
                 </AvatarFallback>
@@ -446,7 +414,7 @@ function ListingDrawer({ listing, onClose }: { listing: Listing; onClose: () => 
                 href={`/design/messages/seller-${listing.seller.handle}?listing=${listing.id}`}
                 onClick={() => setOpen(false)}
               >
-                <MessagesSquare className="size-4" />
+                <Reply className="size-4 -scale-x-100" />
                 Reply to seller
               </Link>
             </Button>
@@ -474,11 +442,14 @@ export default function FeedPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [badgeFilter, setBadgeFilter] = useState<ListingBadge | 'all'>('all');
   const [openListing, setOpenListing] = useState<Listing | null>(null);
-  const [openComments, setOpenComments] = useState<Listing | null>(null);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [commentsByListing, setCommentsByListing] = useState<Record<string, FakeComment[]>>(
     createInitialComments,
   );
+  const [commentLikedIds, setCommentLikedIds] = useState<Set<string>>(new Set());
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [openCommentsId, setOpenCommentsId] = useState<string | null>(null);
 
   const suggestedSearches = SEARCH_RECOMMENDATIONS.filter((item) => {
     const haystack = `${item.title} ${item.subtitle}`.toLowerCase();
@@ -507,23 +478,37 @@ export default function FeedPage() {
     });
   }
 
-  function getCommentCount(id: string) {
-    return commentsByListing[id]?.length ?? 0;
-  }
-
-  function addComment(listingId: string, body: string) {
+  function addComment(listingId: string) {
+    const body = (commentDrafts[listingId] ?? '').trim();
+    if (!body) return;
     setCommentsByListing((prev) => {
       const nextComment: FakeComment = {
         id: `${listingId}-comment-${Date.now()}`,
         author: 'You',
+        avatar: 'https://i.pravatar.cc/150?u=me-user',
         body,
         timeLabel: 'Just now',
+        likes: 0,
       };
+      return { ...prev, [listingId]: [...(prev[listingId] ?? []), nextComment] };
+    });
+    setCommentDrafts((prev) => ({ ...prev, [listingId]: '' }));
+  }
 
-      return {
-        ...prev,
-        [listingId]: [...(prev[listingId] ?? []), nextComment],
-      };
+  function toggleCommentLike(commentId: string) {
+    setCommentLikedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(commentId)) next.delete(commentId); else next.add(commentId);
+      return next;
+    });
+  }
+
+  function toggleSave(listingId: string, event: React.MouseEvent) {
+    event.stopPropagation();
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(listingId)) next.delete(listingId); else next.add(listingId);
+      return next;
     });
   }
 
@@ -616,8 +601,14 @@ export default function FeedPage() {
         ) : (
           filtered.map((listing) => {
             const liked = likedIds.has(listing.id);
+            const saved = savedIds.has(listing.id);
             const likeCount = listing.likes + (liked ? 1 : 0);
-            const commentCount = getCommentCount(listing.id);
+            const allComments = commentsByListing[listing.id] ?? [];
+            const topComments = [...allComments]
+              .map((c) => ({ ...c, effectiveLikes: c.likes + (commentLikedIds.has(c.id) ? 1 : 0) }))
+              .sort((a, b) => b.effectiveLikes - a.effectiveLikes)
+              .slice(0, 3);
+            const commentDraft = commentDrafts[listing.id] ?? '';
 
             return (
               <Card key={listing.id} className="gap-0 py-0 shadow-sm">
@@ -629,6 +620,7 @@ export default function FeedPage() {
                       onClick={(event) => event.stopPropagation()}
                     >
                       <Avatar className="bg-foreground text-background after:border-foreground/10">
+                        <AvatarImage src={listing.seller.avatar} alt={listing.seller.name} />
                         <AvatarFallback className="bg-foreground text-sm font-bold text-background">
                           <SellerInitials name={listing.seller.name} />
                         </AvatarFallback>
@@ -660,22 +652,15 @@ export default function FeedPage() {
                   </div>
                 </CardHeader>
 
-                <button
-                  type="button"
-                  className="relative w-full cursor-pointer overflow-hidden bg-muted text-left"
-                  onClick={() => setOpenListing(listing)}
-                  aria-label={`View ${listing.model}`}
-                >
-                  <div className="aspect-[4/3] w-full">
-                    <Image
-                      src={listing.photo}
-                      alt={listing.model}
-                      width={1200}
-                      height={900}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                </button>
+                <div className="relative w-full overflow-hidden bg-muted">
+                  <button
+                    type="button"
+                    className="absolute inset-0 z-0"
+                    onClick={() => setOpenListing(listing)}
+                    aria-label={`View ${listing.model}`}
+                  />
+                  <PhotoCarousel photos={listing.photos} alt={listing.model} />
+                </div>
 
                 <CardContent className="px-4 pt-3 pb-3">
                   <div className="mb-2 flex items-start justify-between gap-3">
@@ -683,17 +668,6 @@ export default function FeedPage() {
                     <span className="shrink-0 text-base font-bold text-foreground">
                       {formatPrice(listing.price)}
                     </span>
-                  </div>
-
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    <Badge variant="outline" className="gap-1 font-normal">
-                      <ShieldCheck className="size-3" />
-                      {listing.condition}
-                    </Badge>
-                    <Badge variant="outline" className="gap-1 font-normal">
-                      <Box className="size-3" />
-                      {listing.boxPapers}
-                    </Badge>
                   </div>
 
                   <CardDescription className="text-sm leading-relaxed text-foreground/75">
@@ -709,6 +683,80 @@ export default function FeedPage() {
                   </Button>
 
                 </CardContent>
+
+                {/* ── Inline comments ── */}
+                <div className="border-t px-4 pt-3 pb-2">
+                  {topComments.length > 0 ? (
+                    <div className="mb-3 flex flex-col gap-2.5">
+                      {topComments.map((comment) => {
+                        const cLiked = commentLikedIds.has(comment.id);
+                        return (
+                          <div key={comment.id} className="flex items-start gap-2">
+                            <Avatar className="mt-0.5 size-6 shrink-0 bg-foreground text-background after:border-foreground/10">
+                              <AvatarImage src={comment.avatar} alt={comment.author} />
+                              <AvatarFallback className="bg-foreground text-[10px] font-semibold text-background">
+                                {commentInitials(comment.author).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs">
+                                <span className="font-semibold text-foreground">{comment.author}</span>
+                                {' '}
+                                <span className="text-foreground/75">{comment.body}</span>
+                              </p>
+                              <div className="mt-1 flex items-center gap-2">
+                                <span className="text-[10px] text-muted-foreground">{comment.timeLabel}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleCommentLike(comment.id)}
+                                  className={cn(
+                                    'flex items-center gap-0.5 text-[10px] font-medium transition-colors',
+                                    cLiked ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+                                  )}
+                                  aria-label={cLiked ? 'Unlike comment' : 'Like comment'}
+                                >
+                                  <Heart className={cn('size-3', cLiked && 'fill-current')} />
+                                  {comment.effectiveLikes}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {allComments.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={() => setOpenCommentsId(listing.id)}
+                          className="text-left text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          View all {allComments.length} comments
+                        </button>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {/* Comment input */}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={commentDraft}
+                      onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(listing.id); } }}
+                      placeholder="Add a comment…"
+                      className="h-8 flex-1 rounded-full bg-muted/40 px-3.5 text-xs"
+                    />
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      disabled={!commentDraft.trim()}
+                      onClick={() => addComment(listing.id)}
+                      aria-label="Post comment"
+                      className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                    >
+                      <Send className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
 
                 <CardFooter className="items-stretch bg-card p-0">
                   <Button
@@ -728,12 +776,14 @@ export default function FeedPage() {
 
                   <Button
                     variant="ghost"
-                    onClick={() => setOpenComments(listing)}
-                    aria-label={`Open ${commentCount} comments`}
-                    className="h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                    onClick={(event) => toggleSave(listing.id, event)}
+                    aria-label={saved ? 'Unsave listing' : 'Save listing'}
+                    className={cn(
+                      'h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground',
+                      saved && 'text-primary',
+                    )}
                   >
-                    <MessageCircle className="size-[18px]" />
-                    <span>{commentCount}</span>
+                    <Bookmark className={cn('size-[18px]', saved && 'fill-current')} />
                   </Button>
 
                   <Separator orientation="vertical" className="my-3 h-auto" />
@@ -743,7 +793,7 @@ export default function FeedPage() {
                       href={`/design/messages/seller-${listing.seller.handle}?listing=${listing.id}`}
                       aria-label="Reply to seller"
                     >
-                      <MessagesSquare className="size-[18px]" />
+                      <Reply className="size-[18px] -scale-x-100" />
                     </Link>
                   </Button>
                 </CardFooter>
@@ -756,14 +806,103 @@ export default function FeedPage() {
       {openListing ? (
         <ListingDrawer listing={openListing} onClose={() => setOpenListing(null)} />
       ) : null}
-      {openComments ? (
-        <CommentsDrawer
-          listing={openComments}
-          comments={commentsByListing[openComments.id] ?? []}
-          onAddComment={addComment}
-          onClose={() => setOpenComments(null)}
-        />
-      ) : null}
+
+      {/* ── Comments sheet ── */}
+      {(() => {
+        const commentsListing = openCommentsId ? LISTINGS.find((l) => l.id === openCommentsId) : null;
+        const allC = openCommentsId ? (commentsByListing[openCommentsId] ?? []) : [];
+        const sortedC = [...allC]
+          .map((c) => ({ ...c, effectiveLikes: c.likes + (commentLikedIds.has(c.id) ? 1 : 0) }))
+          .sort((a, b) => b.effectiveLikes - a.effectiveLikes);
+        const sheetDraft = openCommentsId ? (commentDrafts[openCommentsId] ?? '') : '';
+
+        return (
+          <Sheet open={!!openCommentsId} onOpenChange={(v) => { if (!v) setOpenCommentsId(null); }}>
+            <SheetContent
+              side="bottom"
+              className="mx-auto flex w-full max-w-lg flex-col rounded-t-2xl border-x px-0 pb-0"
+              style={{ maxHeight: '80dvh' }}
+            >
+              <SheetTitle className="border-b px-4 pb-3 text-sm font-semibold text-foreground">
+                {commentsListing ? `Comments · ${commentsListing.model}` : 'Comments'}
+              </SheetTitle>
+              <SheetDescription className="sr-only">All comments on this listing</SheetDescription>
+
+              {/* Scrollable comment list */}
+              <div className="flex-1 overflow-y-auto px-4 py-3">
+                {sortedC.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">No comments yet. Be the first!</p>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {sortedC.map((comment) => {
+                      const cLiked = commentLikedIds.has(comment.id);
+                      return (
+                        <div key={comment.id} className="flex items-start gap-3">
+                          <Avatar className="mt-0.5 size-8 shrink-0 bg-foreground text-background after:border-foreground/10">
+                            <AvatarImage src={comment.avatar} alt={comment.author} />
+                            <AvatarFallback className="bg-foreground text-[10px] font-semibold text-background">
+                              {commentInitials(comment.author).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm">
+                              <span className="font-semibold text-foreground">{comment.author}</span>
+                              {' '}
+                              <span className="text-foreground/80">{comment.body}</span>
+                            </p>
+                            <div className="mt-1.5 flex items-center gap-3">
+                              <span className="text-[11px] text-muted-foreground">{comment.timeLabel}</span>
+                              <button
+                                type="button"
+                                onClick={() => toggleCommentLike(comment.id)}
+                                className={cn(
+                                  'flex items-center gap-1 text-[11px] font-medium transition-colors',
+                                  cLiked ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+                                )}
+                                aria-label={cLiked ? 'Unlike comment' : 'Like comment'}
+                              >
+                                <Heart className={cn('size-3.5', cLiked && 'fill-current')} />
+                                {comment.effectiveLikes}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Sticky comment input */}
+              {openCommentsId && (
+                <div className="border-t px-4 py-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={sheetDraft}
+                      onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [openCommentsId]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(openCommentsId); } }}
+                      placeholder="Add a comment…"
+                      className="h-9 flex-1 rounded-full bg-muted/40 px-4 text-sm"
+                      autoFocus
+                    />
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      disabled={!sheetDraft.trim()}
+                      onClick={() => addComment(openCommentsId)}
+                      aria-label="Post comment"
+                      className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                    >
+                      <Send className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
+        );
+      })()}
+
     </div>
   );
 }
