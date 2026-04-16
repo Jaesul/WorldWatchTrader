@@ -79,9 +79,9 @@ export default function ProfilePage() {
       </div>
 
       {worldIdState === 'unverified' && (
-        <div className="mx-4 mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20">
-          <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Verify with World ID</p>
-          <p className="mt-0.5 text-xs text-amber-800/80 dark:text-amber-200/70">
+        <div className="mx-4 mb-4 rounded-xl border border-primary/30 bg-primary/10 p-4">
+          <p className="text-sm font-semibold text-primary">Verify with World ID</p>
+          <p className="mt-0.5 text-xs text-foreground/70">
             Link your World ID to unlock the World Verified badge, post listings, and message sellers.
           </p>
           <div className="mt-3 flex gap-2">

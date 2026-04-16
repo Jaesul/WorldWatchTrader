@@ -48,11 +48,11 @@ export default function DesignHomePage() {
           </p>
         </section>
 
-        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20">
-          <p className="text-sm font-semibold text-amber-950 dark:text-amber-100">
+        <section className="rounded-xl border border-primary/30 bg-primary/10 p-4">
+          <p className="text-sm font-semibold text-primary">
             Verification recommended
           </p>
-          <p className="mt-1 text-sm text-amber-900/90 dark:text-amber-200">
+          <p className="mt-1 text-sm text-foreground/80">
             Verify your profile to unlock listing and buying in production routes.
           </p>
           <div className="mt-3 flex gap-2">

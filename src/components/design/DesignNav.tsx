@@ -125,7 +125,7 @@ export function DesignNav() {
               </button>
             </div>
 
-            <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+            <div className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
               <strong>Design preview</strong> — runs on normal localhost. No World App, ngrok, or
               tunnel needed. Fake data is OK.
             </div>

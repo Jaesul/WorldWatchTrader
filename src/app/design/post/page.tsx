@@ -184,9 +184,9 @@ export default function NewListingPage() {
           </div>
         )}
 
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/20">
-          <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">World ID required to post</p>
-          <p className="mt-0.5 text-xs text-amber-800/80 dark:text-amber-200/70">In production, posting a listing requires a verified World ID. This prevents duplicate or bot accounts.</p>
+        <div className="rounded-xl border border-primary/30 bg-primary/10 p-3">
+          <p className="text-xs font-semibold text-primary">World ID required to post</p>
+          <p className="mt-0.5 text-xs text-foreground/70">In production, posting a listing requires a verified World ID. This prevents duplicate or bot accounts.</p>
         </div>
 
         <Button

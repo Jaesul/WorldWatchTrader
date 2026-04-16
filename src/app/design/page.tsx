@@ -125,7 +125,7 @@ const BADGE_META: Record<
     icon: Star,
     variant: 'outline',
     className:
-      'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+      'border-primary/40 bg-primary/10 text-primary',
   },
 };
 
@@ -456,7 +456,7 @@ function ListingDrawer({ listing, onClose }: { listing: Listing; onClose: () => 
               className={cn(
                 'min-w-24',
                 liked &&
-                  'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-400 dark:hover:bg-rose-950/40',
+                  'border-primary/40 bg-primary/15 text-primary hover:bg-primary/20',
               )}
             >
               <Heart className={cn('size-4', liked && 'fill-current')} />
@@ -717,7 +717,7 @@ export default function FeedPage() {
                     aria-label={`${liked ? 'Unlike' : 'Like'} listing, ${likeCount} likes`}
                     className={cn(
                       'h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground',
-                      liked && 'text-rose-500',
+                      liked && 'text-primary',
                     )}
                   >
                     <Heart className={cn('size-[18px]', liked && 'fill-current')} />
