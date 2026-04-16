@@ -3,13 +3,13 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import type { ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Filter,
   Heart,
   Reply,
   MoreHorizontal,
@@ -32,9 +32,10 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
-import { Textarea } from '@/components/ui/textarea';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { LISTINGS, formatPrice, type Badge as ListingBadge, type Listing } from '@/lib/design/data';
+import { toggleSave as toggleSaveListing } from '@/lib/design/interaction-store';
+import { useSavedIds } from '@/lib/design/use-saved-ids';
 import { cn } from '@/lib/utils';
 
 function OrbIcon({ className }: { className?: string }) {
@@ -68,17 +69,25 @@ function OrbIcon({ className }: { className?: string }) {
   );
 }
 
-const BADGE_FILTERS: {
-  key: ListingBadge | 'all';
-  label: string;
-  icon?: ComponentType<{ className?: string }>;
-}[] = [
-  { key: 'all', label: 'All' },
-  { key: 'world-verified', label: 'Verified', icon: OrbIcon },
-  { key: 'power-seller', label: 'Power Seller', icon: Star },
+type SortOption = 'price-asc' | 'price-desc' | 'newest' | 'oldest';
+
+function parsePostedAtMinutes(s: string): number {
+  const h = s.match(/^(\d+)h/);
+  const d = s.match(/^(\d+)d/);
+  if (h) return parseInt(h[1]) * 60;
+  if (d) return parseInt(d[1]) * 1440;
+  return 0;
+}
+
+const SELLER_FILTER_BADGES = [
+  ...new Set(
+    LISTINGS.flatMap((l) => l.seller.badges).filter((b): b is ListingBadge => b !== 'world-verified'),
+  ),
 ];
 
-const DRAWER_ANIMATION_MS = 300;
+const SELLER_BADGE_LABEL: Partial<Record<ListingBadge, string>> = {
+  'power-seller': 'Power Seller',
+};
 
 const SEARCH_RECOMMENDATIONS = [
   {
@@ -327,142 +336,52 @@ function commentInitials(name: string) {
   return (parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '');
 }
 
-function ListingDrawer({ listing, onClose }: { listing: Listing; onClose: () => void }) {
-  const [liked, setLiked] = useState(false);
-  const [open, setOpen] = useState(true);
-
-  useEffect(() => {
-    setOpen(true);
-  }, [listing.id]);
-
-  useEffect(() => {
-    if (open) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      onClose();
-    }, DRAWER_ANIMATION_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [open, onClose]);
-
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetContent
-        side="bottom"
-        className="mx-auto w-full max-w-lg rounded-t-2xl border-x px-0"
-      >
-        <SheetTitle className="sr-only">{listing.model}</SheetTitle>
-        <SheetDescription className="sr-only">
-          Listing details for @{listing.seller.handle}
-        </SheetDescription>
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-        </div>
-
-        <div className="max-h-[80dvh] overflow-y-auto px-5 pb-8 pt-2">
-          <div className="mb-3 flex justify-end">
-            <SheetClose asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Close listing">
-                <X className="size-4" />
-              </Button>
-            </SheetClose>
-          </div>
-
-          <div className="mb-4 overflow-hidden rounded-xl bg-muted ring-1 ring-border/60">
-            <PhotoCarousel photos={listing.photos} alt={listing.model} />
-          </div>
-
-          <h2 className="mb-3 text-lg font-semibold leading-snug text-foreground">{listing.model}</h2>
-
-          <div className="mb-2 flex items-start justify-between gap-3">
-            <p className="text-xl font-bold text-foreground">{formatPrice(listing.price)}</p>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Clock3 className="size-4" />
-              {listing.postedAt}
-            </div>
-          </div>
-
-          <p className="mb-4 text-sm leading-relaxed text-foreground/80">{listing.description}</p>
-
-          <Card className="mb-5 gap-0 py-0 shadow-none">
-            <Link
-              href={`/design/u/${listing.seller.handle}`}
-              className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/30"
-            >
-              <Avatar size="lg" className="bg-foreground text-background after:border-foreground/10">
-                <AvatarImage src={listing.seller.avatar} alt={listing.seller.name} />
-                <AvatarFallback className="bg-foreground text-xs font-semibold text-background">
-                  <SellerInitials name={listing.seller.name} />
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">{listing.seller.name}</p>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  {listing.seller.badges.slice(0, 2).map((badge) => (
-                    <BadgeChip key={badge} badge={badge} />
-                  ))}
-                </div>
-              </div>
-            </Link>
-          </Card>
-
-          <div className="flex gap-3">
-            <Button asChild className="flex-1">
-              <Link
-                href={`/design/messages/seller-${listing.seller.handle}?listing=${listing.id}`}
-                onClick={() => setOpen(false)}
-              >
-                <Reply className="size-4 -scale-x-100" />
-                Reply to seller
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setLiked((value) => !value)}
-              className={cn(
-                'min-w-24',
-                liked &&
-                  'border-primary/40 bg-primary/15 text-primary hover:bg-primary/20',
-              )}
-            >
-              <Heart className={cn('size-4', liked && 'fill-current')} />
-              {listing.likes + (liked ? 1 : 0)}
-            </Button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
 export default function FeedPage() {
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [badgeFilter, setBadgeFilter] = useState<ListingBadge | 'all'>('all');
-  const [openListing, setOpenListing] = useState<Listing | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption | null>(null);
+  const [sellerBadgeFilter, setSellerBadgeFilter] = useState<ListingBadge | null>(null);
+  const [worldVerified, setWorldVerified] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const savedIds = useSavedIds();
   const [commentsByListing, setCommentsByListing] = useState<Record<string, FakeComment[]>>(
     createInitialComments,
   );
   const [commentLikedIds, setCommentLikedIds] = useState<Set<string>>(new Set());
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
-  const [openCommentsId, setOpenCommentsId] = useState<string | null>(null);
+  const [expandedDescIds, setExpandedDescIds] = useState<Set<string>>(new Set());
+  const [expandedCommentsIds, setExpandedCommentsIds] = useState<Set<string>>(new Set());
 
   const suggestedSearches = SEARCH_RECOMMENDATIONS.filter((item) => {
     const haystack = `${item.title} ${item.subtitle}`.toLowerCase();
     return search.trim() === '' || haystack.includes(search.toLowerCase());
   }).slice(0, 5);
 
+  const hasFilters = sortBy !== null || sellerBadgeFilter !== null || worldVerified;
+  const hasNonVerifiedFilters = sortBy !== null || sellerBadgeFilter !== null;
+
+  function clearFilters() {
+    setSortBy(null);
+    setSellerBadgeFilter(null);
+    setWorldVerified(false);
+    setFilterOpen(false);
+  }
+
   const filtered = LISTINGS.filter((listing) => {
     const matchSearch =
       search.trim() === '' ||
       listing.model.toLowerCase().includes(search.toLowerCase()) ||
       listing.seller.name.toLowerCase().includes(search.toLowerCase());
-    const matchBadge = badgeFilter === 'all' || listing.seller.badges.includes(badgeFilter);
-    return matchSearch && matchBadge;
+    const matchVerified = !worldVerified || listing.seller.badges.includes('world-verified');
+    const matchBadge = !sellerBadgeFilter || listing.seller.badges.includes(sellerBadgeFilter);
+    return matchSearch && matchVerified && matchBadge;
+  }).sort((a, b) => {
+    if (sortBy === 'price-asc') return a.price - b.price;
+    if (sortBy === 'price-desc') return b.price - a.price;
+    if (sortBy === 'newest') return parsePostedAtMinutes(a.postedAt) - parsePostedAtMinutes(b.postedAt);
+    if (sortBy === 'oldest') return parsePostedAtMinutes(b.postedAt) - parsePostedAtMinutes(a.postedAt);
+    return 0;
   });
 
   function toggleLike(id: string, event: React.MouseEvent) {
@@ -503,13 +422,9 @@ export default function FeedPage() {
     });
   }
 
-  function toggleSave(listingId: string, event: React.MouseEvent) {
+  function handleSaveListing(listingId: string, event: React.MouseEvent) {
     event.stopPropagation();
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(listingId)) next.delete(listingId); else next.add(listingId);
-      return next;
-    });
+    toggleSaveListing(listingId);
   }
 
   return (
@@ -567,24 +482,77 @@ export default function FeedPage() {
           ) : null}
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-0.5">
-          {BADGE_FILTERS.map((filter) => {
-            const Icon = filter.icon;
-            const active = badgeFilter === filter.key;
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+          {/* Clear filters */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearFilters}
+            disabled={!hasFilters}
+            className="shrink-0 rounded-full"
+            aria-label="Clear all filters"
+          >
+            <X className="size-3.5" />
+          </Button>
 
-            return (
+          {/* Funnel button + expanding filter controls */}
+          <Button
+            variant={filterOpen || hasNonVerifiedFilters ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilterOpen((v) => !v)}
+            className="shrink-0 rounded-full"
+            aria-label="Toggle filters"
+            aria-expanded={filterOpen}
+          >
+            <Filter className="size-3.5" />
+          </Button>
+
+          <div
+            className={cn(
+              'flex items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out',
+              filterOpen ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0 pointer-events-none',
+            )}
+          >
+            <select
+              value={sortBy ?? ''}
+              onChange={(e) => setSortBy((e.target.value as SortOption) || null)}
+              className="h-8 shrink-0 cursor-pointer appearance-none rounded-full border border-border bg-background px-3 text-xs font-medium text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="">Sort by</option>
+              <option value="price-asc">Price: Low → High</option>
+              <option value="price-desc">Price: High → Low</option>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+
+            {SELLER_FILTER_BADGES.map((badge) => (
               <Button
-                key={filter.key}
-                variant={active ? 'default' : 'outline'}
+                key={badge}
+                variant={sellerBadgeFilter === badge ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setBadgeFilter(filter.key)}
+                onClick={() => setSellerBadgeFilter(sellerBadgeFilter === badge ? null : badge)}
                 className="shrink-0 rounded-full"
               >
-                {Icon ? <Icon className="size-3.5" /> : null}
-                {filter.label}
+                <Star className="size-3.5" />
+                {SELLER_BADGE_LABEL[badge] ?? badge}
               </Button>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* World Verified — standalone, multi-selects with funnel filters */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setWorldVerified((v) => !v)}
+            className={cn(
+              'shrink-0 rounded-full',
+              worldVerified &&
+                'border-world-verified bg-world-verified text-world-verified-foreground hover:bg-world-verified/90 hover:text-world-verified-foreground',
+            )}
+          >
+            <OrbIcon className="size-3.5" />
+            World Verified
+          </Button>
         </div>
       </div>
 
@@ -604,10 +572,11 @@ export default function FeedPage() {
             const saved = savedIds.has(listing.id);
             const likeCount = listing.likes + (liked ? 1 : 0);
             const allComments = commentsByListing[listing.id] ?? [];
-            const topComments = [...allComments]
+            const sortedComments = [...allComments]
               .map((c) => ({ ...c, effectiveLikes: c.likes + (commentLikedIds.has(c.id) ? 1 : 0) }))
-              .sort((a, b) => b.effectiveLikes - a.effectiveLikes)
-              .slice(0, 3);
+              .sort((a, b) => b.effectiveLikes - a.effectiveLikes);
+            const topComments = sortedComments.slice(0, 3);
+            const remainingComments = sortedComments.slice(3);
             const commentDraft = commentDrafts[listing.id] ?? '';
 
             return (
@@ -652,88 +621,143 @@ export default function FeedPage() {
                   </div>
                 </CardHeader>
 
-                <div className="relative w-full overflow-hidden bg-muted">
-                  <button
-                    type="button"
-                    className="absolute inset-0 z-0"
-                    onClick={() => setOpenListing(listing)}
-                    aria-label={`View ${listing.model}`}
-                  />
+                <div className="w-full overflow-hidden bg-muted">
                   <PhotoCarousel photos={listing.photos} alt={listing.model} />
                 </div>
 
                 <CardContent className="px-4 pt-3 pb-3">
-                  <div className="mb-2 flex items-start justify-between gap-3">
+                  <div className="mb-3 flex flex-col gap-1">
+                    <span className="text-base font-bold text-foreground">{formatPrice(listing.price)}</span>
                     <CardTitle className="text-base font-semibold leading-snug">{listing.model}</CardTitle>
-                    <span className="shrink-0 text-base font-bold text-foreground">
-                      {formatPrice(listing.price)}
-                    </span>
                   </div>
 
-                  <CardDescription className="text-sm leading-relaxed text-foreground/75">
-                    <span className="line-clamp-2">{listing.description}</span>
-                  </CardDescription>
-
-                  <Button
-                    variant="link"
-                    className="mt-1 h-auto px-0 text-sm text-muted-foreground hover:text-foreground"
-                    onClick={() => setOpenListing(listing)}
+                  <Collapsible
+                    open={expandedDescIds.has(listing.id)}
+                    onOpenChange={(open) => {
+                      setExpandedDescIds((prev) => {
+                        const next = new Set(prev);
+                        open ? next.add(listing.id) : next.delete(listing.id);
+                        return next;
+                      });
+                    }}
                   >
-                    See more
-                  </Button>
+                    <CardDescription className={cn(
+                      'text-sm leading-relaxed text-foreground/75',
+                      !expandedDescIds.has(listing.id) && 'line-clamp-2',
+                    )}>
+                      {listing.description}
+                    </CardDescription>
+
+                    <CollapsibleTrigger
+                      className="mt-1 cursor-pointer bg-transparent px-0 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {expandedDescIds.has(listing.id) ? 'See less' : 'See more'}
+                    </CollapsibleTrigger>
+                  </Collapsible>
 
                 </CardContent>
 
                 {/* ── Inline comments ── */}
                 <div className="border-t px-4 pt-3 pb-2">
                   {topComments.length > 0 ? (
-                    <div className="mb-3 flex flex-col gap-2.5">
-                      {topComments.map((comment) => {
-                        const cLiked = commentLikedIds.has(comment.id);
-                        return (
-                          <div key={comment.id} className="flex items-start gap-2">
-                            <Avatar className="mt-0.5 size-6 shrink-0 bg-foreground text-background after:border-foreground/10">
-                              <AvatarImage src={comment.avatar} alt={comment.author} />
-                              <AvatarFallback className="bg-foreground text-[10px] font-semibold text-background">
-                                {commentInitials(comment.author).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs">
-                                <span className="font-semibold text-foreground">{comment.author}</span>
-                                {' '}
-                                <span className="text-foreground/75">{comment.body}</span>
-                              </p>
-                              <div className="mt-1 flex items-center gap-2">
-                                <span className="text-[10px] text-muted-foreground">{comment.timeLabel}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleCommentLike(comment.id)}
-                                  className={cn(
-                                    'flex items-center gap-0.5 text-[10px] font-medium transition-colors',
-                                    cLiked ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
-                                  )}
-                                  aria-label={cLiked ? 'Unlike comment' : 'Like comment'}
-                                >
-                                  <Heart className={cn('size-3', cLiked && 'fill-current')} />
-                                  {comment.effectiveLikes}
-                                </button>
+                    <Collapsible
+                      open={expandedCommentsIds.has(listing.id)}
+                      onOpenChange={(open) => {
+                        setExpandedCommentsIds((prev) => {
+                          const next = new Set(prev);
+                          open ? next.add(listing.id) : next.delete(listing.id);
+                          return next;
+                        });
+                      }}
+                    >
+                      <div className="mb-3 flex flex-col gap-2.5">
+                        {topComments.map((comment) => {
+                          const cLiked = commentLikedIds.has(comment.id);
+                          return (
+                            <div key={comment.id} className="flex items-start gap-2">
+                              <Avatar className="mt-0.5 size-6 shrink-0 bg-foreground text-background after:border-foreground/10">
+                                <AvatarImage src={comment.avatar} alt={comment.author} />
+                                <AvatarFallback className="bg-foreground text-[10px] font-semibold text-background">
+                                  {commentInitials(comment.author).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs">
+                                  <span className="font-semibold text-foreground">{comment.author}</span>
+                                  {' '}
+                                  <span className="text-foreground/75">{comment.body}</span>
+                                </p>
+                                <div className="mt-1 flex items-center gap-2">
+                                  <span className="text-[10px] text-muted-foreground">{comment.timeLabel}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleCommentLike(comment.id)}
+                                    className={cn(
+                                      'flex items-center gap-0.5 text-[10px] font-medium transition-colors',
+                                      cLiked ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+                                    )}
+                                    aria-label={cLiked ? 'Unlike comment' : 'Like comment'}
+                                  >
+                                    <Heart className={cn('size-3', cLiked && 'fill-current')} />
+                                    {comment.effectiveLikes}
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
 
-                      {allComments.length > 3 && (
-                        <button
-                          type="button"
-                          onClick={() => setOpenCommentsId(listing.id)}
-                          className="text-left text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          View all {allComments.length} comments
-                        </button>
-                      )}
-                    </div>
+                        {remainingComments.length > 0 && (
+                          <>
+                            <CollapsibleContent>
+                              <div className="flex flex-col gap-2.5">
+                                {remainingComments.map((comment) => {
+                                  const cLiked = commentLikedIds.has(comment.id);
+                                  return (
+                                    <div key={comment.id} className="flex items-start gap-2">
+                                      <Avatar className="mt-0.5 size-6 shrink-0 bg-foreground text-background after:border-foreground/10">
+                                        <AvatarImage src={comment.avatar} alt={comment.author} />
+                                        <AvatarFallback className="bg-foreground text-[10px] font-semibold text-background">
+                                          {commentInitials(comment.author).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-xs">
+                                          <span className="font-semibold text-foreground">{comment.author}</span>
+                                          {' '}
+                                          <span className="text-foreground/75">{comment.body}</span>
+                                        </p>
+                                        <div className="mt-1 flex items-center gap-2">
+                                          <span className="text-[10px] text-muted-foreground">{comment.timeLabel}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleCommentLike(comment.id)}
+                                            className={cn(
+                                              'flex items-center gap-0.5 text-[10px] font-medium transition-colors',
+                                              cLiked ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+                                            )}
+                                            aria-label={cLiked ? 'Unlike comment' : 'Like comment'}
+                                          >
+                                            <Heart className={cn('size-3', cLiked && 'fill-current')} />
+                                            {comment.effectiveLikes}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </CollapsibleContent>
+
+                            <CollapsibleTrigger
+                              className="cursor-pointer bg-transparent text-left text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                              {expandedCommentsIds.has(listing.id) ? 'Show less' : `View all ${allComments.length} comments`}
+                            </CollapsibleTrigger>
+                          </>
+                        )}
+                      </div>
+                    </Collapsible>
                   ) : null}
 
                   {/* Comment input */}
@@ -774,20 +798,6 @@ export default function FeedPage() {
 
                   <Separator orientation="vertical" className="my-3 h-auto" />
 
-                  <Button
-                    variant="ghost"
-                    onClick={(event) => toggleSave(listing.id, event)}
-                    aria-label={saved ? 'Unsave listing' : 'Save listing'}
-                    className={cn(
-                      'h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground',
-                      saved && 'text-primary',
-                    )}
-                  >
-                    <Bookmark className={cn('size-[18px]', saved && 'fill-current')} />
-                  </Button>
-
-                  <Separator orientation="vertical" className="my-3 h-auto" />
-
                   <Button variant="ghost" asChild className="h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground">
                     <Link
                       href={`/design/messages/seller-${listing.seller.handle}?listing=${listing.id}`}
@@ -796,112 +806,26 @@ export default function FeedPage() {
                       <Reply className="size-[18px] -scale-x-100" />
                     </Link>
                   </Button>
+
+                  <Separator orientation="vertical" className="my-3 h-auto" />
+
+                  <Button
+                    variant="ghost"
+                    onClick={(event) => handleSaveListing(listing.id, event)}
+                    aria-label={saved ? 'Unsave listing' : 'Save listing'}
+                    className={cn(
+                      'h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground',
+                      saved && 'text-primary',
+                    )}
+                  >
+                    <Bookmark className={cn('size-[18px]', saved && 'fill-current')} />
+                  </Button>
                 </CardFooter>
               </Card>
             );
           })
         )}
       </div>
-
-      {openListing ? (
-        <ListingDrawer listing={openListing} onClose={() => setOpenListing(null)} />
-      ) : null}
-
-      {/* ── Comments sheet ── */}
-      {(() => {
-        const commentsListing = openCommentsId ? LISTINGS.find((l) => l.id === openCommentsId) : null;
-        const allC = openCommentsId ? (commentsByListing[openCommentsId] ?? []) : [];
-        const sortedC = [...allC]
-          .map((c) => ({ ...c, effectiveLikes: c.likes + (commentLikedIds.has(c.id) ? 1 : 0) }))
-          .sort((a, b) => b.effectiveLikes - a.effectiveLikes);
-        const sheetDraft = openCommentsId ? (commentDrafts[openCommentsId] ?? '') : '';
-
-        return (
-          <Sheet open={!!openCommentsId} onOpenChange={(v) => { if (!v) setOpenCommentsId(null); }}>
-            <SheetContent
-              side="bottom"
-              className="mx-auto flex w-full max-w-lg flex-col rounded-t-2xl border-x px-0 pb-0"
-              style={{ maxHeight: '80dvh' }}
-            >
-              <SheetTitle className="border-b px-4 pb-3 text-sm font-semibold text-foreground">
-                {commentsListing ? `Comments · ${commentsListing.model}` : 'Comments'}
-              </SheetTitle>
-              <SheetDescription className="sr-only">All comments on this listing</SheetDescription>
-
-              {/* Scrollable comment list */}
-              <div className="flex-1 overflow-y-auto px-4 py-3">
-                {sortedC.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">No comments yet. Be the first!</p>
-                ) : (
-                  <div className="flex flex-col gap-4">
-                    {sortedC.map((comment) => {
-                      const cLiked = commentLikedIds.has(comment.id);
-                      return (
-                        <div key={comment.id} className="flex items-start gap-3">
-                          <Avatar className="mt-0.5 size-8 shrink-0 bg-foreground text-background after:border-foreground/10">
-                            <AvatarImage src={comment.avatar} alt={comment.author} />
-                            <AvatarFallback className="bg-foreground text-[10px] font-semibold text-background">
-                              {commentInitials(comment.author).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm">
-                              <span className="font-semibold text-foreground">{comment.author}</span>
-                              {' '}
-                              <span className="text-foreground/80">{comment.body}</span>
-                            </p>
-                            <div className="mt-1.5 flex items-center gap-3">
-                              <span className="text-[11px] text-muted-foreground">{comment.timeLabel}</span>
-                              <button
-                                type="button"
-                                onClick={() => toggleCommentLike(comment.id)}
-                                className={cn(
-                                  'flex items-center gap-1 text-[11px] font-medium transition-colors',
-                                  cLiked ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
-                                )}
-                                aria-label={cLiked ? 'Unlike comment' : 'Like comment'}
-                              >
-                                <Heart className={cn('size-3.5', cLiked && 'fill-current')} />
-                                {comment.effectiveLikes}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Sticky comment input */}
-              {openCommentsId && (
-                <div className="border-t px-4 py-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={sheetDraft}
-                      onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [openCommentsId]: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(openCommentsId); } }}
-                      placeholder="Add a comment…"
-                      className="h-9 flex-1 rounded-full bg-muted/40 px-4 text-sm"
-                      autoFocus
-                    />
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      disabled={!sheetDraft.trim()}
-                      onClick={() => addComment(openCommentsId)}
-                      aria-label="Post comment"
-                      className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
-                    >
-                      <Send className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </SheetContent>
-          </Sheet>
-        );
-      })()}
 
     </div>
   );

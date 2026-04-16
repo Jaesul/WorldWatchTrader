@@ -41,7 +41,7 @@ export function OrbVerifiedMark({ className }: MarkProps) {
   return (
     <span
       className={cn(
-        'inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#1C3240] text-white shadow-md ring-2 ring-background sm:size-10 [&>svg]:size-[18px] sm:[&>svg]:size-5',
+        'inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-world-verified text-world-verified-foreground shadow-md ring-2 ring-background sm:size-10 [&>svg]:size-[18px] sm:[&>svg]:size-5',
         className,
       )}
       role="img"

@@ -17,7 +17,127 @@ export interface ThreadMessage {
   };
 }
 
-const store = new Map<string, ThreadMessage[]>();
+const SEED: Record<string, ThreadMessage[]> = {
+  'seller-alexkim': [
+    {
+      id: 'ak-1',
+      from: 'me',
+      sentAt: '9:14 AM',
+      listing: { id: '1', model: 'Rolex Submariner 126610LN', price: '$12,500', active: true },
+      text: 'Hi Alex — still have this Sub available?',
+    },
+    {
+      id: 'ak-2',
+      from: 'seller',
+      sentAt: '9:22 AM',
+      text: 'Hey! Yes, still available. Just had it serviced last month.',
+    },
+    {
+      id: 'ak-3',
+      from: 'me',
+      sentAt: '9:25 AM',
+      text: 'Nice — any flexibility on price? Would $12k work?',
+    },
+    {
+      id: 'ak-4',
+      from: 'seller',
+      sentAt: '9:31 AM',
+      text: 'I can do $12,200 — that\'s my firm. Full set really does command a premium.',
+    },
+    {
+      id: 'ak-5',
+      from: 'me',
+      sentAt: '9:33 AM',
+      text: 'Makes sense. Can you shoot me more photos of the clasp and bracelet end-links?',
+    },
+    {
+      id: 'ak-6',
+      from: 'seller',
+      sentAt: '9:41 AM',
+      text: 'On it — sending now. Crystal and clasp are both flawless, you\'ll see.',
+    },
+  ],
+  'seller-harbortime': [
+    {
+      id: 'ht-1',
+      from: 'me',
+      sentAt: '2:05 PM',
+      listing: { id: '2', model: 'Omega Speedmaster Professional Moonwatch', price: '$5,800', active: true },
+      text: 'Hello — is the Speedmaster still available?',
+    },
+    {
+      id: 'ht-2',
+      from: 'seller',
+      sentAt: '2:18 PM',
+      text: 'Yes, still here! Ready to ship same day. Service records from 2023 included.',
+    },
+    {
+      id: 'ht-3',
+      from: 'me',
+      sentAt: '2:20 PM',
+      text: 'Good to know. Does the bracelet have any stretch?',
+    },
+    {
+      id: 'ht-4',
+      from: 'seller',
+      sentAt: '2:27 PM',
+      text: 'Minimal — maybe one link on one side. Overall very clean for its age.',
+    },
+    {
+      id: 'ht-5',
+      from: 'me',
+      sentAt: '2:29 PM',
+      text: 'Alright, I\'m interested. What payment methods do you accept?',
+    },
+    {
+      id: 'ht-6',
+      from: 'seller',
+      sentAt: '2:35 PM',
+      text: 'Wire transfer or PayPal G&S. Happy to hold it 24 hrs with a deposit.',
+    },
+  ],
+  'seller-marcor': [
+    {
+      id: 'mr-1',
+      from: 'me',
+      sentAt: '11:02 AM',
+      listing: { id: '3', model: 'Patek Philippe Nautilus 5711/1A', price: '$120,000', active: true },
+      text: 'Interested in the 5711. Can you verify provenance?',
+    },
+    {
+      id: 'mr-2',
+      from: 'seller',
+      sentAt: '11:20 AM',
+      text: 'Sure. I have the original purchase receipt from an AD in Geneva, dated 2019.',
+    },
+    {
+      id: 'mr-3',
+      from: 'me',
+      sentAt: '11:23 AM',
+      text: 'Box only though — no papers at all?',
+    },
+    {
+      id: 'mr-4',
+      from: 'seller',
+      sentAt: '11:35 AM',
+      text: 'Correct. Previous owner misplaced the papers before I acquired it. Receipt more than covers it.',
+    },
+    {
+      id: 'mr-5',
+      from: 'me',
+      sentAt: '11:37 AM',
+      text: 'Understood. Would you be open to an in-person inspection in NYC?',
+    },
+    {
+      id: 'mr-6',
+      from: 'seller',
+      sentAt: '11:50 AM',
+      text: 'Absolutely — I\'m in Manhattan. We can arrange something next week, just let me know.',
+    },
+  ],
+};
+
+const store = new Map<string, ThreadMessage[]>(Object.entries(SEED));
 
 export function getMessages(threadId: string): ThreadMessage[] {
   return store.get(threadId) ?? [];

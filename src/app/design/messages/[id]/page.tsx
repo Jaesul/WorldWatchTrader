@@ -17,10 +17,6 @@ const SELLER_INFO: Record<string, { name: string; handle: string; verified: bool
   'seller-alexkim': { name: 'Alex Kim', handle: 'alexkim', verified: true, avatar: 'https://i.pravatar.cc/150?u=alexkim' },
   'seller-harbortime': { name: 'Harbor Time Co.', handle: 'harbortime', verified: true, avatar: 'https://i.pravatar.cc/150?u=harbortime' },
   'seller-marcor': { name: 'Marco R.', handle: 'marcor', verified: false, avatar: 'https://i.pravatar.cc/150?u=marcor' },
-  'seller-cristianv': { name: 'Cristian V.', handle: 'cristianv', verified: true, avatar: 'https://i.pravatar.cc/150?u=cristianv' },
-  'seller-julesw': { name: 'Jules W.', handle: 'julesw', verified: false, avatar: 'https://i.pravatar.cc/150?u=julesw' },
-  'seller-dmitril': { name: 'Dmitri L.', handle: 'dmitril', verified: true, avatar: 'https://i.pravatar.cc/150?u=dmitril' },
-  'seller-yukit': { name: 'Yuki T.', handle: 'yukit', verified: true, avatar: 'https://i.pravatar.cc/150?u=yukit' },
 };
 
 function ListingCard({ listing }: { listing: NonNullable<ThreadMessage['listing']> }) {
@@ -50,6 +46,9 @@ export default function ChatThreadPage() {
 
   const seller = SELLER_INFO[threadId] ?? { name: 'Seller', handle: threadId.replace('seller-', ''), verified: false };
   const initials = seller.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+
+  // Remember whether the user arrived via a listing reply — determines back destination.
+  const arrivedFromListing = useRef(!!listingParam);
 
   const [messages, setMessages] = useState<ThreadMessage[]>(() => getMessages(threadId));
   const [draft, setDraft] = useState('');
@@ -114,7 +113,7 @@ export default function ChatThreadPage() {
     <div className="flex flex-col">
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background px-4 py-3">
-        <Link href="/design/messages" className="text-muted-foreground transition-colors hover:text-foreground">
+        <Link href={arrivedFromListing.current ? '/design' : '/design/messages'} className="text-muted-foreground transition-colors hover:text-foreground">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-5">
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
@@ -128,7 +127,7 @@ export default function ChatThreadPage() {
               className="size-9 rounded-full object-cover bg-foreground"
             />
             {seller.verified && (
-              <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-blue-500 ring-1 ring-background">
+              <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-world-verified ring-1 ring-background">
                 <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-2">
                   <polyline points="2 6 5 9 10 3" />
                 </svg>

@@ -13,10 +13,6 @@ const KNOWN_THREADS: KnownThread[] = [
   { id: 'seller-alexkim', seller: { name: 'Alex Kim', handle: 'alexkim', verified: true, avatar: 'https://i.pravatar.cc/150?u=alexkim' } },
   { id: 'seller-harbortime', seller: { name: 'Harbor Time Co.', handle: 'harbortime', verified: true, avatar: 'https://i.pravatar.cc/150?u=harbortime' } },
   { id: 'seller-marcor', seller: { name: 'Marco R.', handle: 'marcor', verified: false, avatar: 'https://i.pravatar.cc/150?u=marcor' } },
-  { id: 'seller-cristianv', seller: { name: 'Cristian V.', handle: 'cristianv', verified: true, avatar: 'https://i.pravatar.cc/150?u=cristianv' } },
-  { id: 'seller-julesw', seller: { name: 'Jules W.', handle: 'julesw', verified: false, avatar: 'https://i.pravatar.cc/150?u=julesw' } },
-  { id: 'seller-dmitril', seller: { name: 'Dmitri L.', handle: 'dmitril', verified: true, avatar: 'https://i.pravatar.cc/150?u=dmitril' } },
-  { id: 'seller-yukit', seller: { name: 'Yuki T.', handle: 'yukit', verified: true, avatar: 'https://i.pravatar.cc/150?u=yukit' } },
 ];
 
 function Initials({ name }: { name: string }) {
@@ -51,7 +47,7 @@ function ThreadRow({ thread }: { thread: KnownThread }) {
           className="size-11 rounded-full object-cover bg-foreground"
         />
         {thread.seller.verified && (
-          <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-blue-500 ring-2 ring-background">
+          <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-world-verified ring-2 ring-background">
             <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="size-2.5">
               <polyline points="2 6 5 9 10 3" />
             </svg>
@@ -129,7 +125,7 @@ export default function MessagesPage() {
                   />
                   <span className="text-sm font-medium text-foreground">{t.seller.name}</span>
                   {t.seller.verified && (
-                    <span className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-full bg-blue-500">
+                    <span className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-full bg-world-verified">
                       <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="size-2.5">
                         <polyline points="2 6 5 9 10 3" />
                       </svg>
