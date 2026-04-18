@@ -14,7 +14,6 @@ import {
   Heart,
   LayoutGrid,
   List,
-  MessageCircle,
   Reply,
   MoreHorizontal,
   Search,
@@ -394,10 +393,6 @@ function ListingDetailDrawer({
               >
                 <Bookmark className={cn('size-3.5', saved && 'fill-current')} />
                 {saved ? 'Saved' : 'Save'}
-              </Button>
-              <Button variant="outline" size="sm" className="shrink-0 rounded-full text-muted-foreground">
-                <MessageCircle className="size-3.5" />
-                {comments.length}
               </Button>
             </div>
           </div>
