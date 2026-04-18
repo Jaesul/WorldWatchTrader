@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+      "world": {
+        "url": "https://docs.world.org/mcp"
+      },
+      "shadcn": {
+        "command": "npx",
+        "args": ["shadcn@latest", "mcp"]
+      }
+    }
+  }
