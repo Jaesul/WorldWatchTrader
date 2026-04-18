@@ -2,9 +2,13 @@
 
 import { TabItem, Tabs } from '@worldcoin/mini-apps-ui-kit-react';
 import { Home, List, MessageText, User } from 'iconoir-react';
+import { BadgePlus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useMemo } from 'react';
+
+import { navUsesBlueEnergy } from '@/lib/nav-blue-energy';
+import { cn } from '@/lib/utils';
 
 /**
  * Bottom navigation for mini apps (mobile-first).
@@ -27,24 +31,69 @@ function tabFromPathname(pathname: string): TabKey {
   return 'home';
 }
 
+const tabBlueEnergyClass =
+  'text-white/55 hover:text-white/80 data-[state=on]:text-white [&_span]:text-inherit';
+
 export const Navigation = () => {
   const pathname = usePathname();
   const router = useRouter();
   const value = useMemo(() => tabFromPathname(pathname ?? '/home'), [pathname]);
+  const blueEnergy = navUsesBlueEnergy(pathname);
+  const onNewListing = pathname?.startsWith('/listings/new') ?? false;
 
   return (
-    <Tabs
-      value={value}
-      onValueChange={(next) => {
-        const key = next as TabKey;
-        if (paths[key]) router.push(paths[key]);
-      }}
+    <div
+      className={cn(
+        'w-full border-t transition-colors duration-300',
+        blueEnergy ? 'border-white/15 bg-blue-energy' : 'border-border bg-card',
+      )}
     >
-      <TabItem value="home" icon={<Home />} label="Home" />
-      <TabItem value="listings" icon={<List />} label="Listings" />
-      <TabItem value="messages" icon={<MessageText />} label="Messages" />
-      <TabItem value="profile" icon={<User />} label="Profile" />
-    </Tabs>
+      <Tabs
+        value={value}
+        onValueChange={(next) => {
+          const key = next as TabKey;
+          if (paths[key]) router.push(paths[key]);
+        }}
+      >
+        <TabItem
+          value="home"
+          icon={<Home />}
+          label="Home"
+          className={blueEnergy ? tabBlueEnergyClass : undefined}
+        />
+        <TabItem
+          value="listings"
+          icon={<List />}
+          label="Listings"
+          className={blueEnergy ? tabBlueEnergyClass : undefined}
+        />
+        <TabItem
+          value="new-listing"
+          icon={<BadgePlus strokeWidth={1.8} />}
+          label="New"
+          className={cn(
+            blueEnergy
+              ? tabBlueEnergyClass
+              : onNewListing
+                ? 'text-primary data-[state=on]:text-primary [&_span]:text-primary'
+                : undefined,
+          )}
+          onClick={() => router.push('/listings/new')}
+        />
+        <TabItem
+          value="messages"
+          icon={<MessageText />}
+          label="Messages"
+          className={blueEnergy ? tabBlueEnergyClass : undefined}
+        />
+        <TabItem
+          value="profile"
+          icon={<User />}
+          label="Profile"
+          className={blueEnergy ? tabBlueEnergyClass : undefined}
+        />
+      </Tabs>
+    </div>
   );
 };
 
