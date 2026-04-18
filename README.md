@@ -14,11 +14,12 @@ This template is a way for you to quickly get started with authentication and ex
 2. Follow the instructions in the .env.local file
 3. Run `npm run dev`
 4. Run `ngrok http 3000`
-5. Run `npx auth secret` to update the `AUTH_SECRET` in the .env.local file
-6. Add your domain to the `allowedDevOrigins` in the next.config.ts file.
-7. [For Testing] If you're using a proxy like ngrok, you need to update the `AUTH_URL` in the .env.local file to your ngrok url.
-8. Continue to developer.worldcoin.org and make sure your app is connected to the right ngrok url
-9. [Optional] For Verify and Send Transaction to work you need to do some more setup in the dev portal. The steps are outlined in the respective component files.
+5. Run `npx auth secret` to set `AUTH_SECRET` in `.env.local` (see [Auth.js env](https://cli.authjs.dev)).
+6. Set `HMAC_SECRET_KEY` in `.env.local` (e.g. `openssl rand -base64 32`); wallet nonce signing uses it — see `.env.sample`.
+7. Add your domain to the `allowedDevOrigins` in the next.config.ts file.
+8. [For Testing] If you're using a proxy like ngrok, you need to update the `AUTH_URL` in the .env.local file to your ngrok url.
+9. Continue to developer.worldcoin.org and make sure your app is connected to the right ngrok url
+10. [Optional] For Verify and Send Transaction to work you need to do some more setup in the dev portal. The steps are outlined in the respective component files.
 
 **UX sandbox (browser only, no World):** Nico — [http://localhost:3000/design](http://localhost:3000/design) ([`NICO_WORK_PLAN.md`](./NICO_WORK_PLAN.md)). Jae — [http://localhost:3000/design/jae](http://localhost:3000/design/jae) ([`JAE_WORK_PLAN.md`](./JAE_WORK_PLAN.md)).
 

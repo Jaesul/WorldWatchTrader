@@ -27,7 +27,7 @@ declare module 'next-auth' {
 export const { handlers, signIn, signOut, auth } = NextAuth({
   // Required for dev (e.g. https localhost, custom port, ngrok) and some proxies — see https://errors.authjs.dev#untrustedhost
   trustHost: true,
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   session: { strategy: 'jwt' },
   providers: [
     Credentials({

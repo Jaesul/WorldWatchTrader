@@ -804,7 +804,8 @@ export default function FeedPage() {
                     onOpenChange={(open) => {
                       setExpandedDescIds((prev) => {
                         const next = new Set(prev);
-                        open ? next.add(listing.id) : next.delete(listing.id);
+                        if (open) next.add(listing.id);
+                        else next.delete(listing.id);
                         return next;
                       });
                     }}
@@ -826,7 +827,8 @@ export default function FeedPage() {
                       onOpenChange={(open) => {
                         setExpandedCommentsIds((prev) => {
                           const next = new Set(prev);
-                          open ? next.add(listing.id) : next.delete(listing.id);
+                          if (open) next.add(listing.id);
+                          else next.delete(listing.id);
                           return next;
                         });
                       }}

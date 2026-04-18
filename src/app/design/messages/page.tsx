@@ -15,11 +15,6 @@ const KNOWN_THREADS: KnownThread[] = [
   { id: 'seller-marcor', seller: { name: 'Marco R.', handle: 'marcor', verified: false, avatar: 'https://i.pravatar.cc/150?u=marcor' } },
 ];
 
-function Initials({ name }: { name: string }) {
-  const p = name.split(' ');
-  return <>{(p[0][0] + (p[1]?.[0] ?? '')).toUpperCase()}</>;
-}
-
 function ThreadRow({ thread }: { thread: KnownThread }) {
   const [lastMsg, setLastMsg] = useState(getLastMessage(thread.id));
   const [msgCount, setMsgCount] = useState(getMessages(thread.id).length);
