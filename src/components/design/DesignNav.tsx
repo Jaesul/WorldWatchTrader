@@ -30,9 +30,7 @@ const tabs = [
   {
     key: 'new-listing',
     href: '/design/post',
-    icon: (_active: boolean) => (
-      <BadgePlus strokeWidth={1.8} className="size-6" />
-    ),
+    icon: () => <BadgePlus strokeWidth={1.8} className="size-6" />,
   },
   {
     key: 'saved',
