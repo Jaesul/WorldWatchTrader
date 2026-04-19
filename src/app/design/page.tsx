@@ -141,12 +141,14 @@ const BADGE_META: Record<
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function OrbIcon({ className }: { className?: string }) {
+function OrbIcon({ className, inverted }: { className?: string; inverted?: boolean }) {
+  /** Use hex on blue chip: iOS WebView can fail to map theme tokens → SVG `currentColor`. */
+  const stroke = inverted ? '#ffffff' : 'currentColor';
   return (
     <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden>
-      <path d="M9.96783 18.9357C14.9206 18.9357 18.9357 14.9206 18.9357 9.96783C18.9357 5.01503 14.9206 1 9.96783 1C5.01503 1 1 5.01503 1 9.96783C1 14.9206 5.01503 18.9357 9.96783 18.9357Z" stroke="currentColor" strokeWidth="2" strokeMiterlimit="10" />
-      <path d="M10.0406 10.5109C11.5667 10.5109 12.8038 9.27372 12.8038 7.74762C12.8038 6.22152 11.5667 4.98438 10.0406 4.98438C8.51449 4.98438 7.27734 6.22152 7.27734 7.74762C7.27734 9.27372 8.51449 10.5109 10.0406 10.5109Z" stroke="currentColor" strokeWidth="2" strokeMiterlimit="10" />
-      <path d="M7.07422 13.9844H12.9767" stroke="currentColor" strokeWidth="2" strokeMiterlimit="10" />
+      <path d="M9.96783 18.9357C14.9206 18.9357 18.9357 14.9206 18.9357 9.96783C18.9357 5.01503 14.9206 1 9.96783 1C5.01503 1 1 5.01503 1 9.96783C1 14.9206 5.01503 18.9357 9.96783 18.9357Z" stroke={stroke} strokeWidth="2" strokeMiterlimit="10" />
+      <path d="M10.0406 10.5109C11.5667 10.5109 12.8038 9.27372 12.8038 7.74762C12.8038 6.22152 11.5667 4.98438 10.0406 4.98438C8.51449 4.98438 7.27734 6.22152 7.27734 7.74762C7.27734 9.27372 8.51449 10.5109 10.0406 10.5109Z" stroke={stroke} strokeWidth="2" strokeMiterlimit="10" />
+      <path d="M7.07422 13.9844H12.9767" stroke={stroke} strokeWidth="2" strokeMiterlimit="10" />
     </svg>
   );
 }
@@ -155,7 +157,7 @@ function BadgeChip({ badge }: { badge: ListingBadge }) {
   if (badge === 'world-verified') {
     return (
       <Badge variant="brand" className="size-6 rounded-full p-0 text-white" aria-label="World Verified">
-        <Image src="/orb.svg" alt="" width={12} height={12} className="size-4 brightness-0 invert" aria-hidden />
+        <OrbIcon className="size-3.5" inverted />
       </Badge>
     );
   }
@@ -582,15 +584,26 @@ export default function FeedPage() {
           className="relative mb-3"
           onBlur={() => { window.setTimeout(() => setSearchOpen(false), 100); }}
         >
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search Rolex, brands, sellers..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onFocus={() => setSearchOpen(true)}
-            className="h-10 rounded-full bg-muted/40 pl-9 pr-4"
-          />
+          {/*
+            Icon must sit beside a transparent input — a full-width input background paints over
+            absolutely positioned icons in the padding zone (looks like a hollow ring on iOS).
+          */}
+          <div className="flex min-h-10 items-center gap-0 rounded-full border border-border/60 bg-muted/40 px-1 shadow-sm focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/35">
+            <span className="pointer-events-none flex size-9 shrink-0 items-center justify-center text-muted-foreground" aria-hidden>
+              <Search className="size-4" strokeWidth={2.25} />
+            </span>
+            <Input
+              type="text"
+              inputMode="search"
+              enterKeyHint="search"
+              autoComplete="off"
+              placeholder="Search Rolex, brands, sellers..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onFocus={() => setSearchOpen(true)}
+              className="h-10 min-w-0 flex-1 border-0 bg-transparent py-0 pr-3 pl-0 text-base shadow-none md:text-sm focus-visible:border-0 focus-visible:ring-0"
+            />
+          </div>
           {searchOpen && suggestedSearches.length > 0 ? (
             <Card className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 gap-0 overflow-hidden border-border/70 py-0 shadow-lg">
               <CardHeader className="px-3 py-2.5">
@@ -623,9 +636,12 @@ export default function FeedPage() {
         </div>
 
         {/* Filter + view toggle row */}
-        <div className="flex items-center gap-2 pb-0.5">
+        <div className="flex min-w-0 items-center gap-2 pb-0.5">
           {/* Scrollable filters */}
-          <div className="flex flex-1 items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          <div
+            className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {/* Clear */}
             <Button variant="outline" size="sm" onClick={clearFilters} disabled={!hasFilters} className="shrink-0 rounded-full" aria-label="Clear all filters">
               <X className="size-3.5" />
@@ -704,9 +720,13 @@ export default function FeedPage() {
               variant="outline"
               size="sm"
               onClick={() => setWorldVerified((v) => !v)}
-              className={cn('shrink-0 rounded-full', worldVerified && 'border-world-verified bg-world-verified text-world-verified-foreground hover:bg-world-verified/90 hover:text-world-verified-foreground')}
+              className={cn(
+                'shrink-0 rounded-full',
+                worldVerified &&
+                  'border-world-verified bg-world-verified text-white hover:bg-world-verified/90 hover:text-white',
+              )}
             >
-              <OrbIcon className="size-3.5" />
+              <OrbIcon className="size-3.5 shrink-0" inverted={worldVerified} />
               World Verified
             </Button>
           </div>
