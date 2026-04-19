@@ -1,7 +1,8 @@
 'use client';
 import { walletAuth } from '@/auth/wallet';
-import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
+import { Button } from '@/components/ui/button';
 import { useMiniKit } from '@worldcoin/minikit-js/minikit-provider';
+import { LoaderCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
@@ -52,22 +53,20 @@ export const AuthButton = () => {
   }, [isInstalled]);
 
   return (
-    <LiveFeedback
-      label={{
-        failed: 'Failed to login',
-        pending: 'Logging in',
-        success: 'Logged in',
-      }}
-      state={isPending ? 'pending' : undefined}
-    >
-      <Button
-        onClick={onClick}
-        disabled={isPending}
-        size="lg"
-        variant="primary"
-      >
-        Login with Wallet
+    <div className="flex flex-col items-center gap-2">
+      <Button type="button" onClick={onClick} disabled={isPending || !isInstalled} size="lg" className="min-w-[200px]">
+        {isPending ? (
+          <>
+            <LoaderCircle className="size-4 animate-spin" aria-hidden />
+            Logging in…
+          </>
+        ) : (
+          'Login with Wallet'
+        )}
       </Button>
-    </LiveFeedback>
+      {!isInstalled ? (
+        <p className="text-center text-xs text-muted-foreground">Open in World App to sign in.</p>
+      ) : null}
+    </div>
   );
 };

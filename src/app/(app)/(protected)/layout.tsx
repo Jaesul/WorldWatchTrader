@@ -2,6 +2,9 @@ import { auth } from '@/auth';
 import { Navigation } from '@/components/Navigation';
 import { Page } from '@/components/PageLayout';
 
+/** Scoped to protected mini-app shell — `/design` and `(app)/` login never load this. */
+import '@worldcoin/mini-apps-ui-kit-react/styles.css';
+
 export default async function TabsLayout({
   children,
 }: {
