@@ -1,4 +1,5 @@
 import { hashNonce } from '@/auth/wallet/client-helpers';
+import { upsertUserFromSession } from '@/db/queries/users';
 import { MiniKit } from '@worldcoin/minikit-js';
 import type { MiniAppWalletAuthSuccessPayload } from '@worldcoin/minikit-js/commands';
 import { verifySiweMessage } from '@worldcoin/minikit-js/siwe';
@@ -64,6 +65,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
         // Optionally, fetch the user info from your own database
         const userInfo = await MiniKit.getUserInfo(finalPayload.address);
+        const walletAddress = userInfo.walletAddress ?? finalPayload.address;
+
+        await upsertUserFromSession({
+          id: finalPayload.address,
+          walletAddress,
+          username: userInfo.username ?? '',
+          profilePictureUrl: userInfo.profilePictureUrl,
+        });
 
         return {
           id: finalPayload.address,
@@ -86,7 +95,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: async ({ session, token }) => {
       if (token.userId) {
         session.user.id = token.userId as string;
-        session.user.walletAddress = token.address as string;
+        session.user.walletAddress = token.walletAddress as string;
         session.user.username = token.username as string;
         session.user.profilePictureUrl = token.profilePictureUrl as string;
       }
