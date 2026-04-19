@@ -94,6 +94,9 @@
   --world-verified-foreground: oklch(1 0 0);
   --blue-energy: oklch(0.22 0.055 264);
 
+  /* Dark nav bar (matches prussian family, slightly lifted for contrast) */
+  --blue-energy: oklch(0.22 0.055 264);
+
   /* ── Charts (granite → lemon ramp) ───────────────────────────── */
   --chart-1: oklch(0.875 0.145 76);    /* amber-gold       */
   --chart-2: oklch(0.750 0.110 90);    /* amber-sage       */
