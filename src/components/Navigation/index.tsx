@@ -1,7 +1,7 @@
 'use client';
 
 import { TabItem, Tabs } from '@worldcoin/mini-apps-ui-kit-react';
-import { Home, List, MessageText, User } from 'iconoir-react';
+import { DesignNib, Home, List, MessageText, User } from 'iconoir-react';
 import { BadgePlus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -48,51 +48,68 @@ export const Navigation = () => {
         blueEnergy ? 'border-white/15 bg-blue-energy' : 'border-border bg-card',
       )}
     >
-      <Tabs
-        value={value}
-        onValueChange={(next) => {
-          const key = next as TabKey;
-          if (paths[key]) router.push(paths[key]);
-        }}
-      >
-        <TabItem
-          value="home"
-          icon={<Home />}
-          label="Home"
-          className={blueEnergy ? tabBlueEnergyClass : undefined}
-        />
-        <TabItem
-          value="listings"
-          icon={<List />}
-          label="Listings"
-          className={blueEnergy ? tabBlueEnergyClass : undefined}
-        />
-        <TabItem
-          value="new-listing"
-          icon={<BadgePlus strokeWidth={1.8} />}
-          label="New"
+      <div className="flex w-full items-stretch">
+        <div className="min-w-0 flex-1">
+          <Tabs
+            value={value}
+            onValueChange={(next) => {
+              const key = next as TabKey;
+              if (paths[key]) router.push(paths[key]);
+            }}
+          >
+            <TabItem
+              value="home"
+              icon={<Home />}
+              label="Home"
+              className={blueEnergy ? tabBlueEnergyClass : undefined}
+            />
+            <TabItem
+              value="listings"
+              icon={<List />}
+              label="Listings"
+              className={blueEnergy ? tabBlueEnergyClass : undefined}
+            />
+            <TabItem
+              value="new-listing"
+              icon={<BadgePlus strokeWidth={1.8} />}
+              label="New"
+              className={cn(
+                blueEnergy
+                  ? tabBlueEnergyClass
+                  : onNewListing
+                    ? 'text-primary data-[state=on]:text-primary [&_span]:text-primary'
+                    : undefined,
+              )}
+              onClick={() => router.push('/listings/new')}
+            />
+            <TabItem
+              value="messages"
+              icon={<MessageText />}
+              label="Messages"
+              className={blueEnergy ? tabBlueEnergyClass : undefined}
+            />
+            <TabItem
+              value="profile"
+              icon={<User />}
+              label="Profile"
+              className={blueEnergy ? tabBlueEnergyClass : undefined}
+            />
+          </Tabs>
+        </div>
+        <Link
+          href="/design"
           className={cn(
+            'flex min-w-[3.25rem] shrink-0 flex-col items-center justify-center gap-0.5 border-l px-1 py-2 text-[10px] font-medium leading-none transition-colors',
             blueEnergy
-              ? tabBlueEnergyClass
-              : onNewListing
-                ? 'text-primary data-[state=on]:text-primary [&_span]:text-primary'
-                : undefined,
+              ? 'border-white/15 text-white/60 hover:bg-white/10 hover:text-white'
+              : 'border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground',
           )}
-          onClick={() => router.push('/listings/new')}
-        />
-        <TabItem
-          value="messages"
-          icon={<MessageText />}
-          label="Messages"
-          className={blueEnergy ? tabBlueEnergyClass : undefined}
-        />
-        <TabItem
-          value="profile"
-          icon={<User />}
-          label="Profile"
-          className={blueEnergy ? tabBlueEnergyClass : undefined}
-        />
-      </Tabs>
+          aria-label="Design prototype"
+        >
+          <DesignNib className="size-6" />
+          <span>Design</span>
+        </Link>
+      </div>
     </div>
   );
 };
