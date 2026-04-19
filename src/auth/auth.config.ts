@@ -17,8 +17,12 @@ declare module 'next-auth' {
 }
 
 /**
- * Edge-safe Auth.js config (middleware / Vercel Edge).
- * No Node-only providers or crypto — those live in `src/auth/index.ts`.
+ * Shared Auth.js config (JWT callbacks, trustHost, secret).
+ * Used by the full `NextAuth` instance in `src/auth/index.ts`.
+ *
+ * We intentionally do **not** mount `NextAuth(...).auth` as Next.js middleware:
+ * Vercel Edge still bundles `next-auth` there and can flag unsupported Node APIs.
+ * Use `auth()` from `@/auth` in layouts / route handlers for session checks.
  */
 export const authConfig = {
   trustHost: true,
