@@ -1,6 +1,7 @@
 'use server';
 import crypto from 'crypto';
 import { hashNonce } from './client-helpers';
+
 /**
  * Generates a new random nonce and its corresponding HMAC signature.
  * @async

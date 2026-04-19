@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
   Bookmark,
@@ -17,7 +18,7 @@ import {
   Reply,
   MoreHorizontal,
   Search,
-  Send,
+  ArrowUp,
   Star,
   X,
 } from 'lucide-react';
@@ -47,6 +48,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { LISTINGS, formatPrice, type Badge as ListingBadge, type Listing } from '@/lib/design/data';
 import { toggleSave as toggleSaveListing } from '@/lib/design/interaction-store';
 import { useSavedIds } from '@/lib/design/use-saved-ids';
+import { hasListingRef } from '@/lib/design/thread-store';
 import { cn } from '@/lib/utils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -270,6 +272,7 @@ type DrawerProps = {
   onToggleLike: () => void;
   saved: boolean;
   onToggleSave: () => void;
+  onReply: () => void;
   comments: RichComment[];
   commentLikedIds: Set<string>;
   onToggleCommentLike: (id: string) => void;
@@ -287,6 +290,7 @@ function ListingDetailDrawer({
   onToggleLike,
   saved,
   onToggleSave,
+  onReply,
   comments,
   commentLikedIds,
   onToggleCommentLike,
@@ -370,11 +374,9 @@ function ListingDetailDrawer({
 
             {/* Action chips */}
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-              <Button asChild size="sm" className="shrink-0 rounded-full">
-                <Link href={`/design/messages/seller-${listing.seller.handle}?listing=${listing.id}`}>
-                  <Reply className="size-3.5 -scale-x-100" />
-                  Reply to seller
-                </Link>
+              <Button size="sm" className="shrink-0 rounded-full" onClick={onReply}>
+                <Reply className="size-3.5 -scale-x-100" />
+                Reply to seller
               </Button>
               <Button
                 variant="outline"
@@ -459,19 +461,21 @@ function ListingDetailDrawer({
               onChange={(e) => onCommentDraftChange(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAddComment(); } }}
               placeholder="Add a comment…"
-              className="h-9 flex-1 rounded-full bg-muted/40 px-4 text-sm"
+              className="h-9 min-w-0 flex-1 rounded-full bg-muted/40 px-4 text-sm"
               autoFocus={false}
             />
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              disabled={!commentDraft.trim()}
-              onClick={onAddComment}
-              aria-label="Post comment"
-              className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
-            >
-              <Send className="size-4" />
-            </Button>
+            {commentDraft.trim() ? (
+              <Button
+                type="button"
+                size="icon-lg"
+                variant="default"
+                onClick={onAddComment}
+                aria-label="Post comment"
+                className="size-9 shrink-0 rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95"
+              >
+                <ArrowUp className="size-4 stroke-[2.5]" />
+              </Button>
+            ) : null}
           </div>
         </div>
       </SheetContent>
@@ -482,6 +486,7 @@ function ListingDetailDrawer({
 // ── Feed Page ─────────────────────────────────────────────────────────────────
 
 export default function FeedPage() {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption | null>(null);
@@ -564,6 +569,15 @@ export default function FeedPage() {
   function handleSaveListing(listingId: string, event: React.MouseEvent) {
     event.stopPropagation();
     toggleSaveListing(listingId);
+  }
+
+  function replyToListing(listing: Listing) {
+    const threadId = `seller-${listing.seller.handle}`;
+    if (hasListingRef(threadId, listing.id)) {
+      router.push(`/design/messages/${threadId}?toast=already-replied`);
+    } else {
+      router.push(`/design/messages/${threadId}?listing=${listing.id}`);
+    }
   }
 
   // Drawer helpers
@@ -903,11 +917,20 @@ export default function FeedPage() {
                       onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(listing.id); } }}
                       placeholder="Add a comment…"
-                      className="h-8 flex-1 rounded-full bg-muted/40 px-3.5 text-xs"
+                      className="h-8 min-w-0 flex-1 rounded-full bg-muted/40 px-3.5 text-xs"
                     />
-                    <Button size="icon-sm" variant="ghost" disabled={!commentDraft.trim()} onClick={() => addComment(listing.id)} aria-label="Post comment" className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30">
-                      <Send className="size-3.5" />
-                    </Button>
+                    {commentDraft.trim() ? (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="default"
+                        onClick={() => addComment(listing.id)}
+                        aria-label="Post comment"
+                        className="size-8 shrink-0 rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95"
+                      >
+                        <ArrowUp className="size-3.5 stroke-[2.5]" />
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
 
@@ -922,10 +945,13 @@ export default function FeedPage() {
                     <span>{likeCount}</span>
                   </Button>
                   <Separator orientation="vertical" className="my-3 h-auto" />
-                  <Button variant="ghost" asChild className="h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground">
-                    <Link href={`/design/messages/seller-${listing.seller.handle}?listing=${listing.id}`} aria-label="Reply to seller">
-                      <Reply className="size-[18px] -scale-x-100" />
-                    </Link>
+                  <Button
+                    variant="ghost"
+                    aria-label="Reply to seller"
+                    onClick={() => replyToListing(listing)}
+                    className="h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                  >
+                    <Reply className="size-[18px] -scale-x-100" />
                   </Button>
                   <Separator orientation="vertical" className="my-3 h-auto" />
                   <Button
@@ -1019,14 +1045,14 @@ export default function FeedPage() {
                       {likeCount}
                     </button>
 
-                    <Link
-                      href={`/design/messages/seller-${listing.seller.handle}?listing=${listing.id}`}
-                      onClick={(e) => e.stopPropagation()}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); replyToListing(listing); }}
                       className="flex min-h-8 min-w-8 items-center justify-center rounded-full p-1.5 text-muted-foreground transition-colors hover:text-foreground"
                       aria-label="Reply to seller"
                     >
                       <Reply className="size-3.5 -scale-x-100" />
-                    </Link>
+                    </button>
 
                     <button
                       type="button"
@@ -1059,6 +1085,7 @@ export default function FeedPage() {
           })}
           saved={savedIds.has(drawerListing.id)}
           onToggleSave={() => toggleSaveListing(drawerListing.id)}
+          onReply={() => { setDrawerListing(null); replyToListing(drawerListing); }}
           comments={drawerComments}
           commentLikedIds={commentLikedIds}
           onToggleCommentLike={toggleCommentLike}

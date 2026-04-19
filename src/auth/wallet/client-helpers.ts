@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+
 /**
  * Generates an HMAC-SHA256 hash of the provided nonce using a secret key from the environment.
  * @param {Object} params - The parameters object.

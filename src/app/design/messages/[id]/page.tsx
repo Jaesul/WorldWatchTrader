@@ -12,6 +12,7 @@ import {
   type ThreadMessage,
 } from '@/lib/design/thread-store';
 import { getListingById, formatPrice } from '@/lib/design/data';
+import { cn } from '@/lib/utils';
 
 const SELLER_INFO: Record<string, { name: string; handle: string; verified: boolean; avatar: string }> = {
   'seller-alexkim': { name: 'Alex Kim', handle: 'alexkim', verified: true, avatar: 'https://i.pravatar.cc/150?u=alexkim' },
@@ -42,6 +43,7 @@ export default function ChatThreadPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const listingParam = searchParams.get('listing');
+  const toastParam = searchParams.get('toast');
   const threadId = params.id;
 
   const seller = SELLER_INFO[threadId] ?? { name: 'Seller', handle: threadId.replace('seller-', ''), verified: false };
@@ -53,6 +55,8 @@ export default function ChatThreadPage() {
   const [draft, setDraft] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Staged listing: the card pinned above the compose bar, waiting to be sent.
   // We only stage it if it hasn't already been sent in this thread.
@@ -85,6 +89,19 @@ export default function ChatThreadPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
+
+  // Show "already replied" toast when navigated here with ?toast=already-replied
+  useEffect(() => {
+    if (toastParam !== 'already-replied') return;
+    // Strip the param immediately so refresh / back-nav doesn't re-show it
+    router.replace(`/design/messages/${threadId}`);
+    setToastVisible(true);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastVisible(false), 3000);
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, [toastParam, threadId, router]);
 
   function sendMessage() {
     const text = draft.trim();
@@ -170,6 +187,18 @@ export default function ChatThreadPage() {
           ))
         )}
         <div ref={bottomRef} />
+      </div>
+
+      {/* Already-replied toast — floats above the compose bar */}
+      <div
+        className={cn(
+          'pointer-events-none fixed left-0 right-0 z-30 flex justify-center transition-all duration-300',
+          toastVisible ? 'bottom-[135px] opacity-100' : 'bottom-[115px] opacity-0',
+        )}
+      >
+        <div className="rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background shadow-lg">
+          You&apos;ve already replied to this seller&apos;s listing
+        </div>
       </div>
 
       {/* Compose bar — fixed above bottom nav */}
