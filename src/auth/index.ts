@@ -2,33 +2,16 @@ import { hashNonce } from '@/auth/wallet/client-helpers';
 import { MiniKit } from '@worldcoin/minikit-js';
 import type { MiniAppWalletAuthSuccessPayload } from '@worldcoin/minikit-js/commands';
 import { verifySiweMessage } from '@worldcoin/minikit-js/siwe';
-import NextAuth, { type DefaultSession } from 'next-auth';
+import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
-declare module 'next-auth' {
-  interface User {
-    walletAddress: string;
-    username: string;
-    profilePictureUrl: string;
-  }
+import { authConfig } from './auth.config';
 
-  interface Session {
-    user: {
-      walletAddress: string;
-      username: string;
-      profilePictureUrl: string;
-    } & DefaultSession['user'];
-  }
-}
-
-// Auth configuration for Wallet Auth based sessions
+// Auth configuration for Wallet Auth based sessions (Node runtime — API routes, RSC, etc.)
 // For more information on each option (and a full list of options) go to
 // https://authjs.dev/getting-started/authentication/credentials
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  // Required for dev (e.g. https localhost, custom port, ngrok) and some proxies — see https://errors.authjs.dev#untrustedhost
-  trustHost: true,
-  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  session: { strategy: 'jwt' },
+  ...authConfig,
   providers: [
     Credentials({
       name: 'World App Wallet',
@@ -72,26 +55,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.userId = user.id;
-        token.walletAddress = user.walletAddress;
-        token.username = user.username;
-        token.profilePictureUrl = user.profilePictureUrl;
-      }
-
-      return token;
-    },
-    session: async ({ session, token }) => {
-      if (token.userId) {
-        session.user.id = token.userId as string;
-        session.user.walletAddress = token.address as string;
-        session.user.username = token.username as string;
-        session.user.profilePictureUrl = token.profilePictureUrl as string;
-      }
-
-      return session;
-    },
-  },
 });
