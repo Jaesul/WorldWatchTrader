@@ -45,7 +45,6 @@ export default function ChatThreadPage() {
   const threadId = params.id;
 
   const seller = SELLER_INFO[threadId] ?? { name: 'Seller', handle: threadId.replace('seller-', ''), verified: false };
-  const initials = seller.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
 
   // Remember whether the user arrived via a listing reply — determines back destination.
   const arrivedFromListing = useRef(!!listingParam);

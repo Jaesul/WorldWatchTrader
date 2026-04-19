@@ -41,6 +41,7 @@
   --color-card: var(--card);
   --color-world-verified: var(--world-verified);
   --color-world-verified-foreground: var(--world-verified-foreground);
+  --color-blue-energy: var(--blue-energy);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -91,6 +92,7 @@
   /* ── World Verified badge (Sky Blue — reserved) ─────────────── */
   --world-verified:            oklch(0.625 0.188 252);   /* #4392f1        */
   --world-verified-foreground: oklch(1 0 0);
+  --blue-energy: oklch(0.22 0.055 264);
 
   /* ── Charts (granite → lemon ramp) ───────────────────────────── */
   --chart-1: oklch(0.875 0.145 76);    /* amber-gold       */
@@ -132,6 +134,7 @@
   --ring:               oklch(0.875 0.145 76);
   --world-verified:            oklch(0.625 0.188 252);
   --world-verified-foreground: oklch(1 0 0);
+  --blue-energy: oklch(0.22 0.055 264);
   --chart-1: oklch(0.875 0.145 76);
   --chart-2: oklch(0.750 0.110 90);
   --chart-3: oklch(0.585 0.020 308);
