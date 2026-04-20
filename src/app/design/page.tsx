@@ -665,7 +665,12 @@ export default function FeedPage() {
                 <SheetTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex h-8 w-fit max-w-full shrink-0 cursor-pointer items-center gap-1 rounded-full border border-border bg-background px-3 text-xs font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring"
+                    className={cn(
+                      'inline-flex h-8 w-fit max-w-full shrink-0 cursor-pointer items-center gap-1 rounded-full border px-3 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                      sortBy !== null
+                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'border-border bg-background text-foreground hover:bg-muted/60',
+                    )}
                     aria-haspopup="dialog"
                     aria-expanded={sortSheetOpen}
                   >
@@ -684,7 +689,7 @@ export default function FeedPage() {
                         key={value}
                         type="button"
                         onClick={() => { setSortBy(value); setSortSheetOpen(false); }}
-                        className={cn('rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors', sortBy === value ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-background hover:bg-muted/50')}
+                        className={cn('rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors', sortBy === value ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background hover:bg-muted/50')}
                       >
                         {label}
                       </button>
