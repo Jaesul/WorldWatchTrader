@@ -24,7 +24,6 @@ This platform replaces that pattern with a portable, verified identity and a per
 
 ### Core design principles
 
-
 | Principle              | What it means                                                                                             |
 | ---------------------- | --------------------------------------------------------------------------------------------------------- |
 | **Listing-first UX**   | The feed is the default entry point. Every interaction traces back to a listing.                          |
@@ -32,13 +31,11 @@ This platform replaces that pattern with a portable, verified identity and a per
 | **Seller continuity**  | Replying to any listing opens a shared seller thread — enabling bundle conversations without duplication. |
 | **Minimal friction**   | Posting a listing requires only 3 required fields. Browsing requires no account.                          |
 
-
 ---
 
 ## 02 — Navigation & Global Layout
 
 ### Bottom navigation bar
-
 
 | Tab          | Icon (suggested)      | Default view      | Notes                                 |
 | ------------ | --------------------- | ----------------- | ------------------------------------- |
@@ -48,9 +45,7 @@ This platform replaces that pattern with a portable, verified identity and a per
 | **Saved**    | Bookmark / heart      | —                 | Liked / saved listings (TBD)          |
 | **Profile**  | Avatar / circle       | —                 | Bottom-right corner                   |
 
-
 ### Screen inventory
-
 
 | Screen          | Design sandbox URL       | Production URL (after merge) | Purpose                                    |
 | --------------- | ------------------------ | ---------------------------- | ------------------------------------------ |
@@ -63,20 +58,17 @@ This platform replaces that pattern with a portable, verified identity and a per
 | Profile (other) | `/design/u/[handle]`     | `/u/[handle]`                | Read-only trust surface for another user   |
 | Rating / Review | —                        | `/rate/:transactionId`       | Post-sale mutual thumbs up/down review     |
 
-
 ---
 
 ## 03 — Feed (Landing Page)
 
 ### Default behavior
 
-
 | Property         | Spec                                                                                 |
 | ---------------- | ------------------------------------------------------------------------------------ |
 | Default view     | Chronological list of all active listings, newest first                              |
 | Post cardinality | 1-to-1 — one post = one product/listing. No bundles at the post level                |
 | Scroll behavior  | Infinite scroll or paginated (TBD). No tabs or category segmentation on initial load |
-
 
 ### Listing card — required elements
 
@@ -90,18 +82,15 @@ This platform replaces that pattern with a portable, verified identity and a per
 
 ### Per-card actions
 
-
 | Action  | Trigger                  | Behavior                                                                               |
 | ------- | ------------------------ | -------------------------------------------------------------------------------------- |
 | Like    | Tap heart on card        | Saves listing; increments like count (displayed on card). Requires account.            |
 | Comment | Tap comment icon on card | Opens a public comment thread on the listing (visible to all). Not a DM.               |
 | Reply   | Tap reply icon on card   | Opens/creates a private DM thread with the seller. See section 06 for threading logic. |
 
-
 > **Visual distinction required:** Comment (public) vs Reply (private DM) must be visually distinct — icon shape, label, or color differentiation to prevent confusion.
 
 ### Listing detail drawer
-
 
 | Property         | Spec                                                                                                 |
 | ---------------- | ---------------------------------------------------------------------------------------------------- |
@@ -111,13 +100,11 @@ This platform replaces that pattern with a portable, verified identity and a per
 | Dismiss          | Swipe down, tap handle, or tap outside. Returns to same scroll position in feed                      |
 | Full page option | Drawer includes an "Open listing" link that navigates to a dedicated detail page (deep-linkable URL) |
 
-
 ---
 
 ## 04 — Seller Badges
 
 Each listing card shows a maximum of **2 badges**. Display order is prioritized by trust signal weight (World Verified first).
-
 
 | Badge              | Description                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------- |
@@ -125,7 +112,6 @@ Each listing card shows a maximum of **2 badges**. Display order is prioritized 
 | **Power Seller**   | Completed more than X listings (threshold TBD — e.g. 10 or 25 confirmed sales).             |
 | **TBD Badge 3**    | Reserved. Candidates: Fast Responder, Trusted Community Member, category specialist.        |
 | **TBD Badge 4**    | Reserved. Candidates: Long-time Member (account age), Dispute-free seller.                  |
-
 
 > **Open question:** Should badges be seller-level (attached to user profile) or listing-level (e.g. "Authenticated by third party")? Recommend seller-level for v1.
 
@@ -135,7 +121,7 @@ Each listing card shows a maximum of **2 badges**. Display order is prioritized 
 
 ### Entry point
 
-Center **+** button in bottom nav. Requires an authenticated account. Unauthenticated users are prompted to sign up / link World ID.
+Center **+** button in bottom nav. Requires an authenticated account. Unauthenticated users are prompted to sign up / log in. Linking World ID is optional (see section 09) and not required to publish a listing.
 
 ### Fields
 
@@ -150,13 +136,11 @@ Center **+** button in bottom nav. Requires an authenticated account. Unauthenti
 
 ### Post submission
 
-
 | Property      | Spec                                                                                                    |
 | ------------- | ------------------------------------------------------------------------------------------------------- |
-| On submit     | Listing becomes immediately active in feed (no moderation queue for v1, unless World ID not linked)     |
+| On submit     | Listing becomes immediately active in feed (no moderation queue for v1)                                 |
 | Edit / delete | Seller can edit or remove a listing at any time from Profile > Active Listings                          |
 | Sold marking  | Seller can mark as "Sold" — removes from feed but keeps in seller history for badge/reputation tracking |
-
 
 ---
 
@@ -166,15 +150,12 @@ Center **+** button in bottom nav. Requires an authenticated account. Unauthenti
 
 This is the core UX innovation. When a buyer taps "Reply" on any listing from Seller A, the system checks for an existing thread with that seller.
 
-
 | Scenario                         | Behavior                                                                                                                                                    |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | No existing thread with seller   | Creates a new DM thread. Pre-populates first message with listing thumbnail + hyperlink. Buyer adds their message before sending.                           |
 | Existing thread with same seller | Opens existing thread. Appends a new message containing the listing thumbnail hyperlink. Buyer adds their message. Keeps bundle conversations consolidated. |
 
-
 ### Listing thumbnail in messages
-
 
 | Property        | Spec                                                                                                               |
 | --------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -182,15 +163,12 @@ This is the core UX innovation. When a buyer taps "Reply" on any listing from Se
 | Stale listings  | If listing is marked Sold or deleted, thumbnail shows "Listing ended" state but remains visible in thread history. |
 | Thread grouping | Messages tab groups conversations by seller (not by listing). Multiple listing links can appear within one thread. |
 
-
 ### Messages tab
-
 
 | Property     | Spec                                                                                                                       |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | Layout       | Standard DM inbox: conversations sorted by most recent activity. Each row shows seller avatar, name, last message preview. |
 | Notification | Unread badge on Messages tab icon when new message is received.                                                            |
-
 
 > **Rationale:** Seller-level threading (vs listing-level) enables natural bundle negotiation — a buyer interested in 3 listings from the same seller has one conversation, each anchored to its relevant listing card.
 
@@ -200,7 +178,6 @@ This is the core UX innovation. When a buyer taps "Reply" on any listing from Se
 
 ### Search bar
 
-
 | Property       | Spec                                                                                                     |
 | -------------- | -------------------------------------------------------------------------------------------------------- |
 | Location       | Persistent at top of Feed, always visible                                                                |
@@ -208,9 +185,7 @@ This is the core UX innovation. When a buyer taps "Reply" on any listing from Se
 | Behavior       | Real-time filtering as user types. Tolerates typos and partial matches (Levenshtein distance ~2–3 chars) |
 | Implementation | Recommend fuzzy search library (e.g. Fuse.js client-side for v1, or Algolia/Typesense for scale)         |
 
-
 ### Filter controls
-
 
 | Filter       | Input type                           | Behavior                                                                    |
 | ------------ | ------------------------------------ | --------------------------------------------------------------------------- |
@@ -218,9 +193,7 @@ This is the core UX innovation. When a buyer taps "Reply" on any listing from Se
 | Price range  | Dual-handle slider or min/max inputs | Filters feed to listings within selected USD range. Updates in real time.   |
 | Badges       | Multi-select toggle chips            | Filter to listings from sellers holding selected badge(s). Filters combine. |
 
-
 ### Filter UX pattern
-
 
 | Property     | Spec                                                                                             |
 | ------------ | ------------------------------------------------------------------------------------------------ |
@@ -228,34 +201,28 @@ This is the core UX innovation. When a buyer taps "Reply" on any listing from Se
 | Active state | Filter icon shows a dot or count when filters are active. Easy one-tap "Clear all" reset.        |
 | Persistence  | Filters persist within a session; reset on app close (v1). User-saved presets considered for v2. |
 
-
 ---
 
 ## 08 — Profile
 
 ### Profile sections
 
-
-| Section             | Contents                                                                                                                   | Version |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------- |
-| Identity            | Display name, avatar, member since, bio (optional)                                                                         | v1      |
-| World ID link       | Button to connect World ID. Once linked, shows "Verified" state with World logo + checkmark. Unlocks World Verified badge. | v1      |
-| Social accounts     | Link to Instagram, Twitter/X, Reddit. Displayed as tappable social icons for external trust signal.                        | v1      |
-| **User rating**     | Overall rating percentage + total review count (see section 10a). Shows "New seller / New buyer" below threshold.          | **v1**  |
-| Active listings     | Grid or list of seller's currently active listings. Tap to edit or mark Pending/Sold.                                      | v1      |
-| Pending listings    | Listings currently marked Pending. Seller can advance to Sold from here.                                                   | v1      |
-| Sold / history      | Completed listings. Count drives Power Seller badge. Visibility: seller-only for v1.                                       | v1      |
-| Review details      | Breakdown of rating by individual metric (punctuality, customer service, product quality). Expandable.                     | v2      |
-
+| Section          | Contents                                                                                                                   | Version |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | ------- |
+| Identity         | Display name, avatar, member since, bio (optional)                                                                         | v1      |
+| World ID link    | Button to connect World ID. Once linked, shows "Verified" state with World logo + checkmark. Unlocks World Verified badge. | v1      |
+| **User rating**  | Overall rating percentage + total review count (see section 10a). Shows "New seller / New buyer" below threshold.          | **v1**  |
+| Active listings  | Grid or list of seller's currently active listings. Tap to edit or mark Pending/Sold.                                      | v1      |
+| Pending listings | Listings currently marked Pending. Seller can advance to Sold from here.                                                   | v1      |
+| Sold / history   | Completed listings. Count drives Power Seller badge. Visibility: seller-only for v1.                                       | v1      |
+| Review details   | Breakdown of rating by individual metric (punctuality, customer service, product quality). Expandable.                     | v2      |
 
 ### Public vs private profile
 
-
-| View                  | Visible content                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Public (other user)   | Name, avatar, World ID badge, social links, active listings, badge display. Read-only. Optional Report/Block. |
-| Private (own profile) | All of above + settings, linked accounts management, notification preferences.                                |
-
+| View                  | Visible content                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| Public (other user)   | Name, avatar, World ID badge, active listings, badge display. Read-only. Optional Report/Block. |
+| Private (own profile) | All of above + settings and notification preferences.                                           |
 
 ### Reputation signals (on profile)
 
@@ -276,19 +243,16 @@ For each buyer, a seller should be able to see:
 
 ## 09 — World ID Integration
 
-
-| Property               | Spec                                                                                                        |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Purpose                | Proof-of-personhood. Each real human gets one verification — prevents fake seller accounts / Sybil attacks. |
-| Flow                   | User taps "Link World ID" in Profile > redirected to World app / SDK flow > returns verified state.         |
-| Badge unlock           | World Verified badge immediately applied to all existing and future listings upon verification.             |
-| Not required to browse | Browsing and searching is open to all. World ID required to: post a listing, message a seller.              |
-
+| Property               | Spec                                                                                                                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Purpose                | Proof-of-personhood. Each real human gets one verification — prevents fake seller accounts / Sybil attacks.                                                                                            |
+| Flow                   | User taps "Link World ID" in Profile > redirected to World app / SDK flow > returns verified state.                                                                                                    |
+| Badge unlock           | World Verified badge immediately applied to all existing and future listings upon verification.                                                                                                        |
+| Not required to browse | Browsing and searching is open to all. Posting and messaging require an account; **World ID is not a gate to post.** Linking World ID unlocks the **World Verified** badge and stronger trust signals. |
 
 ### Locked product rules
 
-- **World ID** is required to **list** and **buy** in the real app. Mocks show verified / not verified as two states.
-- **Instagram/Facebook "connected"** is demo only (no real OAuth in design sandbox).
+- **World ID** is **not** required to **list** in the real app. It unlocks the World Verified badge (recommended for seller trust). Payment / high-assurance flows may still require verification (TBD). Mocks show verified / not verified as two states.
 - **Fees:** story is small network gas, not a big app fee. Payment flow is deferred to v2 or WBL-native escrow if available.
 - **Public questions** live on listing pages. **Private chat** lives in Messages.
 
@@ -304,13 +268,13 @@ The full status progression for a listing is:
 draft → active → pending → sold → archived
 ```
 
-| Status       | Who sets it | Meaning                                                                                   |
-| ------------ | ----------- | ----------------------------------------------------------------------------------------- |
-| **draft**    | System      | Created but not yet published. Not visible in feed.                                       |
-| **active**   | Seller      | Published and visible in feed. Open for messages and negotiation.                         |
-| **pending**  | Seller      | A deal is in progress (buyer and seller have agreed off-platform). Removed from feed.     |
-| **sold**     | Seller      | Transaction is complete. Triggers the mutual review prompt for both parties.              |
-| **archived** | Seller      | Manually removed by seller. No review triggered.                                          |
+| Status       | Who sets it | Meaning                                                                               |
+| ------------ | ----------- | ------------------------------------------------------------------------------------- |
+| **draft**    | System      | Created but not yet published. Not visible in feed.                                   |
+| **active**   | Seller      | Published and visible in feed. Open for messages and negotiation.                     |
+| **pending**  | Seller      | A deal is in progress (buyer and seller have agreed off-platform). Removed from feed. |
+| **sold**     | Seller      | Transaction is complete. Triggers the mutual review prompt for both parties.          |
+| **archived** | Seller      | Manually removed by seller. No review triggered.                                      |
 
 ### Marking pending
 
@@ -334,36 +298,36 @@ Triggered for **both** the seller and the linked buyer when the listing is marke
 
 Reviews use a simple **thumbs up / thumbs down** (👍 / 👎) binary per metric. No star scale.
 
-| # | Metric                            | Asked of          | Description                                                         |
-| - | --------------------------------- | ----------------- | ------------------------------------------------------------------- |
-| 1 | **Punctuality & shipping speed**  | Buyer reviews seller | Did the seller ship promptly and on time?                        |
-| 2 | **Customer service**              | Buyer reviews seller | Was the seller responsive, communicative, and professional?      |
-| 3 | **Product quality / as described**| Buyer reviews seller | Did the item match the listing description and photos?           |
-| 4 | **Punctuality & shipping speed**  | Seller reviews buyer | Did the buyer pay/confirm promptly and respond in a timely way?  |
-| 5 | **Customer service**              | Seller reviews buyer | Was the buyer communicative and easy to deal with?               |
+| #   | Metric                             | Asked of             | Description                                                     |
+| --- | ---------------------------------- | -------------------- | --------------------------------------------------------------- |
+| 1   | **Punctuality & shipping speed**   | Buyer reviews seller | Did the seller ship promptly and on time?                       |
+| 2   | **Customer service**               | Buyer reviews seller | Was the seller responsive, communicative, and professional?     |
+| 3   | **Product quality / as described** | Buyer reviews seller | Did the item match the listing description and photos?          |
+| 4   | **Punctuality & shipping speed**   | Seller reviews buyer | Did the buyer pay/confirm promptly and respond in a timely way? |
+| 5   | **Customer service**               | Seller reviews buyer | Was the buyer communicative and easy to deal with?              |
 
 > Metrics 1–3 are buyer-submitted (about the seller). Metrics 4–5 are seller-submitted (about the buyer). Each is a standalone thumbs up / thumbs down — the user can submit partial reviews but is encouraged to fill all applicable metrics.
 
 #### Review prompt UX
 
-| Property        | Spec                                                                                                                         |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Entry point     | Full-screen modal or dedicated `/rate/:transactionId` page, surfaced immediately after sold is confirmed and via notification |
-| Deadline        | Review prompt remains available for 14 days after sold date. After that it is no longer accessible.                          |
-| Anonymous       | Reviews are not anonymous — the reviewee can see who reviewed them (display name only).                                      |
-| Skip            | Users can dismiss/skip the prompt. Skipped reviews do not affect the counterparty's score.                                   |
-| One-time        | Each party can only submit one review per transaction. No editing after submission.                                           |
+| Property    | Spec                                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Entry point | Full-screen modal or dedicated `/rate/:transactionId` page, surfaced immediately after sold is confirmed and via notification |
+| Deadline    | Review prompt remains available for 14 days after sold date. After that it is no longer accessible.                           |
+| Anonymous   | Reviews are not anonymous — the reviewee can see who reviewed them (display name only).                                       |
+| Skip        | Users can dismiss/skip the prompt. Skipped reviews do not affect the counterparty's score.                                    |
+| One-time    | Each party can only submit one review per transaction. No editing after submission.                                           |
 
 **shadcn/ui component guidance for the review prompt:**
 
-| UI element                  | shadcn component                                                                                     |
-| --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Prompt container            | `Dialog` (modal overlay) or `Sheet` (bottom sheet, preferred on mobile)                             |
-| Each metric row             | `Card` wrapping the metric label + toggle pair                                                       |
-| Thumbs up / thumbs down     | Two `Button` variants (`outline` for unselected, `default`/`secondary` for selected state). Use `ThumbsUp` and `ThumbsDown` icons from `lucide-react`. |
-| Submit / skip actions       | `Button` (primary) for submit; `Button variant="ghost"` for skip                                    |
-| Reviewer avatar             | `Avatar`                                                                                             |
-| Loading / pending state     | `Skeleton` placeholder while review data loads                                                       |
+| UI element              | shadcn component                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Prompt container        | `Dialog` (modal overlay) or `Sheet` (bottom sheet, preferred on mobile)                                                                                |
+| Each metric row         | `Card` wrapping the metric label + toggle pair                                                                                                         |
+| Thumbs up / thumbs down | Two `Button` variants (`outline` for unselected, `default`/`secondary` for selected state). Use `ThumbsUp` and `ThumbsDown` icons from `lucide-react`. |
+| Submit / skip actions   | `Button` (primary) for submit; `Button variant="ghost"` for skip                                                                                       |
+| Reviewer avatar         | `Avatar`                                                                                                                                               |
+| Loading / pending state | `Skeleton` placeholder while review data loads                                                                                                         |
 
 ---
 
@@ -389,21 +353,21 @@ Do not display a numeric rating until a user has received at least **3 completed
 
 ### Rating display — profile
 
-| Location                    | What's shown                                                                                                               |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Own profile                 | Rating percentage + total review count. Breakdown by metric visible in an expandable "View details" section (v2).          |
-| Other user's public profile | Same as own profile view — percentage + count. Supports buyer trust assessment before engaging.                            |
-| Listing card (seller)       | Rating percentage as a compact badge next to seller name (e.g. "94%"). Only shown once threshold is met.                  |
-| Listing detail drawer       | Full rating + count shown on the seller card within the drawer.                                                            |
+| Location                    | What's shown                                                                                                      |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Own profile                 | Rating percentage + total review count. Breakdown by metric visible in an expandable "View details" section (v2). |
+| Other user's public profile | Same as own profile view — percentage + count. Supports buyer trust assessment before engaging.                   |
+| Listing card (seller)       | Rating percentage as a compact badge next to seller name (e.g. "94%"). Only shown once threshold is met.          |
+| Listing detail drawer       | Full rating + count shown on the seller card within the drawer.                                                   |
 
 **shadcn/ui component guidance for rating display:**
 
-| UI element                        | shadcn component                                                                                |
-| --------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Rating chip on listing card       | `Badge` (variant `secondary` or `outline`)                                                     |
-| Rating strip on profile           | `Card` containing the percentage text + review count                                            |
-| "New seller / New buyer" fallback | `Badge variant="outline"` with muted text                                                       |
-| Pending listings tab              | `Tabs` + `TabsContent` (shadcn Tabs) on the profile page                                       |
+| UI element                        | shadcn component                                                                                      |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Rating chip on listing card       | `Badge` (variant `secondary` or `outline`)                                                            |
+| Rating strip on profile           | `Card` containing the percentage text + review count                                                  |
+| "New seller / New buyer" fallback | `Badge variant="outline"` with muted text                                                             |
+| Pending listings tab              | `Tabs` + `TabsContent` (shadcn Tabs) on the profile page                                              |
 | Mark Pending / Mark Sold actions  | `Button` (destructive or secondary variant) inside a `DropdownMenu` or `AlertDialog` for confirmation |
 
 ---
@@ -420,6 +384,12 @@ All product UI is built with **[shadcn/ui](https://ui.shadcn.com/)** on Tailwind
 
 See [HACKATHON_SPEC.md](./HACKATHON_SPEC.md) for full tech stack (Next.js 15, Drizzle, Supabase, NextAuth).
 
+### World / Orb verification color (signature blue)
+
+Any surface that promotes **World ID**, **Orb verification**, or the **World Verified** badge (banners, inline prompts, primary CTA in a verification card) uses the **signature blue** token — CSS variable `--world-verified` (Tailwind: `world-verified` / `bg-world-verified`, etc.). Do **not** use the amber **primary** token for these prompts; amber stays for general app chrome and filters.
+
+**World ID prompt card (copy):** Title: **Verify with World ID**. Body: **Link your World ID to unlock the World Verified badge.** (Do not imply users must verify before they can post or message.)
+
 ### Figma design tokens
 
 Spacing, typography scale, and color tokens will be pulled from the Figma wireframes file once connected via Figma MCP. Until then, default to shadcn's built-in theme values.
@@ -428,7 +398,7 @@ Reference file: [Time Market Wireframes](https://www.figma.com/design/8nL27JY2Lr
 
 ### Design sandbox
 
-All UX iteration happens under `/design/`* routes in the browser (localhost, no World App needed). Jae ports finalized layouts to production routes and wires auth + MiniKit. See [NICO_WORK_PLAN.md](./NICO_WORK_PLAN.md) for sandbox URLs and workflow.
+All UX iteration happens under `/design/`\* routes in the browser (localhost, no World App needed). Jae ports finalized layouts to production routes and wires auth + MiniKit. See [NICO_WORK_PLAN.md](./NICO_WORK_PLAN.md) for sandbox URLs and workflow.
 
 ---
 
@@ -476,7 +446,6 @@ All UX iteration happens under `/design/`* routes in the browser (localhost, no 
 
 ## 12 — v1 Scope Summary
 
-
 | Feature                                        | v1     | v2+ |
 | ---------------------------------------------- | ------ | --- |
 | Chronological feed with listing cards          | **In** | —   |
@@ -489,7 +458,6 @@ All UX iteration happens under `/design/`* routes in the browser (localhost, no 
 | Badge filter                                   | **In** | —   |
 | World ID link + World Verified badge           | **In** | —   |
 | Power Seller badge (sales count)               | **In** | —   |
-| Profile: social link integration               | **In** | —   |
 | Profile: active listings view                  | **In** | —   |
 | Mark listing as Pending (with linked buyer)    | **In** | —   |
 | Mark listing as Sold                           | **In** | —   |
@@ -501,7 +469,6 @@ All UX iteration happens under `/design/`* routes in the browser (localhost, no 
 | Saved filter presets                           | Defer  | v2  |
 | Listing expiry / auto-archive                  | TBD    | —   |
 
-
 ---
 
-*Last updated: April 2026. This document is the evergreen UX/UI spec — update it whenever a change affects the overall user flow. Most recent addition: Listing lifecycle (Pending → Sold), mutual review system, and user rating (sections 10 & 10a).*
+_Last updated: April 2026. This document is the evergreen UX/UI spec — update it whenever a change affects the overall user flow. Most recent updates: World ID is optional for posting (badge is the unlock); signature blue (`--world-verified`) for all World/orb verification surfaces; listing lifecycle, mutual reviews, and user rating remain in sections 10 & 10a._

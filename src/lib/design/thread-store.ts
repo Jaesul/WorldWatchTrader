@@ -9,11 +9,15 @@ export interface ThreadMessage {
   from: 'me' | 'seller';
   text?: string;
   sentAt: string;
+  /** User-attached photos (data URLs) — design sandbox only; not persisted to disk. */
+  images?: string[];
   listing?: {
     id: string;
     model: string;
     price: string;
     active: boolean;
+    /** True when this listing belongs to the current user (inbound inquiry). */
+    isMyListing?: boolean;
   };
 }
 
@@ -59,11 +63,30 @@ const SEED: Record<string, ThreadMessage[]> = {
   ],
   'seller-harbortime': [
     {
+      id: 'ht-0a',
+      from: 'seller',
+      sentAt: '1:47 PM',
+      listing: { id: 'seed-2', model: 'Tudor Black Bay 58 Navy', price: '$3,200', active: true, isMyListing: true },
+      text: 'Hi — really love this Tudor. Is it still available?',
+    },
+    {
+      id: 'ht-0b',
+      from: 'me',
+      sentAt: '1:55 PM',
+      text: 'Hey! Yes, still available. Just had the bracelet cleaned.',
+    },
+    {
+      id: 'ht-0c',
+      from: 'seller',
+      sentAt: '2:01 PM',
+      text: 'Great. Any flexibility on $3,200? Looking to move quickly.',
+    },
+    {
       id: 'ht-1',
       from: 'me',
       sentAt: '2:05 PM',
       listing: { id: '2', model: 'Omega Speedmaster Professional Moonwatch', price: '$5,800', active: true },
-      text: 'Hello — is the Speedmaster still available?',
+      text: 'Best I can do is $3,100. Also — I\'ve been eyeing your Speedmaster. Still available?',
     },
     {
       id: 'ht-2',
@@ -161,4 +184,27 @@ export function getLastMessage(threadId: string): ThreadMessage | undefined {
 
 export function getAllThreadIds(): string[] {
   return Array.from(store.keys());
+}
+
+/** Returns IDs of threads where someone has messaged about one of the current user's listings. */
+export function getThreadIdsForMyListing(listingId: string): string[] {
+  const result: string[] = [];
+  for (const [threadId, msgs] of store.entries()) {
+    if (msgs.some((m) => m.listing?.id === listingId && m.listing?.isMyListing)) {
+      result.push(threadId);
+    }
+  }
+  return result;
+}
+
+/**
+ * Returns whether a thread has inbound activity (seller sent a listing that
+ * belongs to the current user) and/or outbound activity (current user sent a
+ * listing that belongs to someone else).
+ */
+export function classifyThread(threadId: string): { inbound: boolean; outbound: boolean } {
+  const msgs = store.get(threadId) ?? [];
+  const inbound = msgs.some((m) => m.from === 'seller' && m.listing != null);
+  const outbound = msgs.some((m) => m.from === 'me' && m.listing != null);
+  return { inbound, outbound };
 }

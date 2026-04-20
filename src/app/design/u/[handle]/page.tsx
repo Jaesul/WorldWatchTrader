@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { PublicProfileActiveListings } from '@/components/design/PublicProfileActiveListings';
 
 const SELLER_DATA: Record<string, {
   name: string;
@@ -9,8 +10,6 @@ const SELLER_DATA: Record<string, {
   powerSeller: boolean;
   sales: number;
   positiveRate: number;
-  instagram: string | null;
-  twitter: string | null;
   listings: { id: string; model: string; price: string; condition: string }[];
 }> = {
   alexkim: {
@@ -21,8 +20,6 @@ const SELLER_DATA: Record<string, {
     powerSeller: true,
     sales: 17,
     positiveRate: 100,
-    instagram: '@alexkimwatches',
-    twitter: null,
     listings: [
       { id: '1', model: 'Rolex Submariner 126610LN', price: '$12,500', condition: 'Unworn' },
     ],
@@ -35,8 +32,6 @@ const SELLER_DATA: Record<string, {
     powerSeller: false,
     sales: 8,
     positiveRate: 98,
-    instagram: '@harbortime',
-    twitter: '@harbortime',
     listings: [
       { id: '2', model: 'Omega Speedmaster Professional', price: '$5,800', condition: 'Excellent' },
     ],
@@ -49,8 +44,6 @@ const SELLER_DATA: Record<string, {
     powerSeller: true,
     sales: 14,
     positiveRate: 96,
-    instagram: null,
-    twitter: null,
     listings: [
       { id: '3', model: 'Patek Philippe Nautilus 5711/1A', price: '$120,000', condition: 'Like new' },
     ],
@@ -65,8 +58,6 @@ const FALLBACK = {
   powerSeller: false,
   sales: 0,
   positiveRate: 0,
-  instagram: null,
-  twitter: null,
   listings: [],
 };
 
@@ -130,67 +121,15 @@ export default async function PublicProfilePage({
           </div>
         </div>
 
-        {(seller.instagram || seller.twitter) && (
-          <div className="mt-3 flex gap-2">
-            {seller.instagram && (
-              <span className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-3.5">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" strokeWidth={2.5} />
-                </svg>
-                {seller.instagram}
-              </span>
-            )}
-            {seller.twitter && (
-              <span className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="size-3.5">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-                {seller.twitter}
-              </span>
-            )}
-          </div>
-        )}
-
-        <div className="mt-4 flex gap-2">
-          <Button className="flex-1" asChild>
+        <div className="mt-4">
+          <Button className="w-full" asChild>
             <Link href={`/design/messages/seller-${handle}`}>Message seller</Link>
           </Button>
-          <button className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-4">
-              <circle cx="12" cy="12" r="1" fill="currentColor" />
-              <circle cx="19" cy="12" r="1" fill="currentColor" />
-              <circle cx="5" cy="12" r="1" fill="currentColor" />
-            </svg>
-          </button>
         </div>
       </div>
 
       {seller.listings.length > 0 && (
-        <div>
-          <div className="border-b border-t border-border px-4 py-3">
-            <h2 className="text-sm font-semibold text-foreground">Active listings ({seller.listings.length})</h2>
-          </div>
-          <div className="divide-y divide-border">
-            {seller.listings.map((listing) => (
-              <Link
-                key={listing.id}
-                href="/design"
-                className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/20"
-              >
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted text-xl">⌚</div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{listing.model}</p>
-                  <p className="text-xs text-muted-foreground">{listing.price} · {listing.condition}</p>
-                </div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-4 shrink-0 text-muted-foreground">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </Link>
-            ))}
-          </div>
-        </div>
+        <PublicProfileActiveListings rows={seller.listings} />
       )}
 
       <div className="mx-4 mt-6 flex justify-end">
