@@ -54,6 +54,7 @@ import { ListingDetailDrawer } from "@/components/design/ListingDetailDrawer";
 import {
   LISTINGS,
   formatPrice,
+  listingMatchesFeedSearch,
   type Badge as ListingBadge,
   type Listing,
 } from "@/lib/design/data";
@@ -66,6 +67,10 @@ import {
 } from "@/lib/design/listing-drawer-comments";
 import { toggleSave as toggleSaveListing } from "@/lib/design/interaction-store";
 import { useSavedIds } from "@/lib/design/use-saved-ids";
+import {
+  hasBuyerAttachedListing,
+  replyToSellerListingHref,
+} from "@/lib/design/thread-store";
 import { guardBooleanOpenChange } from "@/lib/guard-boolean-open-change";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -483,10 +488,7 @@ export default function FeedPage() {
   }
 
   const filtered = LISTINGS.filter((listing) => {
-    const matchSearch =
-      search.trim() === "" ||
-      listing.model.toLowerCase().includes(search.toLowerCase()) ||
-      listing.seller.name.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = listingMatchesFeedSearch(listing, search);
     const matchVerified =
       !worldVerified || listing.seller.badges.includes("world-verified");
     const matchBadge =
@@ -1152,8 +1154,20 @@ export default function FeedPage() {
                     className="h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                   >
                     <Link
-                      href={`/design/messages/seller-${listing.seller.handle}?listing=${listing.id}`}
+                      href={replyToSellerListingHref(
+                        listing.seller.handle,
+                        listing.id,
+                      )}
                       aria-label="Reply to seller"
+                      onClick={() => {
+                        const threadId = `seller-${listing.seller.handle}`;
+                        if (hasBuyerAttachedListing(threadId, listing.id)) {
+                          toast.info("You already sent this listing to the seller.", {
+                            description: "Opening your chat.",
+                            duration: 4500,
+                          });
+                        }
+                      }}
                     >
                       <Reply className="size-[18px] -scale-x-100" />
                     </Link>
@@ -1285,8 +1299,20 @@ export default function FeedPage() {
                     </button>
 
                     <Link
-                      href={`/design/messages/seller-${listing.seller.handle}?listing=${listing.id}`}
-                      onClick={(e) => e.stopPropagation()}
+                      href={replyToSellerListingHref(
+                        listing.seller.handle,
+                        listing.id,
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const threadId = `seller-${listing.seller.handle}`;
+                        if (hasBuyerAttachedListing(threadId, listing.id)) {
+                          toast.info("You already sent this listing to the seller.", {
+                            description: "Opening your chat.",
+                            duration: 4500,
+                          });
+                        }
+                      }}
                       className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
                       aria-label="Reply to seller"
                     >

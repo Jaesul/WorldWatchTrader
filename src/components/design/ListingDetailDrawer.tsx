@@ -323,10 +323,10 @@ export function ListingDetailDrawer({
                   onClick={() => {
                     const threadId = `seller-${listing.seller.handle}`;
                     if (hasBuyerAttachedListing(threadId, listing.id)) {
-                      toast.info(
-                        "You already shared this listing with this seller.",
-                        { description: "Opening your existing chat." },
-                      );
+                      toast.info("You already sent this listing to the seller.", {
+                        description: "Opening your chat.",
+                        duration: 4500,
+                      });
                     }
                   }}
                 >

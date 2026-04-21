@@ -197,3 +197,31 @@ export function formatPrice(n: number) {
 export function getListingById(id: string): Listing | undefined {
   return LISTINGS.find((l) => l.id === id);
 }
+
+/**
+ * Feed / home search: every whitespace-separated token must appear as a
+ * substring somewhere in the listing model or seller identity (name, handle,
+ * compact forms). Leading `@` on a token is ignored so `@alexkim` matches.
+ */
+export function listingMatchesFeedSearch(listing: Listing, raw: string): boolean {
+  const q = raw.trim().toLowerCase();
+  if (!q) return true;
+
+  const name = listing.seller.name.toLowerCase();
+  const handle = listing.seller.handle.toLowerCase();
+  const model = listing.model.toLowerCase();
+
+  const haystack = [
+    model,
+    name,
+    handle,
+    name.replace(/\./g, ''),
+    name.replace(/\s+/g, ''),
+  ].join(' ');
+
+  const tokens = q.split(/\s+/).filter(Boolean);
+  return tokens.every((tok) => {
+    const t = tok.replace(/^@+/g, '').trim();
+    return t.length > 0 && haystack.includes(t);
+  });
+}

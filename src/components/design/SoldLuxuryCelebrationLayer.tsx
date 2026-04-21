@@ -47,15 +47,16 @@ export function SoldLuxuryCelebrationLayer() {
         <div className="absolute -right-1/4 bottom-0 size-[70vmin] rounded-full bg-yellow-300/15 blur-3xl" />
       </div>
 
-      <p className="relative z-10 font-heading text-2xl font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,0.5)] sm:text-3xl">
+      <p className="relative z-10 max-w-[min(100%,36rem)] px-2 font-heading text-2xl font-black uppercase tracking-[0.12em] text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,0.5)] sm:text-3xl sm:tracking-[0.2em]">
         Liquidated. Elevated.
       </p>
 
-      <div className="relative z-10 max-w-[min(100%,420px)] rounded-2xl border-4 border-amber-400/80 bg-black p-1 shadow-[0_0_60px_rgba(251,191,36,0.35),inset_0_0_30px_rgba(250,204,21,0.08)] ring-2 ring-yellow-200/30">
+      {/* Fixed-size stage: img fills it so object-contain upscales tiny GIFs instead of leaving them pixel-sized */}
+      <div className="relative z-10 box-border h-[min(56dvh,580px)] w-full max-w-[min(96vw,680px)] min-h-[280px] shrink-0 overflow-hidden rounded-2xl border-4 border-amber-400/80 bg-black/90 shadow-[0_0_60px_rgba(251,191,36,0.35),inset_0_0_30px_rgba(250,204,21,0.08)] ring-2 ring-yellow-200/30 sm:min-h-[320px]">
         <img
           src={url}
           alt=""
-          className="mx-auto max-h-[45dvh] w-full rounded-xl object-contain"
+          className="block h-full w-full object-contain p-2 sm:p-3 [image-rendering:auto]"
         />
       </div>
 
