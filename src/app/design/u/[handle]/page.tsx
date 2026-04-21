@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PublicProfileActiveListings } from '@/components/design/PublicProfileActiveListings';
+import { PublicProfileSoldListings } from '@/components/design/PublicProfileSoldListings';
+import type { PublicProfileSoldRow } from '@/lib/design/on-chain-sale-mock';
 
 const SELLER_DATA: Record<string, {
   name: string;
@@ -11,6 +13,7 @@ const SELLER_DATA: Record<string, {
   sales: number;
   positiveRate: number;
   listings: { id: string; model: string; price: string; condition: string }[];
+  soldListings: PublicProfileSoldRow[];
 }> = {
   alexkim: {
     name: 'Alex Kim',
@@ -22,6 +25,32 @@ const SELLER_DATA: Record<string, {
     positiveRate: 100,
     listings: [
       { id: '1', model: 'Rolex Submariner 126610LN', price: '$12,500', condition: 'Unworn' },
+    ],
+    soldListings: [
+      {
+        listingId: '8',
+        soldAtLabel: 'Oct 2024',
+        settlement: {
+          txHash: '0x8a4f61c2e9d0b1a3567890abcdef1234567890abcdef1234567890abcdef12',
+          blockNumber: 18_452_301,
+          chainName: 'World Chain',
+          token: 'USDC',
+          amount: '9,200.00',
+          confirmedAtLabel: 'Oct 3, 2024 · 2:18 PM',
+        },
+      },
+      {
+        listingId: '9',
+        soldAtLabel: 'Aug 2024',
+        settlement: {
+          txHash: '0x2c91de44f7aa00bb334567890abcdef1234567890abcdef1234567890abcd',
+          blockNumber: 18_389_104,
+          chainName: 'World Chain',
+          token: 'USDC',
+          amount: '18,100.00',
+          confirmedAtLabel: 'Aug 21, 2024 · 9:05 AM',
+        },
+      },
     ],
   },
   harbortime: {
@@ -35,6 +64,20 @@ const SELLER_DATA: Record<string, {
     listings: [
       { id: '2', model: 'Omega Speedmaster Professional', price: '$5,800', condition: 'Excellent' },
     ],
+    soldListings: [
+      {
+        listingId: '10',
+        soldAtLabel: 'Jan 2025',
+        settlement: {
+          txHash: '0xf301aa558812ccdd44556677889900aabbccddeeff00112233445566778899',
+          blockNumber: 18_601_882,
+          chainName: 'World Chain',
+          token: 'USDC',
+          amount: '4,450.00',
+          confirmedAtLabel: 'Jan 8, 2025 · 4:52 PM',
+        },
+      },
+    ],
   },
   marcor: {
     name: 'Marco R.',
@@ -45,7 +88,21 @@ const SELLER_DATA: Record<string, {
     sales: 14,
     positiveRate: 96,
     listings: [
-      { id: '3', model: 'Patek Philippe Nautilus 5711/1A', price: '$120,000', condition: 'Like new' },
+      { id: '12', model: 'Rolex Datejust 41 126334', price: '$9,800', condition: 'Excellent' },
+    ],
+    soldListings: [
+      {
+        listingId: '3',
+        soldAtLabel: 'Nov 2024',
+        settlement: {
+          txHash: '0x771199aabbccddeeff00112233445566778899aabbccddeeff001122334455',
+          blockNumber: 18_512_440,
+          chainName: 'World Chain',
+          token: 'WLD',
+          amount: '412.50',
+          confirmedAtLabel: 'Nov 19, 2024 · 11:27 AM',
+        },
+      },
     ],
   },
 };
@@ -59,6 +116,7 @@ const FALLBACK = {
   sales: 0,
   positiveRate: 0,
   listings: [],
+  soldListings: [],
 };
 
 export default async function PublicProfilePage({
@@ -130,6 +188,10 @@ export default async function PublicProfilePage({
 
       {seller.listings.length > 0 && (
         <PublicProfileActiveListings rows={seller.listings} />
+      )}
+
+      {seller.soldListings.length > 0 && (
+        <PublicProfileSoldListings rows={seller.soldListings} />
       )}
 
       <div className="mx-4 mt-6 flex justify-end">

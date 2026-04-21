@@ -150,6 +150,19 @@ export const LISTINGS: Listing[] = [
     photos: [P.patekNautilus, P.apRO, P.cartier],
   },
   {
+    id: '12',
+    model: 'Rolex Datejust 41 126334',
+    price: 9800,
+    description:
+      'Blue dial on Jubilee. Full set from 2023. Worn lightly; case lines remain sharp.',
+    condition: 'Excellent',
+    boxPapers: 'Full set',
+    postedAt: '1w ago',
+    likes: 6,
+    seller: { name: 'Marco R.', handle: 'marcor', badges: ['power-seller'], avatar: 'https://i.pravatar.cc/150?u=marcor' },
+    photos: [P.rolexDJ, P.rolexSub, P.rolexGMT],
+  },
+  {
     id: '5',
     model: 'Cartier Santos 40mm WSSA0018',
     price: 6400,

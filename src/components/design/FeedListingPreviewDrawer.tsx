@@ -22,12 +22,15 @@ export interface FeedListingPreviewDrawerProps {
   listing: Listing | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When set (e.g. sold listings on a public profile), listing drawer is read-only for replies/comments. */
+  soldHistory?: { soldAtLabel: string };
 }
 
 export function FeedListingPreviewDrawer({
   listing,
   open,
   onOpenChange,
+  soldHistory,
 }: FeedListingPreviewDrawerProps) {
   const likedIds = useLikedIds();
   const savedIds = useSavedIds();
@@ -113,6 +116,7 @@ export function FeedListingPreviewDrawer({
         setCommentDrafts((prev) => ({ ...prev, [listing.id]: val }))
       }
       onAddComment={addComment}
+      soldHistory={soldHistory}
     />
   );
 }

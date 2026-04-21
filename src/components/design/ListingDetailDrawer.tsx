@@ -65,6 +65,8 @@ export type ListingDetailDrawerProps = {
   onAddComment: () => void;
   /** Opens the design share sheet (iOS-style export + in-app send). */
   onRequestShare?: () => void;
+  /** Public profile sold history: no reply CTA; comments are read-only. */
+  soldHistory?: { soldAtLabel: string };
 };
 
 export function ListingPhotoCarousel({
@@ -205,6 +207,7 @@ export function ListingDetailDrawer({
   onCommentDraftChange,
   onAddComment,
   onRequestShare,
+  soldHistory,
 }: ListingDetailDrawerProps) {
   const [descExpanded, setDescExpanded] = useState(false);
 
@@ -240,6 +243,16 @@ export function ListingDetailDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto">
+          {soldHistory ? (
+            <div className="mx-4 mt-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-3 py-2.5 text-center">
+              <p className="text-xs font-semibold text-emerald-900 dark:text-emerald-100">
+                Settled on-chain via app escrow
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Sold {soldHistory.soldAtLabel}
+              </p>
+            </div>
+          ) : null}
           <div className="overflow-hidden bg-muted">
             <ListingPhotoCarousel photos={listing.photos} alt={listing.model} />
           </div>
@@ -314,26 +327,32 @@ export function ListingDetailDrawer({
               className="flex gap-2 overflow-x-auto pb-1"
               style={{ scrollbarWidth: "none" }}
             >
-              <Button asChild size="sm" className="shrink-0 rounded-full">
-                <Link
-                  href={replyToSellerListingHref(
-                    listing.seller.handle,
-                    listing.id,
-                  )}
-                  onClick={() => {
-                    const threadId = `seller-${listing.seller.handle}`;
-                    if (hasBuyerAttachedListing(threadId, listing.id)) {
-                      toast.info("You already sent this listing to the seller.", {
-                        description: "Opening your chat.",
-                        duration: 4500,
-                      });
-                    }
-                  }}
-                >
-                  <Reply className="size-3.5 -scale-x-100" />
-                  Reply to seller
-                </Link>
-              </Button>
+              {soldHistory ? (
+                <span className="inline-flex shrink-0 items-center rounded-full border border-border bg-muted/60 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                  Listing ended · {soldHistory.soldAtLabel}
+                </span>
+              ) : (
+                <Button asChild size="sm" className="shrink-0 rounded-full">
+                  <Link
+                    href={replyToSellerListingHref(
+                      listing.seller.handle,
+                      listing.id,
+                    )}
+                    onClick={() => {
+                      const threadId = `seller-${listing.seller.handle}`;
+                      if (hasBuyerAttachedListing(threadId, listing.id)) {
+                        toast.info("You already sent this listing to the seller.", {
+                          description: "Opening your chat.",
+                          duration: 4500,
+                        });
+                      }
+                    }}
+                  >
+                    <Reply className="size-3.5 -scale-x-100" />
+                    Reply to seller
+                  </Link>
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -400,31 +419,37 @@ export function ListingDetailDrawer({
             paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
           }}
         >
-          <div className="flex items-center gap-2">
-            <Input
-              value={commentDraft}
-              onChange={(e) => onCommentDraftChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  onAddComment();
-                }
-              }}
-              placeholder="Add a comment…"
-              className="h-9 flex-1 rounded-full bg-muted/40 px-4 text-sm"
-              autoFocus={false}
-            />
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              disabled={!commentDraft.trim()}
-              onClick={onAddComment}
-              aria-label="Post comment"
-              className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
-            >
-              <Send className="size-4" />
-            </Button>
-          </div>
+          {soldHistory ? (
+            <p className="text-center text-xs text-muted-foreground">
+              Comments are read-only for sold listings.
+            </p>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Input
+                value={commentDraft}
+                onChange={(e) => onCommentDraftChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    onAddComment();
+                  }
+                }}
+                placeholder="Add a comment…"
+                className="h-9 flex-1 rounded-full bg-muted/40 px-4 text-sm"
+                autoFocus={false}
+              />
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                disabled={!commentDraft.trim()}
+                onClick={onAddComment}
+                aria-label="Post comment"
+                className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
+              >
+                <Send className="size-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
