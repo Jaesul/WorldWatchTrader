@@ -11,12 +11,14 @@ import {
   type RichComment,
   VIEWER_COMMENT_AUTHOR,
 } from "@/lib/design/listing-drawer-comments";
-import {
-  toggleLike as toggleDesignLike,
-  toggleSave,
-} from "@/lib/design/interaction-store";
+import { toggleLike as toggleCatalogLike } from "@/lib/design/interaction-store";
+import { isUuid } from "@/lib/design/is-uuid";
+import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
+import { useDesignEngagement } from "@/lib/design/use-design-engagement";
+import { useDesignListingSaves } from "@/lib/design/use-design-listing-saves";
 import { useLikedIds } from "@/lib/design/use-liked-ids";
-import { useSavedIds } from "@/lib/design/use-saved-ids";
+
+const FALLBACK_VIEWER_COMMENT_AVATAR = "https://i.pravatar.cc/150?u=me-user";
 
 export interface FeedListingPreviewDrawerProps {
   listing: Listing | null;
@@ -32,17 +34,31 @@ export function FeedListingPreviewDrawer({
   onOpenChange,
   soldHistory,
 }: FeedListingPreviewDrawerProps) {
-  const likedIds = useLikedIds();
-  const savedIds = useSavedIds();
+  const { viewer } = useDesignViewer();
+  const viewerCommentAvatar =
+    viewer?.profilePictureUrl?.trim() || FALLBACK_VIEWER_COMMENT_AVATAR;
+
+  const catalogLikedIds = useLikedIds();
+  const {
+    likedListingIds,
+    likedCommentIds,
+    displayListingLikes,
+    displayCommentLikes,
+    toggleListingLike,
+    toggleCommentLike,
+  } = useDesignEngagement();
+  const { savedIds, toggleSave } = useDesignListingSaves();
   const [commentsByListing, setCommentsByListing] = useState<
     Record<string, FakeComment[]>
   >(() => createInitialComments(LISTINGS));
-  const [commentLikedIds, setCommentLikedIds] = useState<Set<string>>(
-    new Set(),
-  );
+  const [catalogCommentLikedIds, setCatalogCommentLikedIds] = useState<
+    Set<string>
+  >(new Set());
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>(
     {},
   );
+
+  const listingIsLive = Boolean(listing && isUuid(listing.id));
 
   const comments: RichComment[] = useMemo(() => {
     if (!listing) return [];
@@ -50,10 +66,17 @@ export function FeedListingPreviewDrawer({
     return raw
       .map((c) => ({
         ...c,
-        effectiveLikes: c.likes + (commentLikedIds.has(c.id) ? 1 : 0),
+        effectiveLikes: isUuid(c.id)
+          ? displayCommentLikes(c.id, c.likes)
+          : c.likes + (catalogCommentLikedIds.has(c.id) ? 1 : 0),
       }))
       .sort((a, b) => b.effectiveLikes - a.effectiveLikes);
-  }, [listing, commentsByListing, commentLikedIds]);
+  }, [
+    listing,
+    commentsByListing,
+    catalogCommentLikedIds,
+    displayCommentLikes,
+  ]);
 
   const addComment = useCallback(() => {
     if (!listing) return;
@@ -63,31 +86,38 @@ export function FeedListingPreviewDrawer({
       const next: FakeComment = {
         id: `${listing.id}-comment-${Date.now()}`,
         author: VIEWER_COMMENT_AUTHOR,
-        avatar: "https://i.pravatar.cc/150?u=me-user",
+        avatar: viewerCommentAvatar,
         body,
         timeLabel: "Just now",
         likes: 0,
+        authorUserId: viewer?.id,
       };
       return { ...prev, [listing.id]: [...(prev[listing.id] ?? []), next] };
     });
     setCommentDrafts((prev) => ({ ...prev, [listing.id]: "" }));
-  }, [listing, commentDrafts]);
+  }, [listing, commentDrafts, viewer?.id, viewerCommentAvatar]);
 
-  const toggleCommentLike = useCallback((commentId: string) => {
-    setCommentLikedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(commentId)) next.delete(commentId);
-      else next.add(commentId);
-      return next;
-    });
-  }, []);
+  const onToggleCommentLike = useCallback(
+    (commentId: string) => {
+      if (isUuid(commentId)) void toggleCommentLike(commentId);
+      else {
+        setCatalogCommentLikedIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(commentId)) next.delete(commentId);
+          else next.add(commentId);
+          return next;
+        });
+      }
+    },
+    [toggleCommentLike],
+  );
 
   const deleteComment = useCallback((listingId: string, commentId: string) => {
     setCommentsByListing((prev) => ({
       ...prev,
       [listingId]: (prev[listingId] ?? []).filter((c) => c.id !== commentId),
     }));
-    setCommentLikedIds((prev) => {
+    setCatalogCommentLikedIds((prev) => {
       const next = new Set(prev);
       next.delete(commentId);
       return next;
@@ -97,19 +127,32 @@ export function FeedListingPreviewDrawer({
 
   if (!listing) return null;
 
+  const likedListing = listingIsLive
+    ? likedListingIds.has(listing.id)
+    : catalogLikedIds.has(listing.id);
+  const likeCount = listingIsLive
+    ? displayListingLikes(listing.id, listing.likes)
+    : listing.likes + (catalogLikedIds.has(listing.id) ? 1 : 0);
+
+  const commentLikedSet = listingIsLive ? likedCommentIds : catalogCommentLikedIds;
+
   return (
     <ListingDetailDrawer
       listing={listing}
       open={open}
       onOpenChange={onOpenChange}
-      liked={likedIds.has(listing.id)}
-      likeCount={listing.likes + (likedIds.has(listing.id) ? 1 : 0)}
-      onToggleLike={() => toggleDesignLike(listing.id)}
+      liked={likedListing}
+      likeCount={likeCount}
+      onToggleLike={() =>
+        listingIsLive
+          ? void toggleListingLike(listing.id)
+          : toggleCatalogLike(listing.id)
+      }
       saved={savedIds.has(listing.id)}
-      onToggleSave={() => toggleSave(listing.id)}
+      onToggleSave={() => void toggleSave(listing.id)}
       comments={comments}
-      commentLikedIds={commentLikedIds}
-      onToggleCommentLike={toggleCommentLike}
+      commentLikedIds={commentLikedSet}
+      onToggleCommentLike={onToggleCommentLike}
       onDeleteComment={(commentId) => deleteComment(listing.id, commentId)}
       commentDraft={commentDrafts[listing.id] ?? ""}
       onCommentDraftChange={(val) =>

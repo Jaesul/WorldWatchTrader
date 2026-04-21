@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 
 import { getDb, users } from '@/db';
 
@@ -40,6 +40,37 @@ export async function getUserById(id: string) {
   const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return rows[0] ?? null;
 }
+
+/** All users for the `/design` viewer picker (stable order). */
+export async function listUsersForPicker() {
+  const db = getDb();
+  return db
+    .select({
+      id: users.id,
+      walletAddress: users.walletAddress,
+      username: users.username,
+      handle: users.handle,
+      profilePictureUrl: users.profilePictureUrl,
+      orbVerified: users.orbVerified,
+      powerSeller: users.powerSeller,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .orderBy(asc(users.createdAt));
+}
+
+/** Primary-key–cheap default viewer for design APIs (avoid `listUsersForPicker` on every request). */
+export async function getDefaultDesignViewerUserId(): Promise<string | null> {
+  const db = getDb();
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .orderBy(asc(users.createdAt))
+    .limit(1);
+  return rows[0]?.id ?? null;
+}
+
+export type UserPickerRow = Awaited<ReturnType<typeof listUsersForPicker>>[number];
 
 export type PatchUserInput = {
   username?: string;

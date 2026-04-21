@@ -17,6 +17,7 @@ export const users = pgTable('users', {
   profilePictureUrl: text('profile_picture_url'),
   handle: text('handle').unique(),
   orbVerified: boolean('orb_verified').notNull().default(false),
+  powerSeller: boolean('power_seller').notNull().default(false),
   verifiedAt: timestamp('verified_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -117,11 +118,29 @@ export const listingComments = pgTable(
   (t) => [index('listing_comments_listing_created_idx').on(t.listingId, t.createdAt)],
 );
 
+export const listingCommentLikes = pgTable(
+  'listing_comment_likes',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    commentId: uuid('comment_id')
+      .notNull()
+      .references(() => listingComments.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.commentId] }),
+    index('listing_comment_likes_comment_id_idx').on(t.commentId),
+  ],
+);
+
 export const usersRelations = relations(users, ({ many }) => ({
   listings: many(listings),
   likes: many(listingLikes),
   saves: many(listingSaves),
   comments: many(listingComments),
+  commentLikes: many(listingCommentLikes),
 }));
 
 export const listingsRelations = relations(listings, ({ one, many }) => ({
@@ -146,9 +165,18 @@ export const listingSavesRelations = relations(listingSaves, ({ one }) => ({
   listing: one(listings, { fields: [listingSaves.listingId], references: [listings.id] }),
 }));
 
-export const listingCommentsRelations = relations(listingComments, ({ one }) => ({
+export const listingCommentsRelations = relations(listingComments, ({ one, many }) => ({
   listing: one(listings, { fields: [listingComments.listingId], references: [listings.id] }),
   author: one(users, { fields: [listingComments.authorId], references: [users.id] }),
+  likes: many(listingCommentLikes),
+}));
+
+export const listingCommentLikesRelations = relations(listingCommentLikes, ({ one }) => ({
+  user: one(users, { fields: [listingCommentLikes.userId], references: [users.id] }),
+  comment: one(listingComments, {
+    fields: [listingCommentLikes.commentId],
+    references: [listingComments.id],
+  }),
 }));
 
 export type ListingStatus = 'draft' | 'active' | 'sold' | 'archived';

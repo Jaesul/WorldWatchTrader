@@ -1,70 +1,135 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Camera, ChevronDown, ImagePlus, X } from "lucide-react";
+import { createDesignListingAction } from "@/app/design/post/actions";
 import { Button } from "@/components/ui/button";
+import { useUploadThing } from "@/lib/uploadthing";
+import { Camera, ChevronDown, ImagePlus, X } from "lucide-react";
 import Link from "next/link";
-import { addListing } from "@/lib/design/listing-store";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const CONDITIONS = ["Unworn", "Excellent", "Good", "Fair"];
 const BOX_PAPERS = ["Full set", "Box only", "Papers only", "None"];
-const CURRENCIES = ["USD", "EUR", "GBP", "CHF"];
 
 const MAX_PHOTOS = 8;
 
-type PhotoItem = { id: string; dataUrl: string };
+type PhotoRow = { id: string; file: File; previewUrl: string };
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
+function parsePriceUsd(raw: string): number | null {
+  const n = Number.parseInt(raw.replace(/[^\d]/g, ""), 10);
+  if (!Number.isFinite(n)) return null;
+  return n;
 }
 
 export default function NewListingPage() {
+  const router = useRouter();
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [photos, setPhotos] = useState<PhotoRow[]>([]);
+  const [priceInput, setPriceInput] = useState("");
   const [model, setModel] = useState("");
   const [description, setDescription] = useState("");
   const [condition, setCondition] = useState("");
   const [boxPapers, setBoxPapers] = useState("");
   const [showOptional, setShowOptional] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const isValid =
-    photos.length > 0 &&
-    price.trim() !== "" &&
-    model.trim() !== "" &&
-    description.trim() !== "";
+  const { startUpload, isUploading } = useUploadThing("listingImages", {
+    onUploadError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  async function appendImagesFromFiles(fileList: FileList | null) {
-    if (!fileList?.length) return;
-    const files = Array.from(fileList).filter((f) =>
-      f.type.startsWith("image/"),
-    );
-    const dataUrls: string[] = [];
-    for (const file of files) {
-      try {
-        dataUrls.push(await readFileAsDataUrl(file));
-      } catch {
-        /* ignore single file errors */
+  const removePhoto = useCallback((id: string) => {
+    setPhotos((prev) => {
+      const row = prev.find((p) => p.id === id);
+      if (row) URL.revokeObjectURL(row.previewUrl);
+      return prev.filter((p) => p.id !== id);
+    });
+  }, []);
+
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
+  useEffect(() => {
+    return () => {
+      for (const p of photosRef.current) {
+        URL.revokeObjectURL(p.previewUrl);
       }
-    }
-    if (!dataUrls.length) return;
+    };
+  }, []);
+
+  async function appendFromFiles(fileList: FileList | null) {
+    if (!fileList?.length) return;
+    const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
+    if (!files.length) return;
+
     setPhotos((prev) => {
       const room = MAX_PHOTOS - prev.length;
       if (room <= 0) return prev;
-      const next = dataUrls.slice(0, room).map((dataUrl) => ({
+      const slice = files.slice(0, room);
+      const next: PhotoRow[] = slice.map((file) => ({
         id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        dataUrl,
+        file,
+        previewUrl: URL.createObjectURL(file),
       }));
       return [...prev, ...next];
     });
+  }
+
+  const priceUsd = parsePriceUsd(priceInput);
+  const canSubmit =
+    photos.length > 0 &&
+    model.trim().length > 0 &&
+    description.trim().length > 0 &&
+    priceUsd !== null &&
+    priceUsd >= 0;
+
+  const busy = isUploading || submitting;
+
+  async function handlePost() {
+    if (!canSubmit || busy || priceUsd === null) return;
+
+    let details = description.trim();
+    if (boxPapers.trim()) {
+      details += `\n\nBox & papers: ${boxPapers.trim()}`;
+    }
+
+    const files = photos.map((p) => p.file);
+    let photoUfsUrls: string[];
+    try {
+      const uploaded = await startUpload(files);
+      if (!uploaded?.length) {
+        toast.error("Photo upload did not complete. Try again.");
+        return;
+      }
+      photoUfsUrls = uploaded.map((f) => f.ufsUrl);
+    } catch {
+      toast.error("Photo upload failed.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await createDesignListingAction({
+        title: model.trim(),
+        details,
+        priceUsd,
+        condition: condition || null,
+        modelNumber: null,
+        photoUfsUrls,
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Listing published");
+      router.refresh();
+      setSubmitted(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -73,11 +138,9 @@ export default function NewListingPage() {
         <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-foreground text-3xl text-background">
           ✓
         </div>
-        <h2 className="mb-2 text-xl font-semibold text-foreground">
-          Listing posted!
-        </h2>
+        <h2 className="mb-2 text-xl font-semibold text-foreground">Listing posted!</h2>
         <p className="mb-6 text-sm text-muted-foreground">
-          Your watch is now live in the feed. Buyers can reply directly.
+          Your watch is saved to the database and appears on the design marketplace feed.
         </p>
         <div className="flex gap-3">
           <Button asChild>
@@ -96,8 +159,8 @@ export default function NewListingPage() {
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-foreground">New listing</h1>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          At least one photo, a price, a model name, and a description are
-          required.
+          At least one photo, whole-dollar USD price, model / title, and a description. Uses the
+          design viewer from the bottom nav (cookie).
         </p>
       </div>
 
@@ -113,7 +176,7 @@ export default function NewListingPage() {
             multiple
             className="sr-only"
             onChange={async (e) => {
-              await appendImagesFromFiles(e.target.files);
+              await appendFromFiles(e.target.files);
               e.target.value = "";
             }}
           />
@@ -124,7 +187,7 @@ export default function NewListingPage() {
             capture="environment"
             className="sr-only"
             onChange={async (e) => {
-              await appendImagesFromFiles(e.target.files);
+              await appendFromFiles(e.target.files);
               e.target.value = "";
             }}
           />
@@ -135,19 +198,13 @@ export default function NewListingPage() {
                 className="relative size-20 overflow-hidden rounded-xl border border-border/60 bg-muted"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.dataUrl}
-                  alt=""
-                  className="size-full object-cover"
-                />
+                <img src={item.previewUrl} alt="" className="size-full object-cover" />
                 <Button
                   type="button"
                   variant="secondary"
                   size="icon-xs"
                   className="absolute -right-1.5 -top-1.5 size-5 min-h-0 rounded-full p-0 shadow-sm"
-                  onClick={() =>
-                    setPhotos((prev) => prev.filter((p) => p.id !== item.id))
-                  }
+                  onClick={() => removePhoto(item.id)}
                   aria-label="Remove photo"
                 >
                   <X className="size-3" strokeWidth={2.5} />
@@ -170,10 +227,7 @@ export default function NewListingPage() {
                   <Camera className="size-4 shrink-0" aria-hidden />
                   Camera
                 </Button>
-                <div
-                  className="w-px shrink-0 self-stretch bg-border"
-                  aria-hidden
-                />
+                <div className="w-px shrink-0 self-stretch bg-border" aria-hidden />
                 <Button
                   type="button"
                   variant="ghost"
@@ -189,8 +243,8 @@ export default function NewListingPage() {
           </div>
           {photos.length === 0 && (
             <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Use Camera for a new shot or Upload to pick from your library (up
-              to {MAX_PHOTOS} photos).
+              Use Camera for a new shot or Upload to pick from your library (up to {MAX_PHOTOS}{" "}
+              photos).
             </p>
           )}
         </section>
@@ -217,30 +271,16 @@ export default function NewListingPage() {
             htmlFor="price"
             className="mb-1.5 block text-sm font-semibold text-foreground"
           >
-            Price <span className="text-rose-500">*</span>
+            Price (USD, whole dollars) <span className="text-rose-500">*</span>
           </label>
-          <div className="flex gap-2">
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="h-10 rounded-lg border border-border bg-background px-2 text-sm text-foreground outline-none focus-visible:border-ring"
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            <input
-              id="price"
-              type="number"
-              placeholder="0"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="h-10 flex-1 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
-            />
-          </div>
+          <input
+            id="price"
+            inputMode="numeric"
+            placeholder="e.g. 12500"
+            value={priceInput}
+            onChange={(e) => setPriceInput(e.target.value)}
+            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+          />
         </section>
 
         <section>
@@ -279,9 +319,7 @@ export default function NewListingPage() {
         {showOptional && (
           <div className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
             <section>
-              <label className="mb-2 block text-sm font-semibold text-foreground">
-                Condition
-              </label>
+              <label className="mb-2 block text-sm font-semibold text-foreground">Condition</label>
               <div className="flex flex-wrap gap-2">
                 {CONDITIONS.map((c) => (
                   <Button
@@ -326,24 +364,8 @@ export default function NewListingPage() {
           </p>
         </div>
 
-        <Button
-          className="w-full"
-          disabled={!isValid}
-          onClick={() => {
-            addListing({
-              model,
-              price: parseFloat(price) || 0,
-              currency,
-              description,
-              condition,
-              boxPapers,
-              photoCount: photos.length,
-              photo: photos[0].dataUrl,
-            });
-            setSubmitted(true);
-          }}
-        >
-          Post listing
+        <Button className="w-full" disabled={!canSubmit || busy} onClick={() => void handlePost()}>
+          {isUploading ? "Uploading photos…" : submitting ? "Publishing…" : "Post listing"}
         </Button>
       </div>
     </div>

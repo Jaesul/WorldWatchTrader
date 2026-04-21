@@ -9,10 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { getListingById, type Listing } from "@/lib/design/data";
 import type { OnChainSettlement, PublicProfileSoldRow } from "@/lib/design/on-chain-sale-mock";
 import { getListingChipThumbnailById } from "@/lib/design/listing-attachment-thumb";
-import { useMyListings } from "@/lib/design/use-my-listings";
+import { useViewerDashboardListings } from "@/lib/design/use-viewer-dashboard-listings";
 
 export function PublicProfileSoldListings({ rows }: { rows: PublicProfileSoldRow[] }) {
-  const myListings = useMyListings();
+  const myListings = useViewerDashboardListings();
   const [listingDrawer, setListingDrawer] = useState<{
     listing: Listing;
     soldAtLabel: string;

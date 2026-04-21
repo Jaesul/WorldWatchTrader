@@ -15,7 +15,7 @@ export default function ListingsPage() {
         </p>
         <ul className="flex flex-col gap-2 text-sm">
           <li>
-            <SpringboardLink href="/listings/new">Add listing (stub)</SpringboardLink>
+            <SpringboardLink href="/listings/new">Create new listing</SpringboardLink>
           </li>
           <li>
             <SpringboardLink href="/listings/example-id">

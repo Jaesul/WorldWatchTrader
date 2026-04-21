@@ -1,4 +1,18 @@
 import type { Listing } from "@/lib/design/data";
+import { getAddress, isAddress } from "viem";
+
+/** Compare user ids (wallet addresses may differ only by checksum). */
+export function sameWalletUserId(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (isAddress(a) && isAddress(b)) {
+    try {
+      return getAddress(a as `0x${string}`) === getAddress(b as `0x${string}`);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
 
 /** Display name for comments posted by the current user in design surfaces. */
 export const VIEWER_COMMENT_AUTHOR = "You" as const;
@@ -10,6 +24,8 @@ export type FakeComment = {
   body: string;
   timeLabel: string;
   likes: number;
+  /** Set when the row comes from `listing_comments`; used with the design viewer for delete. */
+  authorUserId?: string;
 };
 
 export type RichComment = FakeComment & { effectiveLikes: number };
@@ -68,7 +84,12 @@ export function commentInitials(name: string) {
 }
 
 export function isViewerAuthoredComment(
-  comment: Pick<FakeComment, "author">,
+  comment: Pick<FakeComment, "author" | "authorUserId">,
+  viewerUserId?: string | null,
 ): boolean {
-  return comment.author === VIEWER_COMMENT_AUTHOR;
+  if (comment.author === VIEWER_COMMENT_AUTHOR) return true;
+  if (viewerUserId && comment.authorUserId) {
+    return sameWalletUserId(comment.authorUserId, viewerUserId);
+  }
+  return false;
 }

@@ -13,6 +13,9 @@ const likeListeners = new Set<() => void>();
 
 let hydrated = false;
 
+/** Until true on the client, saved snapshot stays empty so SSR + first paint match (avoids hydration errors). */
+let clientSaveSnapshotReady = false;
+
 function applySavedIdsFromJson(raw: string | null): void {
   savedIds.clear();
   if (!raw) return;
@@ -112,20 +115,35 @@ export function subscribeSaved(onStoreChange: () => void): () => void {
 
 /** Stable string for useSyncExternalStore — sorted ids joined by comma */
 export function getSavedSnapshot(): string {
+  if (typeof window !== 'undefined' && !clientSaveSnapshotReady) {
+    return '';
+  }
   hydrateSavedFromStorage();
   return [...savedIds].sort().join(",");
 }
 
 export function getServerSavedSnapshot(): string {
-  return "";
+  return '';
+}
+
+/** Call once after mount (e.g. from `useSavedIds`) so localStorage can hydrate without SSR mismatch. */
+export function ackSavedStoreClientHydrated(): void {
+  if (typeof window === 'undefined' || clientSaveSnapshotReady) return;
+  clientSaveSnapshotReady = true;
+  hydrateSavedFromStorage();
+  notifySaved();
 }
 
 export function isSaved(id: string): boolean {
+  if (typeof window !== 'undefined' && !clientSaveSnapshotReady) {
+    return false;
+  }
   hydrateSavedFromStorage();
   return savedIds.has(id);
 }
 
 export function toggleSave(id: string): boolean {
+  clientSaveSnapshotReady = true;
   hydrateSavedFromStorage();
   let saved: boolean;
   if (savedIds.has(id)) {
@@ -141,6 +159,9 @@ export function toggleSave(id: string): boolean {
 }
 
 export function getSavedIds(): ReadonlySet<string> {
+  if (typeof window !== 'undefined' && !clientSaveSnapshotReady) {
+    return savedIds;
+  }
   hydrateSavedFromStorage();
   return savedIds;
 }

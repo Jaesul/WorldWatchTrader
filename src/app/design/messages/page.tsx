@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getMessages, getLastMessage, classifyThread } from '@/lib/design/thread-store';
 import { getListingAttachmentThumbnail } from '@/lib/design/listing-attachment-thumb';
-import { useMyListings } from '@/lib/design/use-my-listings';
+import { useViewerDashboardListings } from '@/lib/design/use-viewer-dashboard-listings';
 
 type FilterMode = 'all' | 'inbound' | 'outbound';
 
@@ -24,7 +24,7 @@ const KNOWN_THREADS: KnownThread[] = [
 ];
 
 function ThreadRow({ thread }: { thread: KnownThread }) {
-  const myListings = useMyListings();
+  const myListings = useViewerDashboardListings();
   const [lastMsg, setLastMsg] = useState(getLastMessage(thread.id));
   const [msgCount, setMsgCount] = useState(getMessages(thread.id).length);
 

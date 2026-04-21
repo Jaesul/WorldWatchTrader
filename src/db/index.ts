@@ -11,8 +11,10 @@ export function getDb() {
     throw new Error('DATABASE_URL is not set');
   }
   if (!_db) {
-    // Supabase pooler (transaction mode): prefer port 6543 URL + `prepare: false`
-    const client = postgres(connectionString, { prepare: false, max: 1 });
+    // Supabase pooler (transaction mode): port 6543 URL + `prepare: false`.
+    // `max` > 1 avoids head-of-line blocking when layout, RSC, and `/api/design/*`
+    // hit the DB concurrently (a single slot made `listUsersForPicker` look like timeouts).
+    const client = postgres(connectionString, { prepare: false, max: 10 });
     _db = drizzle(client, { schema });
   }
   return _db;

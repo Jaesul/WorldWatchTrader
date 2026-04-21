@@ -20,6 +20,7 @@ import {
   isViewerAuthoredComment,
   type RichComment,
 } from "@/lib/design/listing-drawer-comments";
+import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { cn } from "@/lib/utils";
 
 export function DesignListingCommentRow({
@@ -36,9 +37,10 @@ export function DesignListingCommentRow({
   onDelete?: () => void;
   variant: "feed" | "drawer";
 }) {
+  const { viewer } = useDesignViewer();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const isFeed = variant === "feed";
-  const canDelete = isViewerAuthoredComment(comment) && onDelete;
+  const canDelete = isViewerAuthoredComment(comment, viewer?.id) && onDelete;
 
   function confirmDelete() {
     onDelete?.();
@@ -91,7 +93,10 @@ export function DesignListingCommentRow({
             </span>
             <button
               type="button"
-              onClick={onToggleLike}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleLike();
+              }}
               className={cn(
                 "flex items-center font-medium transition-colors",
                 isFeed
@@ -118,7 +123,10 @@ export function DesignListingCommentRow({
                   isFeed && "size-7 min-h-7 min-w-7",
                 )}
                 aria-label="Delete comment"
-                onClick={() => setConfirmOpen(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfirmOpen(true);
+                }}
               >
                 <Trash2 className={isFeed ? "size-3.5" : "size-4"} />
               </Button>

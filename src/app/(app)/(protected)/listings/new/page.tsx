@@ -1,3 +1,4 @@
+import { NewListingForm } from '@/components/listings/NewListingForm';
 import { SpringboardLink } from '@/components/Navigation';
 import { Page } from '@/components/PageLayout';
 import { TopBar } from '@worldcoin/mini-apps-ui-kit-react';
@@ -8,12 +9,14 @@ export default function NewListingPage() {
       <Page.Header className="p-0">
         <TopBar title="New listing" />
       </Page.Header>
-      <Page.Main className="flex flex-col gap-4 mb-16">
-        <p className="text-sm text-neutral-600">
-          <strong>UX springboard:</strong> form fields (title, details, …). World ID required
-          to submit — enforce in a later pass.
+      <Page.Main className="mb-16 flex flex-col gap-4 px-4 pt-2">
+        <p className="text-sm text-muted-foreground">
+          Add photos from your library or camera, then publish. Listings go live on Home right away.
         </p>
-        <SpringboardLink href="/listings">← Back to listings</SpringboardLink>
+        <NewListingForm />
+        <SpringboardLink href="/listings" className="text-sm text-neutral-600">
+          ← Back to listings
+        </SpringboardLink>
       </Page.Main>
     </>
   );

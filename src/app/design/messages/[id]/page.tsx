@@ -23,7 +23,7 @@ import {
 } from '@/lib/design/thread-store';
 import { getListingById, formatPrice, type Listing } from '@/lib/design/data';
 import type { MyListing } from '@/lib/design/listing-store';
-import { useMyListings } from '@/lib/design/use-my-listings';
+import { useViewerDashboardListings } from '@/lib/design/use-viewer-dashboard-listings';
 import { MarkSoldSheet, type PlatformUser } from '@/components/design/MarkSoldSheet';
 import { ThreadMarkListingSheet } from '@/components/design/ThreadMarkListingSheet';
 import { getListingAttachmentThumbnail } from '@/lib/design/listing-attachment-thumb';
@@ -282,7 +282,7 @@ export default function ChatThreadPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Sold sheet — opened when user taps "Mark as sold" on their own listing card in a thread
-  const myListings = useMyListings();
+  const myListings = useViewerDashboardListings();
   const [soldSheetListingId, setSoldSheetListingId] = useState<string | null>(null);
   const soldSheetListing = soldSheetListingId
     ? myListings.find((l) => l.id === soldSheetListingId) ?? null

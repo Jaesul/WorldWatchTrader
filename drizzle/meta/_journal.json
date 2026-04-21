@@ -8,6 +8,20 @@
       "when": 1776567287447,
       "tag": "0000_init_marketplace",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776567288000,
+      "tag": "0001_users_power_seller",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776567290000,
+      "tag": "0002_listing_comment_likes",
+      "breakpoints": true
     }
   ]
 }

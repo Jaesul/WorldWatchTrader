@@ -43,6 +43,7 @@ import {
   isViewerAuthoredComment,
   type RichComment,
 } from "@/lib/design/listing-drawer-comments";
+import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { guardBooleanOpenChange } from "@/lib/guard-boolean-open-change";
 import { cn } from "@/lib/utils";
 
@@ -209,6 +210,7 @@ export function ListingDetailDrawer({
   onRequestShare,
   soldHistory,
 }: ListingDetailDrawerProps) {
+  const { viewer } = useDesignViewer();
   const [descExpanded, setDescExpanded] = useState(false);
 
   useEffect(() => {
@@ -361,7 +363,10 @@ export function ListingDetailDrawer({
                   liked &&
                     "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20",
                 )}
-                onClick={onToggleLike}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleLike();
+                }}
               >
                 <Heart className={cn("size-3.5", liked && "fill-current")} />
                 {likeCount}
@@ -401,7 +406,7 @@ export function ListingDetailDrawer({
                     liked={commentLikedIds.has(comment.id)}
                     onToggleLike={() => onToggleCommentLike(comment.id)}
                     onDelete={
-                      onDeleteComment && isViewerAuthoredComment(comment)
+                      onDeleteComment && isViewerAuthoredComment(comment, viewer?.id)
                         ? () => onDeleteComment(comment.id)
                         : undefined
                     }

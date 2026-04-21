@@ -1,20 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { LISTINGS, formatPrice, type Listing } from "@/lib/design/data";
-import { useSavedIds } from "@/lib/design/use-saved-ids";
+import { formatPrice } from "@/lib/design/data";
+import { useDesignListingSaves } from "@/lib/design/use-design-listing-saves";
+import type { DesignFeedListing } from "@/lib/design/map-db-feed-to-listing";
 import { FeedListingPreviewDrawer } from "@/components/design/FeedListingPreviewDrawer";
 
 export default function SavedPage() {
-  const savedIds = useSavedIds();
-  const [drawerListing, setDrawerListing] = useState<Listing | null>(null);
+  const { savedListings, loading } = useDesignListingSaves();
+  const [drawerListing, setDrawerListing] = useState<DesignFeedListing | null>(
+    null,
+  );
 
-  const savedListings = LISTINGS.filter((l) => savedIds.has(l.id)).sort(
-    (a, b) => a.model.localeCompare(b.model),
+  const sorted = useMemo(
+    () =>
+      [...savedListings].sort((a, b) =>
+        a.model.localeCompare(b.model, undefined, { sensitivity: "base" }),
+      ),
+    [savedListings],
   );
 
   return (
@@ -22,13 +29,19 @@ export default function SavedPage() {
       <div className="border-b border-border px-4 pb-3 pt-5">
         <h1 className="text-xl font-semibold text-foreground">Saved</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {savedListings.length === 0
-            ? "Listings you bookmark from the feed appear here."
-            : `${savedListings.length} saved listing${savedListings.length === 1 ? "" : "s"}`}
+          {loading
+            ? "Loading…"
+            : sorted.length === 0
+              ? "Listings you bookmark from the feed appear here."
+              : `${sorted.length} saved listing${sorted.length === 1 ? "" : "s"}`}
         </p>
       </div>
 
-      {savedListings.length === 0 ? (
+      {loading ? (
+        <div className="px-4 py-16 text-center text-sm text-muted-foreground">
+          Loading saved listings…
+        </div>
+      ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-6 py-24 text-center">
           <div className="mb-4 text-5xl">🔖</div>
           <h2 className="mb-2 text-lg font-semibold text-foreground">
@@ -36,7 +49,7 @@ export default function SavedPage() {
           </h2>
           <p className="mb-6 max-w-xs text-sm text-muted-foreground">
             Tap the bookmark on any listing in the feed to save it here. Saves
-            sync across the app and stay until you remove them.
+            are stored for the profile you pick in Design.
           </p>
           <Button asChild>
             <Link href="/design">Browse listings</Link>
@@ -44,7 +57,7 @@ export default function SavedPage() {
         </div>
       ) : (
         <ul className="flex flex-col gap-3 p-3">
-          {savedListings.map((listing) => (
+          {sorted.map((listing) => (
             <li key={listing.id}>
               <Card className="overflow-hidden py-0 shadow-sm">
                 <CardContent className="p-0">

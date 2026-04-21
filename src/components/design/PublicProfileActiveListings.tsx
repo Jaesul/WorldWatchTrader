@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { getListingById, type Listing } from '@/lib/design/data';
-import { useMyListings } from '@/lib/design/use-my-listings';
+import { useViewerDashboardListings } from '@/lib/design/use-viewer-dashboard-listings';
 import { getListingChipThumbnailById } from '@/lib/design/listing-attachment-thumb';
 import { FeedListingPreviewDrawer } from '@/components/design/FeedListingPreviewDrawer';
 
@@ -18,7 +18,7 @@ export function PublicProfileActiveListings({
 }: {
   rows: PublicProfileListingRow[];
 }) {
-  const myListings = useMyListings();
+  const myListings = useViewerDashboardListings();
   const [drawerListing, setDrawerListing] = useState<Listing | null>(null);
 
   return (
