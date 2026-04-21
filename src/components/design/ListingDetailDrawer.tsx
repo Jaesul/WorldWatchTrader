@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   Bookmark,
   ChevronLeft,
@@ -11,8 +12,10 @@ import {
   Heart,
   Reply,
   Send,
+  Share2,
 } from "lucide-react";
 
+import { DesignListingCommentRow } from "@/components/design/DesignListingCommentRow";
 import {
   BadgeChip,
   SellerInitials,
@@ -21,7 +24,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
-  CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
@@ -34,7 +36,11 @@ import {
 } from "@/components/ui/sheet";
 import { formatPrice, type Listing } from "@/lib/design/data";
 import {
-  commentInitials,
+  hasBuyerAttachedListing,
+  replyToSellerListingHref,
+} from "@/lib/design/thread-store";
+import {
+  isViewerAuthoredComment,
   type RichComment,
 } from "@/lib/design/listing-drawer-comments";
 import { guardBooleanOpenChange } from "@/lib/guard-boolean-open-change";
@@ -52,9 +58,13 @@ export type ListingDetailDrawerProps = {
   comments: RichComment[];
   commentLikedIds: Set<string>;
   onToggleCommentLike: (id: string) => void;
+  /** Remove a comment authored by the current user (design sandbox: author "You"). */
+  onDeleteComment?: (commentId: string) => void;
   commentDraft: string;
   onCommentDraftChange: (val: string) => void;
   onAddComment: () => void;
+  /** Opens the design share sheet (iOS-style export + in-app send). */
+  onRequestShare?: () => void;
 };
 
 export function ListingPhotoCarousel({
@@ -190,9 +200,11 @@ export function ListingDetailDrawer({
   comments,
   commentLikedIds,
   onToggleCommentLike,
+  onDeleteComment,
   commentDraft,
   onCommentDraftChange,
   onAddComment,
+  onRequestShare,
 }: ListingDetailDrawerProps) {
   const [descExpanded, setDescExpanded] = useState(false);
 
@@ -211,8 +223,20 @@ export function ListingDetailDrawer({
           Full listing details for {listing.model}
         </SheetDescription>
 
-        <div className="flex shrink-0 justify-center pt-3 pb-1">
+        <div className="relative flex shrink-0 justify-center pt-3 pb-1">
           <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+          {onRequestShare ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Share listing"
+              onClick={onRequestShare}
+            >
+              <Share2 className="size-4" />
+            </Button>
+          ) : null}
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -292,7 +316,19 @@ export function ListingDetailDrawer({
             >
               <Button asChild size="sm" className="shrink-0 rounded-full">
                 <Link
-                  href={`/design/messages/seller-${listing.seller.handle}?listing=${listing.id}`}
+                  href={replyToSellerListingHref(
+                    listing.seller.handle,
+                    listing.id,
+                  )}
+                  onClick={() => {
+                    const threadId = `seller-${listing.seller.handle}`;
+                    if (hasBuyerAttachedListing(threadId, listing.id)) {
+                      toast.info(
+                        "You already shared this listing with this seller.",
+                        { description: "Opening your existing chat." },
+                      );
+                    }
+                  }}
                 >
                   <Reply className="size-3.5 -scale-x-100" />
                   Reply to seller
@@ -339,58 +375,20 @@ export function ListingDetailDrawer({
               </p>
             ) : (
               <div className="flex flex-col gap-4">
-                {comments.map((comment) => {
-                  const cLiked = commentLikedIds.has(comment.id);
-                  return (
-                    <div key={comment.id} className="flex items-start gap-3">
-                      <Avatar className="mt-0.5 size-8 shrink-0 bg-foreground text-background after:border-foreground/10">
-                        <AvatarImage
-                          src={comment.avatar}
-                          alt={comment.author}
-                        />
-                        <AvatarFallback className="bg-foreground text-[10px] font-semibold text-background">
-                          {commentInitials(comment.author).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm">
-                          <span className="font-semibold text-foreground">
-                            {comment.author}
-                          </span>{" "}
-                          <span className="text-foreground/80">
-                            {comment.body}
-                          </span>
-                        </p>
-                        <div className="mt-1.5 flex items-center gap-3">
-                          <span className="text-[11px] text-muted-foreground">
-                            {comment.timeLabel}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => onToggleCommentLike(comment.id)}
-                            className={cn(
-                              "flex items-center gap-1 text-[11px] font-medium transition-colors",
-                              cLiked
-                                ? "text-primary"
-                                : "text-muted-foreground hover:text-foreground",
-                            )}
-                            aria-label={
-                              cLiked ? "Unlike comment" : "Like comment"
-                            }
-                          >
-                            <Heart
-                              className={cn(
-                                "size-3.5",
-                                cLiked && "fill-current",
-                              )}
-                            />
-                            {comment.effectiveLikes}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {comments.map((comment) => (
+                  <DesignListingCommentRow
+                    key={comment.id}
+                    comment={comment}
+                    liked={commentLikedIds.has(comment.id)}
+                    onToggleLike={() => onToggleCommentLike(comment.id)}
+                    onDelete={
+                      onDeleteComment && isViewerAuthoredComment(comment)
+                        ? () => onDeleteComment(comment.id)
+                        : undefined
+                    }
+                    variant="drawer"
+                  />
+                ))}
               </div>
             )}
           </div>

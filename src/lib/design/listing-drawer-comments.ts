@@ -1,5 +1,8 @@
 import type { Listing } from "@/lib/design/data";
 
+/** Display name for comments posted by the current user in design surfaces. */
+export const VIEWER_COMMENT_AUTHOR = "You" as const;
+
 export type FakeComment = {
   id: string;
   author: string;
@@ -62,4 +65,10 @@ export function createInitialComments(
 export function commentInitials(name: string) {
   const parts = name.split(" ");
   return (parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "");
+}
+
+export function isViewerAuthoredComment(
+  comment: Pick<FakeComment, "author">,
+): boolean {
+  return comment.author === VIEWER_COMMENT_AUTHOR;
 }

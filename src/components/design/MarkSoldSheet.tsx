@@ -343,8 +343,18 @@ export function MarkSoldSheet({
               {buyer?.kind === 'off-platform' && <Check className="size-4 shrink-0 text-foreground" />}
             </button>
 
-            <Button className="w-full" disabled={!buyer} onClick={() => setStep('review')}>
-              Continue
+            <Button
+              className="w-full"
+              disabled={!buyer}
+              onClick={() => {
+                if (buyer?.kind === 'off-platform') {
+                  finalize(true);
+                } else {
+                  setStep('review');
+                }
+              }}
+            >
+              {buyer?.kind === 'off-platform' ? 'Mark as sold' : 'Continue'}
             </Button>
           </>
         ) : (
@@ -353,8 +363,9 @@ export function MarkSoldSheet({
               <SheetTitle>
                 {buyerFirstName ? `How was ${buyerFirstName}?` : 'Review the sale'}
               </SheetTitle>
-              <SheetDescription className="text-xs">
-                Your review stays private until the buyer reviews you too.
+              <SheetDescription className="text-xs text-pretty">
+                Reviews stay private and don&apos;t affect either person&apos;s rating until both parties
+                have submitted a review, or 7 days after the sale — whichever comes first.
               </SheetDescription>
             </SheetHeader>
 

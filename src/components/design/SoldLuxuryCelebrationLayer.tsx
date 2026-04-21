@@ -69,16 +69,8 @@ export function SoldLuxuryCelebrationLayer() {
         className="relative z-10 border-amber-400/50 bg-gradient-to-b from-amber-400 to-amber-600 text-black shadow-lg hover:from-amber-300 hover:to-amber-500"
         onClick={onDismiss}
       >
-        Back to reality
+        Back to browsing
       </Button>
-
-      <button
-        type="button"
-        className="relative z-10 text-[10px] uppercase tracking-widest text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        onClick={onDismiss}
-      >
-        Dismiss
-      </button>
     </div>,
     document.body,
   );

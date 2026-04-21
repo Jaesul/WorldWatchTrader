@@ -1,26 +1,23 @@
 /**
  * Full-screen “sold” celebration (design sandbox). Survives MarkSoldSheet unmount
  * because parents clear listing state as the sheet closes.
+ *
+ * GIFs are shipped under /public/design/sold-celebration/ (see SOURCES.txt there).
  */
 
 const listeners = new Set<() => void>();
 
-/** Giphy direct URLs — yachts, champagne, money flex, peak absurd wealth energy */
+/** Local celebratory / money-adjacent GIFs (random pick on each sale). */
 export const LUXURY_SOLD_GIFS = [
-  'https://media.giphy.com/media/3o7TKVfQSGPb3N1r7a/giphy.gif',
-  'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif',
-  'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
-  'https://media.giphy.com/media/26BRv0ThflVHC/giphy.gif',
-  'https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif',
-  'https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif',
-  'https://media.giphy.com/media/3ohzdIuqgUjw7ztiQU/giphy.gif',
-  'https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif',
-  'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif',
-  'https://media.giphy.com/media/3o7aCTPPm4OHfRLSH6/giphy.gif',
-  'https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif',
-  'https://media.giphy.com/media/l0MYd5y9lqyxOaRn2/giphy.gif',
-  'https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif',
-  'https://media.giphy.com/media/3o7TKSjRrfIPje/giphy.gif',
+  '/design/sold-celebration/smiley-dance.gif',
+  '/design/sold-celebration/smiley-wink.gif',
+  '/design/sold-celebration/money-chart.gif',
+  '/design/sold-celebration/gold-history.gif',
+  '/design/sold-celebration/trophy-icon.gif',
+  '/design/sold-celebration/trophy-teams.gif',
+  '/design/sold-celebration/money-eyes.gif',
+  '/design/sold-celebration/euro-cyprus.gif',
+  '/design/sold-celebration/euro-one.gif',
 ] as const;
 
 let celebrationUrl: string | null = null;

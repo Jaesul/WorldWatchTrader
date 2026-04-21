@@ -2,10 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   Bookmark,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Filter,
   Heart,
@@ -32,6 +35,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
 import {
   Sheet,
   SheetContent,
@@ -45,15 +49,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  ListingDetailDrawer,
-  ListingPhotoCarousel,
-} from "@/components/design/ListingDetailDrawer";
-import {
-  BadgeChip,
-  OrbIcon,
-  SellerInitials,
-} from "@/components/design/seller-listing-badge-chip";
+import { DesignListingCommentRow } from "@/components/design/DesignListingCommentRow";
+import { ListingDetailDrawer } from "@/components/design/ListingDetailDrawer";
 import {
   LISTINGS,
   formatPrice,
@@ -61,19 +58,17 @@ import {
   type Listing,
 } from "@/lib/design/data";
 import {
-  commentInitials,
   createInitialComments,
+  isViewerAuthoredComment,
   type FakeComment,
   type RichComment,
+  VIEWER_COMMENT_AUTHOR,
 } from "@/lib/design/listing-drawer-comments";
-import {
-  toggleLike as toggleDesignLike,
-  toggleSave as toggleSaveListing,
-} from "@/lib/design/interaction-store";
-import { useLikedIds } from "@/lib/design/use-liked-ids";
+import { toggleSave as toggleSaveListing } from "@/lib/design/interaction-store";
 import { useSavedIds } from "@/lib/design/use-saved-ids";
 import { guardBooleanOpenChange } from "@/lib/guard-boolean-open-change";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -93,6 +88,42 @@ function sortTriggerLabel(sort: SortOption | null): string {
   if (!sort) return "Sort by";
   return SORT_CHOICES.find((c) => c.value === sort)?.label ?? "Sort by";
 }
+
+const PriceRangeTriggerChip = forwardRef<
+  HTMLButtonElement,
+  {
+    priceFiltered: boolean;
+    sheetOpen: boolean;
+    onClick?: () => void;
+  }
+>(function PriceRangeTriggerChip(
+  { priceFiltered: rangeActive, sheetOpen, onClick },
+  ref,
+) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 w-fit shrink-0 cursor-pointer items-center gap-1 rounded-full border px-3 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+        rangeActive
+          ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+          : "border-border bg-background text-foreground hover:bg-muted/60",
+      )}
+      aria-haspopup="dialog"
+      aria-expanded={sheetOpen}
+    >
+      <span className="whitespace-nowrap">Price range</span>
+      <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
+    </button>
+  );
+});
+PriceRangeTriggerChip.displayName = "PriceRangeTriggerChip";
+
+/** Slider domain for the feed price filter (USD, design sandbox). */
+const FEED_PRICE_MIN = 0;
+const FEED_PRICE_MAX = 150_000;
 
 const VIEW_MODE_STORAGE_KEY = "wwt-design-feed-view-mode";
 
@@ -167,6 +198,212 @@ const SEARCH_RECOMMENDATIONS = [
   },
 ];
 
+const BADGE_META: Record<
+  ListingBadge,
+  {
+    label: string;
+    icon?: LucideIcon;
+    variant: "brand" | "outline";
+    className?: string;
+  }
+> = {
+  "world-verified": { label: "World Verified", variant: "brand" },
+  "power-seller": {
+    label: "Power Seller",
+    icon: Star,
+    variant: "outline",
+    className: "border-primary/40 bg-primary/10 text-primary",
+  },
+};
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function OrbIcon({
+  className,
+  inverted,
+}: {
+  className?: string;
+  inverted?: boolean;
+}) {
+  /** Use hex on blue chip: iOS WebView can fail to map theme tokens → SVG `currentColor`. */
+  const stroke = inverted ? "#ffffff" : "currentColor";
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden
+    >
+      <path
+        d="M9.96783 18.9357C14.9206 18.9357 18.9357 14.9206 18.9357 9.96783C18.9357 5.01503 14.9206 1 9.96783 1C5.01503 1 1 5.01503 1 9.96783C1 14.9206 5.01503 18.9357 9.96783 18.9357Z"
+        stroke={stroke}
+        strokeWidth="2"
+        strokeMiterlimit="10"
+      />
+      <path
+        d="M10.0406 10.5109C11.5667 10.5109 12.8038 9.27372 12.8038 7.74762C12.8038 6.22152 11.5667 4.98438 10.0406 4.98438C8.51449 4.98438 7.27734 6.22152 7.27734 7.74762C7.27734 9.27372 8.51449 10.5109 10.0406 10.5109Z"
+        stroke={stroke}
+        strokeWidth="2"
+        strokeMiterlimit="10"
+      />
+      <path
+        d="M7.07422 13.9844H12.9767"
+        stroke={stroke}
+        strokeWidth="2"
+        strokeMiterlimit="10"
+      />
+    </svg>
+  );
+}
+
+function BadgeChip({ badge }: { badge: ListingBadge }) {
+  if (badge === "world-verified") {
+    return (
+      <Badge
+        variant="brand"
+        className="size-6 rounded-full p-0 text-white"
+        aria-label="World Verified"
+      >
+        <OrbIcon className="size-3.5" inverted />
+      </Badge>
+    );
+  }
+  const { className, icon: Icon, label, variant } = BADGE_META[badge];
+  return (
+    <Badge
+      variant={variant}
+      className={cn(
+        "h-6 gap-1 rounded-full px-2.5 text-[10px] font-semibold",
+        className,
+      )}
+    >
+      {Icon ? <Icon className="size-3" /> : null}
+      {label}
+    </Badge>
+  );
+}
+
+function SellerInitials({ name }: { name: string }) {
+  const parts = name.split(" ");
+  return <>{(parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase()}</>;
+}
+
+function PhotoCarousel({ photos, alt }: { photos: string[]; alt: string }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || photos.length <= 1) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting)
+            setActiveIdx(Number((entry.target as HTMLElement).dataset.idx));
+        }
+      },
+      { root: container, threshold: 0.6 },
+    );
+    container
+      .querySelectorAll("[data-idx]")
+      .forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [photos.length]);
+
+  function scrollTo(idx: number) {
+    containerRef.current?.scrollTo({
+      left: idx * containerRef.current.offsetWidth,
+      behavior: "smooth",
+    });
+  }
+
+  return (
+    <div className="relative">
+      <div
+        ref={containerRef}
+        className="flex snap-x snap-mandatory overflow-x-auto"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {photos.map((src, i) => (
+          <div
+            key={i}
+            data-idx={i}
+            className="aspect-[4/3] w-full shrink-0 snap-start"
+          >
+            <Image
+              src={src}
+              alt={`${alt} — ${i + 1} of ${photos.length}`}
+              width={1200}
+              height={900}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        ))}
+      </div>
+      {photos.length > 1 && (
+        <>
+          {activeIdx > 0 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                scrollTo(activeIdx - 1);
+              }}
+              className="absolute left-2 top-1/2 z-[1] flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white shadow-md backdrop-blur-sm transition hover:bg-black/75 active:scale-95"
+              aria-label="Previous photo"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+          )}
+          {activeIdx < photos.length - 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                scrollTo(activeIdx + 1);
+              }}
+              className="absolute right-2 top-1/2 z-[1] flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white shadow-md backdrop-blur-sm transition hover:bg-black/75 active:scale-95"
+              aria-label="Next photo"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          )}
+          <span className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+            {activeIdx + 1}/{photos.length}
+          </span>
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2">
+            {photos.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  scrollTo(i);
+                }}
+                className={cn(
+                  "flex size-3 min-h-9 min-w-9 shrink-0 items-center justify-center rounded-full transition-all active:scale-90",
+                  i === activeIdx
+                    ? "bg-white shadow-sm"
+                    : "bg-white/45 hover:bg-white/70",
+                )}
+                aria-label={`Photo ${i + 1}`}
+              >
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    i === activeIdx ? "bg-black/40" : "bg-white",
+                  )}
+                />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Feed Page ─────────────────────────────────────────────────────────────────
 
 export default function FeedPage() {
@@ -178,13 +415,22 @@ export default function FeedPage() {
   const [worldVerified, setWorldVerified] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
+  const [priceSheetOpen, setPriceSheetOpen] = useState(false);
+  const [priceRange, setPriceRange] = useState<[number, number]>([
+    FEED_PRICE_MIN,
+    FEED_PRICE_MAX,
+  ]);
+  const [priceRangeDraft, setPriceRangeDraft] = useState<[number, number]>([
+    FEED_PRICE_MIN,
+    FEED_PRICE_MAX,
+  ]);
   const [viewMode, setViewMode] = useState<ViewMode>("feed");
   const [drawerListing, setDrawerListing] = useState<Listing | null>(null);
 
   useEffect(() => {
     setViewMode(readStoredViewMode());
   }, []);
-  const likedIds = useLikedIds();
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const savedIds = useSavedIds();
   const [commentsByListing, setCommentsByListing] = useState<
     Record<string, FakeComment[]>
@@ -207,15 +453,33 @@ export default function FeedPage() {
     return search.trim() === "" || haystack.includes(search.toLowerCase());
   }).slice(0, 5);
 
+  const priceFiltered =
+    priceRange[0] > FEED_PRICE_MIN || priceRange[1] < FEED_PRICE_MAX;
+
   const hasFilters =
-    sortBy !== null || sellerBadgeFilter !== null || worldVerified;
-  const hasNonVerifiedFilters = sortBy !== null || sellerBadgeFilter !== null;
+    sortBy !== null ||
+    sellerBadgeFilter !== null ||
+    worldVerified ||
+    priceFiltered;
+  const hasNonVerifiedFilters =
+    sortBy !== null || sellerBadgeFilter !== null || priceFiltered;
 
   function clearFilters() {
     setSortBy(null);
     setSellerBadgeFilter(null);
     setWorldVerified(false);
+    setPriceRange([FEED_PRICE_MIN, FEED_PRICE_MAX]);
+    setPriceRangeDraft([FEED_PRICE_MIN, FEED_PRICE_MAX]);
+    setPriceSheetOpen(false);
     setFilterOpen(false);
+  }
+
+  function handlePriceSheetOpenChange(value: unknown) {
+    if (typeof value !== "boolean") return;
+    if (value) {
+      setPriceRangeDraft(priceRange);
+    }
+    setPriceSheetOpen(value);
   }
 
   const filtered = LISTINGS.filter((listing) => {
@@ -227,7 +491,9 @@ export default function FeedPage() {
       !worldVerified || listing.seller.badges.includes("world-verified");
     const matchBadge =
       !sellerBadgeFilter || listing.seller.badges.includes(sellerBadgeFilter);
-    return matchSearch && matchVerified && matchBadge;
+    const matchPrice =
+      listing.price >= priceRange[0] && listing.price <= priceRange[1];
+    return matchSearch && matchVerified && matchBadge && matchPrice;
   }).sort((a, b) => {
     if (sortBy === "price-asc") return a.price - b.price;
     if (sortBy === "price-desc") return b.price - a.price;
@@ -244,7 +510,12 @@ export default function FeedPage() {
 
   function toggleLike(id: string, event: React.MouseEvent) {
     event.stopPropagation();
-    toggleDesignLike(id);
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
   function addComment(listingId: string) {
@@ -253,7 +524,7 @@ export default function FeedPage() {
     setCommentsByListing((prev) => {
       const next: FakeComment = {
         id: `${listingId}-comment-${Date.now()}`,
-        author: "You",
+        author: VIEWER_COMMENT_AUTHOR,
         avatar: "https://i.pravatar.cc/150?u=me-user",
         body,
         timeLabel: "Just now",
@@ -271,6 +542,19 @@ export default function FeedPage() {
       else next.add(commentId);
       return next;
     });
+  }
+
+  function deleteComment(listingId: string, commentId: string) {
+    setCommentsByListing((prev) => ({
+      ...prev,
+      [listingId]: (prev[listingId] ?? []).filter((c) => c.id !== commentId),
+    }));
+    setCommentLikedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(commentId);
+      return next;
+    });
+    toast.success("Comment deleted");
   }
 
   function handleSaveListing(listingId: string, event: React.MouseEvent) {
@@ -395,15 +679,110 @@ export default function FeedPage() {
               <Filter className="size-3.5" />
             </Button>
 
+            {/* Price range: pinned after funnel when active; nested under expanded filters when inactive */}
+            <Sheet
+              open={priceSheetOpen}
+              onOpenChange={handlePriceSheetOpenChange}
+            >
+              {priceFiltered ? (
+                <SheetTrigger asChild>
+                  <PriceRangeTriggerChip
+                    priceFiltered={priceFiltered}
+                    sheetOpen={priceSheetOpen}
+                  />
+                </SheetTrigger>
+              ) : null}
+              <SheetContent
+                side="bottom"
+                className="max-h-[min(85dvh,520px)] rounded-t-2xl px-4 pb-6 pt-2"
+                style={{
+                  paddingBottom:
+                    "max(1.5rem, env(safe-area-inset-bottom, 0px))",
+                }}
+              >
+                <SheetHeader className="text-left">
+                  <SheetTitle>Price range</SheetTitle>
+                  <SheetDescription>
+                    Drag both handles, then confirm to filter listings by asking
+                    price.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="mt-6 px-1">
+                  <p className="mb-4 text-center text-sm font-semibold tabular-nums text-foreground">
+                    {formatPrice(priceRangeDraft[0])} —{" "}
+                    {formatPrice(priceRangeDraft[1])}
+                  </p>
+                  <Slider
+                    value={priceRangeDraft}
+                    onValueChange={(v) =>
+                      setPriceRangeDraft([
+                        v[0] ?? FEED_PRICE_MIN,
+                        v[1] ?? FEED_PRICE_MAX,
+                      ])
+                    }
+                    min={FEED_PRICE_MIN}
+                    max={FEED_PRICE_MAX}
+                    step={500}
+                    minStepsBetweenThumbs={1}
+                    className="touch-pan-y py-2"
+                    aria-label="Filter by price range"
+                  />
+                  <div className="mt-2 flex justify-between text-xs text-muted-foreground tabular-nums">
+                    <span>{formatPrice(FEED_PRICE_MIN)}</span>
+                    <span>{formatPrice(FEED_PRICE_MAX)}</span>
+                  </div>
+                </div>
+                <div className="mt-6 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-w-0 flex-1 rounded-xl"
+                    disabled={
+                      priceRangeDraft[0] === FEED_PRICE_MIN &&
+                      priceRangeDraft[1] === FEED_PRICE_MAX
+                    }
+                    onClick={() =>
+                      setPriceRangeDraft([
+                        FEED_PRICE_MIN,
+                        FEED_PRICE_MAX,
+                      ])
+                    }
+                  >
+                    Reset price range
+                  </Button>
+                  <Button
+                    type="button"
+                    className="min-w-0 flex-1 rounded-xl"
+                    onClick={() => {
+                      setPriceRange(priceRangeDraft);
+                      setPriceSheetOpen(false);
+                    }}
+                  >
+                    Confirm
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+
             {/* Expanding filter controls */}
             <div
               className={cn(
-                "flex items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out",
+                "flex shrink-0 items-center gap-2 overflow-hidden transition-[max-width,opacity] duration-300 ease-in-out",
                 filterOpen
-                  ? "max-w-xs opacity-100"
+                  ? "max-w-[min(100dvw,120rem)] opacity-100"
                   : "max-w-0 opacity-0 pointer-events-none",
               )}
             >
+              {!priceFiltered ? (
+                <PriceRangeTriggerChip
+                  priceFiltered={priceFiltered}
+                  sheetOpen={priceSheetOpen}
+                  onClick={() => {
+                    setPriceRangeDraft(priceRange);
+                    setPriceSheetOpen(true);
+                  }}
+                />
+              ) : null}
               <Sheet
                 open={sortSheetOpen}
                 onOpenChange={guardBooleanOpenChange(setSortSheetOpen)}
@@ -420,7 +799,9 @@ export default function FeedPage() {
                     aria-haspopup="dialog"
                     aria-expanded={sortSheetOpen}
                   >
-                    <span className="truncate">{sortTriggerLabel(sortBy)}</span>
+                    <span className="min-w-0 truncate whitespace-nowrap">
+                      {sortTriggerLabel(sortBy)}
+                    </span>
                     <ChevronDown
                       className="size-3.5 shrink-0 opacity-60"
                       aria-hidden
@@ -612,10 +993,7 @@ export default function FeedPage() {
                 </CardHeader>
 
                 <div className="w-full overflow-hidden bg-muted">
-                  <ListingPhotoCarousel
-                    photos={listing.photos}
-                    alt={listing.model}
-                  />
+                  <PhotoCarousel photos={listing.photos} alt={listing.model} />
                 </div>
 
                 <CardContent className="px-4 pt-3 pb-3">
@@ -669,133 +1047,45 @@ export default function FeedPage() {
                       }}
                     >
                       <div className="mb-3 flex flex-col gap-2.5">
-                        {topComments.map((comment) => {
-                          const cLiked = commentLikedIds.has(comment.id);
-                          return (
-                            <div
-                              key={comment.id}
-                              className="flex items-start gap-2"
-                            >
-                              <Avatar className="mt-0.5 size-6 shrink-0 bg-foreground text-background after:border-foreground/10">
-                                <AvatarImage
-                                  src={comment.avatar}
-                                  alt={comment.author}
-                                />
-                                <AvatarFallback className="bg-foreground text-[10px] font-semibold text-background">
-                                  {commentInitials(
-                                    comment.author,
-                                  ).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs">
-                                  <span className="font-semibold text-foreground">
-                                    {comment.author}
-                                  </span>{" "}
-                                  <span className="text-foreground/75">
-                                    {comment.body}
-                                  </span>
-                                </p>
-                                <div className="mt-1 flex items-center gap-2">
-                                  <span className="text-[10px] text-muted-foreground">
-                                    {comment.timeLabel}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      toggleCommentLike(comment.id)
-                                    }
-                                    className={cn(
-                                      "flex items-center gap-0.5 text-[10px] font-medium transition-colors",
-                                      cLiked
-                                        ? "text-primary"
-                                        : "text-muted-foreground hover:text-foreground",
-                                    )}
-                                    aria-label={
-                                      cLiked ? "Unlike comment" : "Like comment"
-                                    }
-                                  >
-                                    <Heart
-                                      className={cn(
-                                        "size-3",
-                                        cLiked && "fill-current",
-                                      )}
-                                    />
-                                    {comment.effectiveLikes}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                        {topComments.map((comment) => (
+                          <DesignListingCommentRow
+                            key={comment.id}
+                            comment={comment}
+                            liked={commentLikedIds.has(comment.id)}
+                            onToggleLike={() => toggleCommentLike(comment.id)}
+                            onDelete={
+                              isViewerAuthoredComment(comment)
+                                ? () => deleteComment(listing.id, comment.id)
+                                : undefined
+                            }
+                            variant="feed"
+                          />
+                        ))}
 
                         {remainingComments.length > 0 && (
                           <>
                             <CollapsibleContent>
                               <div className="flex flex-col gap-2.5">
-                                {remainingComments.map((comment) => {
-                                  const cLiked = commentLikedIds.has(
-                                    comment.id,
-                                  );
-                                  return (
-                                    <div
-                                      key={comment.id}
-                                      className="flex items-start gap-2"
-                                    >
-                                      <Avatar className="mt-0.5 size-6 shrink-0 bg-foreground text-background after:border-foreground/10">
-                                        <AvatarImage
-                                          src={comment.avatar}
-                                          alt={comment.author}
-                                        />
-                                        <AvatarFallback className="bg-foreground text-[10px] font-semibold text-background">
-                                          {commentInitials(
-                                            comment.author,
-                                          ).toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <div className="min-w-0 flex-1">
-                                        <p className="text-xs">
-                                          <span className="font-semibold text-foreground">
-                                            {comment.author}
-                                          </span>{" "}
-                                          <span className="text-foreground/75">
-                                            {comment.body}
-                                          </span>
-                                        </p>
-                                        <div className="mt-1 flex items-center gap-2">
-                                          <span className="text-[10px] text-muted-foreground">
-                                            {comment.timeLabel}
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              toggleCommentLike(comment.id)
-                                            }
-                                            className={cn(
-                                              "flex items-center gap-0.5 text-[10px] font-medium transition-colors",
-                                              cLiked
-                                                ? "text-primary"
-                                                : "text-muted-foreground hover:text-foreground",
-                                            )}
-                                            aria-label={
-                                              cLiked
-                                                ? "Unlike comment"
-                                                : "Like comment"
-                                            }
-                                          >
-                                            <Heart
-                                              className={cn(
-                                                "size-3",
-                                                cLiked && "fill-current",
-                                              )}
-                                            />
-                                            {comment.effectiveLikes}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                                {remainingComments.map((comment) => (
+                                  <DesignListingCommentRow
+                                    key={comment.id}
+                                    comment={comment}
+                                    liked={commentLikedIds.has(comment.id)}
+                                    onToggleLike={() =>
+                                      toggleCommentLike(comment.id)
+                                    }
+                                    onDelete={
+                                      isViewerAuthoredComment(comment)
+                                        ? () =>
+                                            deleteComment(
+                                              listing.id,
+                                              comment.id,
+                                            )
+                                        : undefined
+                                    }
+                                    variant="feed"
+                                  />
+                                ))}
                               </div>
                             </CollapsibleContent>
                             <CollapsibleTrigger className="cursor-pointer bg-transparent text-left text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground">
@@ -1041,12 +1331,22 @@ export default function FeedPage() {
           likeCount={
             drawerListing.likes + (likedIds.has(drawerListing.id) ? 1 : 0)
           }
-          onToggleLike={() => toggleDesignLike(drawerListing.id)}
+          onToggleLike={() =>
+            setLikedIds((prev) => {
+              const next = new Set(prev);
+              if (next.has(drawerListing.id)) next.delete(drawerListing.id);
+              else next.add(drawerListing.id);
+              return next;
+            })
+          }
           saved={savedIds.has(drawerListing.id)}
           onToggleSave={() => toggleSaveListing(drawerListing.id)}
           comments={drawerComments}
           commentLikedIds={commentLikedIds}
           onToggleCommentLike={toggleCommentLike}
+          onDeleteComment={(commentId) =>
+            deleteComment(drawerListing.id, commentId)
+          }
           commentDraft={commentDrafts[drawerListing.id] ?? ""}
           onCommentDraftChange={(val) =>
             setCommentDrafts((prev) => ({ ...prev, [drawerListing.id]: val }))

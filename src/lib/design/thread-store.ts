@@ -177,6 +177,27 @@ export function hasListingRef(threadId: string, listingId: string): boolean {
   return msgs.some((m) => m.listing?.id === listingId);
 }
 
+/** True if the current user already attached this listing in an outbound message. */
+export function hasBuyerAttachedListing(
+  threadId: string,
+  listingId: string,
+): boolean {
+  const msgs = store.get(threadId) ?? [];
+  return msgs.some(
+    (m) => m.from === 'me' && m.listing?.id === listingId,
+  );
+}
+
+export function replyToSellerListingHref(
+  sellerHandle: string,
+  listingId: string,
+): string {
+  const threadId = `seller-${sellerHandle}`;
+  return hasBuyerAttachedListing(threadId, listingId)
+    ? `/design/messages/${threadId}`
+    : `/design/messages/${threadId}?listing=${listingId}`;
+}
+
 export function getLastMessage(threadId: string): ThreadMessage | undefined {
   const msgs = store.get(threadId) ?? [];
   return msgs[msgs.length - 1];
@@ -207,4 +228,21 @@ export function classifyThread(threadId: string): { inbound: boolean; outbound: 
   const inbound = msgs.some((m) => m.from === 'seller' && m.listing != null);
   const outbound = msgs.some((m) => m.from === 'me' && m.listing != null);
   return { inbound, outbound };
+}
+
+/**
+ * True when the other party has attached a listing card for one of the current
+ * user's listings (inbound inquiry). Used to gate thread actions like "mark sold".
+ */
+export function threadHasCounterpartySharedMyListing(
+  messages: ThreadMessage[],
+  myListingIds: readonly string[],
+): boolean {
+  const mine = new Set(myListingIds);
+  return messages.some(
+    (m) =>
+      m.from === 'seller' &&
+      m.listing != null &&
+      (m.listing.isMyListing === true || mine.has(m.listing.id)),
+  );
 }

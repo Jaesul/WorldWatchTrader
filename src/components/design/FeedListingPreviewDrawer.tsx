@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { ListingDetailDrawer } from "@/components/design/ListingDetailDrawer";
 import { LISTINGS, type Listing } from "@/lib/design/data";
@@ -8,6 +9,7 @@ import {
   createInitialComments,
   type FakeComment,
   type RichComment,
+  VIEWER_COMMENT_AUTHOR,
 } from "@/lib/design/listing-drawer-comments";
 import {
   toggleLike as toggleDesignLike,
@@ -57,7 +59,7 @@ export function FeedListingPreviewDrawer({
     setCommentsByListing((prev) => {
       const next: FakeComment = {
         id: `${listing.id}-comment-${Date.now()}`,
-        author: "You",
+        author: VIEWER_COMMENT_AUTHOR,
         avatar: "https://i.pravatar.cc/150?u=me-user",
         body,
         timeLabel: "Just now",
@@ -77,6 +79,19 @@ export function FeedListingPreviewDrawer({
     });
   }, []);
 
+  const deleteComment = useCallback((listingId: string, commentId: string) => {
+    setCommentsByListing((prev) => ({
+      ...prev,
+      [listingId]: (prev[listingId] ?? []).filter((c) => c.id !== commentId),
+    }));
+    setCommentLikedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(commentId);
+      return next;
+    });
+    toast.success("Comment deleted");
+  }, []);
+
   if (!listing) return null;
 
   return (
@@ -92,6 +107,7 @@ export function FeedListingPreviewDrawer({
       comments={comments}
       commentLikedIds={commentLikedIds}
       onToggleCommentLike={toggleCommentLike}
+      onDeleteComment={(commentId) => deleteComment(listing.id, commentId)}
       commentDraft={commentDrafts[listing.id] ?? ""}
       onCommentDraftChange={(val) =>
         setCommentDrafts((prev) => ({ ...prev, [listing.id]: val }))

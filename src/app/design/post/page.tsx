@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Camera, ChevronDown, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { addListing } from "@/lib/design/listing-store";
@@ -9,8 +10,23 @@ const CONDITIONS = ["Unworn", "Excellent", "Good", "Fair"];
 const BOX_PAPERS = ["Full set", "Box only", "Papers only", "None"];
 const CURRENCIES = ["USD", "EUR", "GBP", "CHF"];
 
+const MAX_PHOTOS = 8;
+
+type PhotoItem = { id: string; dataUrl: string };
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function NewListingPage() {
-  const [photos, setPhotos] = useState<string[]>([]);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [model, setModel] = useState("");
@@ -21,7 +37,35 @@ export default function NewListingPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const isValid =
-    price.trim() !== "" && model.trim() !== "" && description.trim() !== "";
+    photos.length > 0 &&
+    price.trim() !== "" &&
+    model.trim() !== "" &&
+    description.trim() !== "";
+
+  async function appendImagesFromFiles(fileList: FileList | null) {
+    if (!fileList?.length) return;
+    const files = Array.from(fileList).filter((f) =>
+      f.type.startsWith("image/"),
+    );
+    const dataUrls: string[] = [];
+    for (const file of files) {
+      try {
+        dataUrls.push(await readFileAsDataUrl(file));
+      } catch {
+        /* ignore single file errors */
+      }
+    }
+    if (!dataUrls.length) return;
+    setPhotos((prev) => {
+      const room = MAX_PHOTOS - prev.length;
+      if (room <= 0) return prev;
+      const next = dataUrls.slice(0, room).map((dataUrl) => ({
+        id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        dataUrl,
+      }));
+      return [...prev, ...next];
+    });
+  }
 
   if (submitted) {
     return (
@@ -62,45 +106,91 @@ export default function NewListingPage() {
           <label className="mb-2 block text-sm font-semibold text-foreground">
             Photos <span className="text-rose-500">*</span>
           </label>
+          <input
+            ref={libraryInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="sr-only"
+            onChange={async (e) => {
+              await appendImagesFromFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            onChange={async (e) => {
+              await appendImagesFromFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
           <div className="flex flex-wrap gap-2">
-            {photos.map((_, i) => (
+            {photos.map((item) => (
               <div
-                key={i}
-                className="relative flex size-20 items-center justify-center rounded-xl border border-border/60 bg-muted text-2xl"
+                key={item.id}
+                className="relative size-20 overflow-hidden rounded-xl border border-border/60 bg-muted"
               >
-                ⌚
-                <button
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.dataUrl}
+                  alt=""
+                  className="size-full object-cover"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon-xs"
+                  className="absolute -right-1.5 -top-1.5 size-5 min-h-0 rounded-full p-0 shadow-sm"
                   onClick={() =>
-                    setPhotos((prev) => prev.filter((__, j) => j !== i))
+                    setPhotos((prev) => prev.filter((p) => p.id !== item.id))
                   }
-                  className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-foreground text-[10px] text-background"
+                  aria-label="Remove photo"
                 >
-                  ×
-                </button>
+                  <X className="size-3" strokeWidth={2.5} />
+                </Button>
               </div>
             ))}
-            {photos.length < 8 && (
-              <button
-                onClick={() => setPhotos((prev) => [...prev, "placeholder"])}
-                className="flex size-20 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-muted/30 text-muted-foreground transition-colors hover:border-foreground/40 hover:bg-muted/60"
+            {photos.length < MAX_PHOTOS && (
+              <div
+                className="flex h-20 w-[7.25rem] overflow-hidden rounded-xl border border-dashed border-border bg-muted/30"
+                role="group"
+                aria-label="Add photos"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.8}
-                  className="size-5"
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-full min-h-0 flex-1 flex-col gap-0.5 rounded-none px-1 py-2 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+                  onClick={() => cameraInputRef.current?.click()}
                 >
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                <span className="text-[10px]">Add photo</span>
-              </button>
+                  <Camera className="size-4 shrink-0" aria-hidden />
+                  Camera
+                </Button>
+                <div
+                  className="w-px shrink-0 self-stretch bg-border"
+                  aria-hidden
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-full min-h-0 flex-1 flex-col gap-0.5 rounded-none px-1 py-2 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+                  onClick={() => libraryInputRef.current?.click()}
+                >
+                  <ImagePlus className="size-4 shrink-0" aria-hidden />
+                  Upload
+                </Button>
+              </div>
             )}
           </div>
           {photos.length === 0 && (
             <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Tap + to add a photo (placeholder in sandbox)
+              Use Camera for a new shot or Upload to pick from your library (up
+              to {MAX_PHOTOS} photos).
             </p>
           )}
         </section>
@@ -171,22 +261,19 @@ export default function NewListingPage() {
         </section>
 
         <div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
+            className="h-auto justify-start gap-1.5 px-0 text-muted-foreground hover:text-foreground"
             onClick={() => setShowOptional((v) => !v)}
-            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              className={`size-4 transition-transform ${showOptional ? "rotate-180" : ""}`}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            <ChevronDown
+              className={`size-4 shrink-0 transition-transform ${showOptional ? "rotate-180" : ""}`}
+              aria-hidden
+            />
             {showOptional ? "Hide" : "Add"} optional details
-          </button>
+          </Button>
         </div>
 
         {showOptional && (
@@ -197,13 +284,16 @@ export default function NewListingPage() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {CONDITIONS.map((c) => (
-                  <button
+                  <Button
                     key={c}
+                    type="button"
+                    variant={condition === c ? "default" : "outline"}
+                    size="xs"
+                    className="rounded-full px-3"
                     onClick={() => setCondition(condition === c ? "" : c)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${condition === c ? "bg-foreground text-background" : "border border-border bg-background text-muted-foreground hover:text-foreground"}`}
                   >
                     {c}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </section>
@@ -214,13 +304,16 @@ export default function NewListingPage() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {BOX_PAPERS.map((bp) => (
-                  <button
+                  <Button
                     key={bp}
+                    type="button"
+                    variant={boxPapers === bp ? "default" : "outline"}
+                    size="xs"
+                    className="rounded-full px-3"
                     onClick={() => setBoxPapers(boxPapers === bp ? "" : bp)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${boxPapers === bp ? "bg-foreground text-background" : "border border-border bg-background text-muted-foreground hover:text-foreground"}`}
                   >
                     {bp}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </section>
@@ -228,12 +321,8 @@ export default function NewListingPage() {
         )}
 
         <div className="rounded-xl border border-world-verified/35 bg-world-verified/10 p-3">
-          <p className="text-xs font-semibold text-world-verified">
-            World ID is optional
-          </p>
-          <p className="mt-0.5 text-xs text-foreground/70">
-            You can post with a normal account. Link World ID from Profile to
-            earn the World Verified badge on your listings.
+          <p className="text-xs text-foreground/70">
+            Link World ID from Profile to earn the World Verified badge on your listings.
           </p>
         </div>
 
@@ -249,6 +338,7 @@ export default function NewListingPage() {
               condition,
               boxPapers,
               photoCount: photos.length,
+              photo: photos[0].dataUrl,
             });
             setSubmitted(true);
           }}

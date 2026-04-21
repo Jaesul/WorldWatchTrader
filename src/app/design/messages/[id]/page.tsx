@@ -18,6 +18,7 @@ import {
   getMessages,
   addMessage,
   hasListingRef,
+  threadHasCounterpartySharedMyListing,
   type ThreadMessage,
 } from '@/lib/design/thread-store';
 import { getListingById, formatPrice, type Listing } from '@/lib/design/data';
@@ -288,6 +289,13 @@ export default function ChatThreadPage() {
     : null;
   const [threadMarkSheetOpen, setThreadMarkSheetOpen] = useState(false);
   const activeListingsForThread = myListings.filter((l) => l.status === 'active');
+  const showMarkListingFromThreadButton = useMemo(
+    () => threadHasCounterpartySharedMyListing(
+      messages,
+      myListings.map((l) => l.id),
+    ),
+    [messages, myListings],
+  );
   const threadBuyer: PlatformUser | null = SELLER_INFO[threadId]
     ? { ...SELLER_INFO[threadId] }
     : null;
@@ -359,19 +367,6 @@ export default function ChatThreadPage() {
   const isEmpty = messages.length === 0;
   const stagedThumb = staged ? getListingAttachmentThumbnail(staged, myListings) : null;
 
-  /** Counterparty attached one of your listings in this thread (listing card with `isMyListing`). */
-  const showHeaderMarkSoldEntry = useMemo(
-    () =>
-      messages.some(
-        (m) => m.from === 'seller' && m.listing != null && m.listing.isMyListing === true,
-      ),
-    [messages],
-  );
-
-  useEffect(() => {
-    if (!showHeaderMarkSoldEntry && threadMarkSheetOpen) setThreadMarkSheetOpen(false);
-  }, [showHeaderMarkSoldEntry, threadMarkSheetOpen]);
-
   function handleReplyInChatFromDrawer(payload: ThreadListingAttachment) {
     setStaged(payload);
     setListingDrawer(null);
@@ -409,7 +404,7 @@ export default function ChatThreadPage() {
             <p className="mt-0.5 text-[11px] text-muted-foreground">View profile →</p>
           </div>
         </Link>
-        {showHeaderMarkSoldEntry && (
+        {showMarkListingFromThreadButton && (
           <Button
             type="button"
             variant="outline"
