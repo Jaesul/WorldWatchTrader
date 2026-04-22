@@ -72,6 +72,7 @@ import {
   replyToSellerListingHref,
 } from "@/lib/design/thread-store";
 import { guardBooleanOpenChange } from "@/lib/guard-boolean-open-change";
+import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-interaction-gate";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -512,6 +513,7 @@ export default function FeedPage() {
 
   function toggleLike(id: string, event: React.MouseEvent) {
     event.stopPropagation();
+    if (blockDesignInteractionWithoutWorldId()) return;
     setLikedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -521,6 +523,7 @@ export default function FeedPage() {
   }
 
   function addComment(listingId: string) {
+    if (blockDesignInteractionWithoutWorldId()) return;
     const body = (commentDrafts[listingId] ?? "").trim();
     if (!body) return;
     setCommentsByListing((prev) => {
@@ -538,6 +541,7 @@ export default function FeedPage() {
   }
 
   function toggleCommentLike(commentId: string) {
+    if (blockDesignInteractionWithoutWorldId()) return;
     setCommentLikedIds((prev) => {
       const next = new Set(prev);
       if (next.has(commentId)) next.delete(commentId);
@@ -547,6 +551,7 @@ export default function FeedPage() {
   }
 
   function deleteComment(listingId: string, commentId: string) {
+    if (blockDesignInteractionWithoutWorldId()) return;
     setCommentsByListing((prev) => ({
       ...prev,
       [listingId]: (prev[listingId] ?? []).filter((c) => c.id !== commentId),
@@ -561,6 +566,7 @@ export default function FeedPage() {
 
   function handleSaveListing(listingId: string, event: React.MouseEvent) {
     event.stopPropagation();
+    if (blockDesignInteractionWithoutWorldId()) return;
     toggleSaveListing(listingId);
   }
 
@@ -1159,7 +1165,11 @@ export default function FeedPage() {
                         listing.id,
                       )}
                       aria-label="Reply to seller"
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (blockDesignInteractionWithoutWorldId()) {
+                          e.preventDefault();
+                          return;
+                        }
                         const threadId = `seller-${listing.seller.handle}`;
                         if (hasBuyerAttachedListing(threadId, listing.id)) {
                           toast.info("You already sent this listing to the seller.", {
@@ -1305,6 +1315,10 @@ export default function FeedPage() {
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (blockDesignInteractionWithoutWorldId()) {
+                          e.preventDefault();
+                          return;
+                        }
                         const threadId = `seller-${listing.seller.handle}`;
                         if (hasBuyerAttachedListing(threadId, listing.id)) {
                           toast.info("You already sent this listing to the seller.", {
@@ -1321,10 +1335,7 @@ export default function FeedPage() {
 
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSaveListing(listing.id);
-                      }}
+                      onClick={(e) => handleSaveListing(listing.id, e)}
                       className={cn(
                         "ml-auto flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors",
                         saved

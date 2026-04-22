@@ -19,6 +19,11 @@ import {
   type ListingStatus,
 } from "@/lib/design/listing-store";
 import { MarkSoldSheet } from "@/components/design/MarkSoldSheet";
+import {
+  blockDesignInteractionWithoutWorldId,
+  useDesignWorldIdVerified,
+} from "@/lib/design/world-id-interaction-gate";
+import { setWorldIdVerified } from "@/lib/design/world-id-prototype";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -105,6 +110,7 @@ function ListingEditDrawer({
     status !== listing.status;
 
   function handleSave() {
+    if (blockDesignInteractionWithoutWorldId()) return;
     updateListing(listing.id, {
       model,
       price: parseFloat(price) || listing.price,
@@ -118,6 +124,7 @@ function ListingEditDrawer({
   }
 
   function handleDelete() {
+    if (blockDesignInteractionWithoutWorldId()) return;
     removeMyListing(listing.id);
     onClose();
   }
@@ -176,9 +183,11 @@ function ListingEditDrawer({
                     key={s}
                     onClick={() => {
                       if (s === "sold") {
+                        if (blockDesignInteractionWithoutWorldId()) return;
                         onClose();
                         onRequestSold();
                       } else {
+                        if (blockDesignInteractionWithoutWorldId()) return;
                         setStatus(s);
                       }
                     }}
@@ -384,10 +393,8 @@ function ListingCard({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-type WorldIdState = "unverified" | "verified";
-
 export default function ProfilePage() {
-  const [worldIdState, setWorldIdState] = useState<WorldIdState>("unverified");
+  const worldIdVerified = useDesignWorldIdVerified();
   const [activeTab, setActiveTab] = useState<ProfileTab>("active");
   const [selectedListing, setSelectedListing] = useState<MyListing | null>(
     null,
@@ -447,7 +454,7 @@ export default function ProfilePage() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-semibold text-foreground">Nico K.</h1>
-              {worldIdState === "verified" && (
+              {worldIdVerified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-world-verified/15 px-2 py-0.5 text-[10px] font-semibold text-world-verified">
                   <svg
                     viewBox="0 0 12 12"
@@ -491,7 +498,7 @@ export default function ProfilePage() {
       </div>
 
       {/* World ID banner */}
-      {worldIdState === "unverified" && (
+      {!worldIdVerified && (
         <div className="mx-4 mb-4 rounded-xl border border-world-verified/35 bg-world-verified/10 p-4">
           <p className="text-sm font-semibold text-world-verified">
             Verify with World ID
@@ -503,7 +510,7 @@ export default function ProfilePage() {
             <Button
               size="sm"
               className="bg-world-verified text-world-verified-foreground hover:bg-world-verified/90"
-              onClick={() => setWorldIdState("verified")}
+              onClick={() => setWorldIdVerified(true)}
             >
               Link World ID
             </Button>
@@ -518,7 +525,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {worldIdState === "verified" && (
+      {worldIdVerified && (
         <div className="mx-4 mb-4 flex items-center gap-3 rounded-xl border border-world-verified/30 bg-world-verified/10 p-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-world-verified text-world-verified-foreground">
             <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
@@ -582,7 +589,16 @@ export default function ProfilePage() {
             </p>
             {activeTab === "active" && (
               <Button className="mt-4" size="sm" asChild>
-                <Link href="/design/post">Post a listing</Link>
+                <Link
+                  href="/design/post"
+                  onClick={(e) => {
+                    if (blockDesignInteractionWithoutWorldId()) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
+                  Post a listing
+                </Link>
               </Button>
             )}
           </div>
@@ -592,7 +608,10 @@ export default function ProfilePage() {
               <ListingCard
                 key={listing.id}
                 listing={listing}
-                onOpen={() => setSelectedListing(listing)}
+                onOpen={() => {
+                  if (blockDesignInteractionWithoutWorldId()) return;
+                  setSelectedListing(listing);
+                }}
               />
             ))}
             {activeTab === "active" && (
@@ -602,7 +621,16 @@ export default function ProfilePage() {
                 className="mt-1 w-full"
                 asChild
               >
-                <Link href="/design/post">+ Add listing</Link>
+                <Link
+                  href="/design/post"
+                  onClick={(e) => {
+                    if (blockDesignInteractionWithoutWorldId()) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
+                  + Add listing
+                </Link>
               </Button>
             )}
           </div>

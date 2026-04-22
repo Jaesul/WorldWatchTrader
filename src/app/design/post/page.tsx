@@ -5,6 +5,7 @@ import { Camera, ChevronDown, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { addListing } from "@/lib/design/listing-store";
+import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-interaction-gate";
 
 const CONDITIONS = ["Unworn", "Excellent", "Good", "Fair"];
 const BOX_PAPERS = ["Full set", "Box only", "Papers only", "None"];
@@ -330,6 +331,7 @@ export default function NewListingPage() {
           className="w-full"
           disabled={!isValid}
           onClick={() => {
+            if (blockDesignInteractionWithoutWorldId()) return;
             addListing({
               model,
               price: parseFloat(price) || 0,

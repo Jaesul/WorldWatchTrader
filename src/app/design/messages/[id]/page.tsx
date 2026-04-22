@@ -28,6 +28,7 @@ import { MarkSoldSheet, type PlatformUser } from '@/components/design/MarkSoldSh
 import { ThreadMarkListingSheet } from '@/components/design/ThreadMarkListingSheet';
 import { getListingAttachmentThumbnail } from '@/lib/design/listing-attachment-thumb';
 import { cn } from '@/lib/utils';
+import { blockDesignInteractionWithoutWorldId } from '@/lib/design/world-id-interaction-gate';
 
 const MAX_IMAGES_PER_MESSAGE = 6;
 
@@ -176,6 +177,7 @@ function ThreadListingDrawer({
               <Button
                 className="w-full rounded-full"
                 onClick={() => {
+                  if (blockDesignInteractionWithoutWorldId()) return;
                   const l = state.listing;
                   onReplyInChat({
                     id: l.id,
@@ -245,7 +247,10 @@ function ThreadListingDrawer({
               {!state.listing.isMyListing && (
                 <Button
                   className="w-full rounded-full"
-                  onClick={() => onReplyInChat({ ...state.listing })}
+                  onClick={() => {
+                    if (blockDesignInteractionWithoutWorldId()) return;
+                    onReplyInChat({ ...state.listing });
+                  }}
                 >
                   Attach in this chat
                 </Button>
@@ -335,6 +340,7 @@ export default function ChatThreadPage() {
   }, [messages.length]);
 
   async function handleImageFilesChosen(files: FileList | null) {
+    if (blockDesignInteractionWithoutWorldId()) return;
     const room = MAX_IMAGES_PER_MESSAGE - pendingImages.length;
     if (room <= 0 || !files?.length) return;
     const urls = await readImageFilesAsDataUrls(files, room);
@@ -342,6 +348,7 @@ export default function ChatThreadPage() {
   }
 
   function sendMessage() {
+    if (blockDesignInteractionWithoutWorldId()) return;
     const text = draft.trim();
     const imgs = pendingImages;
     if (!text && !staged && imgs.length === 0) return;
@@ -368,6 +375,7 @@ export default function ChatThreadPage() {
   const stagedThumb = staged ? getListingAttachmentThumbnail(staged, myListings) : null;
 
   function handleReplyInChatFromDrawer(payload: ThreadListingAttachment) {
+    if (blockDesignInteractionWithoutWorldId()) return;
     setStaged(payload);
     setListingDrawer(null);
     router.replace(`/design/messages/${threadId}`);
@@ -410,7 +418,10 @@ export default function ChatThreadPage() {
             variant="outline"
             size="sm"
             className="ml-auto h-auto max-w-[7.25rem] shrink-0 whitespace-normal px-2 py-1.5 text-center text-[10px] font-semibold leading-tight sm:max-w-none sm:px-3 sm:text-xs sm:leading-snug"
-            onClick={() => setThreadMarkSheetOpen(true)}
+            onClick={() => {
+              if (blockDesignInteractionWithoutWorldId()) return;
+              setThreadMarkSheetOpen(true);
+            }}
           >
             Mark a listing as sold
           </Button>
@@ -446,7 +457,10 @@ export default function ChatThreadPage() {
                     {/* Mark as sold chip — only for my own active/pending listings */}
                     {canMarkSold && (
                       <button
-                        onClick={() => setSoldSheetListingId(msg.listing!.id)}
+                        onClick={() => {
+                          if (blockDesignInteractionWithoutWorldId()) return;
+                          setSoldSheetListingId(msg.listing!.id);
+                        }}
                         className="mt-1 flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
                       >
                         <span className="text-[10px]">✓</span> Mark as sold
@@ -637,6 +651,7 @@ export default function ChatThreadPage() {
         activeListings={activeListingsForThread}
         chatPartnerShortName={seller.name.split(' ')[0] ?? seller.name}
         onRequestMarkSold={(listing) => {
+          if (blockDesignInteractionWithoutWorldId()) return;
           setSoldSheetListingId(listing.id);
         }}
       />
