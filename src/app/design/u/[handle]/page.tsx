@@ -11,10 +11,7 @@ import {
 } from '@/db/queries/listings';
 import { getUserByPublicProfileSlug } from '@/db/queries/users';
 import type { Listing } from '@/lib/design/data';
-import {
-  mapHomeRowToDesignListing,
-  sellerPublicProfileSlug,
-} from '@/lib/design/map-db-feed-to-listing';
+import { mapHomeRowToDesignListing } from '@/lib/design/map-db-feed-to-listing';
 import {
   buildMockPublicProfileSoldParts,
   type PublicProfileSoldRow,
@@ -40,7 +37,6 @@ export default async function PublicProfilePage({
   const user = await getUserByPublicProfileSlug(slug);
   if (!user) notFound();
 
-  const profileSlug = sellerPublicProfileSlug(user);
   const soldCountFromDb = await countSellerListingsByStatus(user.id, 'sold');
   const { sales, positiveRate } = publicProfileSalesAndPositivePercent({
     userId: user.id,

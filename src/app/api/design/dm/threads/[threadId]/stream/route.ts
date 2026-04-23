@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 
 const POLL_MS = 800;
 
-/** Design sandbox SSE — same polling model as production `/api/messages/.../stream`, auth via design viewer cookie. */
+/** Design sandbox SSE — polls Postgres; auth via design viewer cookie. */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ threadId: string }> },

@@ -19,10 +19,10 @@ export type DmStreamMessage = {
 };
 
 /**
- * Subscribes to `/api/messages/threads/:id/stream` (SSE). Server polls Postgres; reconnect on tab focus optional.
+ * Subscribes to DM thread SSE (server polls Postgres). Default URL is the design sandbox stream.
  */
 export type DmThreadStreamOptions = {
-  /** Override default `/api/messages/threads/:id/stream` (e.g. design sandbox). */
+  /** Override default `/api/design/dm/threads/:id/stream`. */
   streamUrl?: (threadId: string) => string;
 };
 
@@ -40,7 +40,7 @@ export function useDmThreadStream(
     if (!threadId) return;
 
     const url =
-      streamUrlRef.current?.(threadId) ?? `/api/messages/threads/${threadId}/stream`;
+      streamUrlRef.current?.(threadId) ?? `/api/design/dm/threads/${threadId}/stream`;
     const es = new EventSource(url);
 
     es.onmessage = (ev) => {

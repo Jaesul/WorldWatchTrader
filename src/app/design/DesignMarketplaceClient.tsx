@@ -55,7 +55,6 @@ import {
   formatPrice,
   listingMatchesFeedSearch,
   type Badge as ListingBadge,
-  type Listing,
 } from "@/lib/design/data";
 import type { DesignFeedListing } from "@/lib/design/map-db-feed-to-listing";
 import {

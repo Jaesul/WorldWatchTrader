@@ -6,7 +6,7 @@ import {
   generateUploadDropzone,
 } from '@uploadthing/react';
 
-import type { OurFileRouter } from '@/app/api/uploadthing/core';
+import type { OurFileRouter } from '@/app/(app)/api/uploadthing/core';
 
 const clientOpts = {
   url: '/api/uploadthing',
