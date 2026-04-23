@@ -1,5 +1,6 @@
 'use client';
 import { Toaster } from '@/components/ui/sonner';
+import '@uploadthing/react/styles.css';
 import { MiniKitProvider } from '@worldcoin/minikit-js/minikit-provider';
 import { Session } from 'next-auth';
 import { SessionProvider } from 'next-auth/react';

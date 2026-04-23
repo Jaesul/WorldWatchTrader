@@ -1,5 +1,6 @@
 import { hashNonce } from '@/auth/wallet/client-helpers';
-import { upsertUserFromSession } from '@/db/queries/users';
+import { getUserById, upsertUserFromSession } from '@/db/queries/users';
+import { isOrbVerifiedFromUserInfo } from '@/lib/world-user-info';
 import { MiniKit } from '@worldcoin/minikit-js';
 import type { MiniAppWalletAuthSuccessPayload } from '@worldcoin/minikit-js/commands';
 import { verifySiweMessage } from '@worldcoin/minikit-js/siwe';
@@ -11,6 +12,7 @@ declare module 'next-auth' {
     walletAddress: string;
     username: string;
     profilePictureUrl: string;
+    orbVerified: boolean;
   }
 
   interface Session {
@@ -18,6 +20,7 @@ declare module 'next-auth' {
       walletAddress: string;
       username: string;
       profilePictureUrl: string;
+      orbVerified: boolean;
     } & DefaultSession['user'];
   }
 }
@@ -66,17 +69,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Optionally, fetch the user info from your own database
         const userInfo = await MiniKit.getUserInfo(finalPayload.address);
         const walletAddress = userInfo.walletAddress ?? finalPayload.address;
+        const orbVerified = isOrbVerifiedFromUserInfo(userInfo);
+        const existing = await getUserById(finalPayload.address);
+        const verifiedAt = orbVerified
+          ? (existing?.verifiedAt ?? new Date())
+          : (existing?.verifiedAt ?? null);
 
         await upsertUserFromSession({
           id: finalPayload.address,
           walletAddress,
           username: userInfo.username ?? '',
           profilePictureUrl: userInfo.profilePictureUrl,
+          orbVerified,
+          verifiedAt,
         });
 
         return {
           id: finalPayload.address,
           ...userInfo,
+          orbVerified,
         };
       },
     }),
@@ -88,6 +99,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.walletAddress = user.walletAddress;
         token.username = user.username;
         token.profilePictureUrl = user.profilePictureUrl;
+        token.orbVerified = user.orbVerified;
+      } else if (token.userId && token.orbVerified === undefined) {
+        const row = await getUserById(token.userId as string);
+        if (row) token.orbVerified = row.orbVerified;
       }
 
       return token;
@@ -98,6 +113,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.walletAddress = token.walletAddress as string;
         session.user.username = token.username as string;
         session.user.profilePictureUrl = token.profilePictureUrl as string;
+        session.user.orbVerified = Boolean(token.orbVerified);
       }
 
       return session;

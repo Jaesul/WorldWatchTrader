@@ -8,11 +8,15 @@ export type UpsertUserInput = {
   username: string;
   profilePictureUrl?: string | null;
   handle?: string | null;
+  orbVerified: boolean;
+  /** Set when orb-verified; keep prior timestamp when re-logging in still verified. */
+  verifiedAt: Date | null;
 };
 
 export async function upsertUserFromSession(input: UpsertUserInput) {
   const db = getDb();
   const now = new Date();
+
   await db
     .insert(users)
     .values({
@@ -21,6 +25,8 @@ export async function upsertUserFromSession(input: UpsertUserInput) {
       username: input.username ?? '',
       profilePictureUrl: input.profilePictureUrl ?? null,
       handle: input.handle ?? null,
+      orbVerified: input.orbVerified,
+      verifiedAt: input.verifiedAt,
       updatedAt: now,
     })
     .onConflictDoUpdate({
@@ -30,6 +36,8 @@ export async function upsertUserFromSession(input: UpsertUserInput) {
         username: input.username ?? '',
         profilePictureUrl: input.profilePictureUrl ?? null,
         ...(input.handle !== undefined ? { handle: input.handle } : {}),
+        orbVerified: input.orbVerified,
+        verifiedAt: input.verifiedAt,
         updatedAt: now,
       },
     });
