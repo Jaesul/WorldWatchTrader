@@ -711,7 +711,7 @@ export function DesignMarketplaceClient({
             search.trim() ? `Search (${search.trim()})` : "Open search"
           }
         >
-          <Search className="size-[1.125rem] shrink-0" strokeWidth={2.4} />
+          <Search className="size-5 shrink-0" strokeWidth={2.4} />
           {search.trim() ? (
             <span className="truncate text-xs font-normal">
               {search.trim()}
@@ -737,9 +737,9 @@ export function DesignMarketplaceClient({
           className="size-9 shrink-0 rounded-full p-2.5"
         >
           {viewMode === "feed" ? (
-            <LayoutGrid className="size-[1.125rem]" strokeWidth={2.4} />
+            <LayoutGrid className="size-5" strokeWidth={2.4} />
           ) : (
-            <List className="size-[1.125rem]" strokeWidth={2.4} />
+            <List className="size-5" strokeWidth={2.4} />
           )}
         </Button>
       </>
