@@ -775,7 +775,7 @@ export function DesignMarketplaceClient({
           <button
             type="button"
             onClick={() => setFilterDrawerOpen(true)}
-            className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/90 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
+            className="shrink-0 rounded-full bg-primary px-3.5 py-2 text-left text-xs font-medium text-white transition-colors hover:bg-primary/90 hover:text-white"
             aria-label="Open sort and filters"
             aria-expanded={filterDrawerOpen}
           >
@@ -784,7 +784,7 @@ export function DesignMarketplaceClient({
           <button
             type="button"
             onClick={() => setFilterDrawerOpen(true)}
-            className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/90 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
+            className="shrink-0 rounded-full bg-primary px-3.5 py-2 text-left text-xs font-medium text-white transition-colors hover:bg-primary/90 hover:text-white"
             aria-label="Open price filters"
             aria-expanded={filterDrawerOpen}
           >
@@ -794,7 +794,7 @@ export function DesignMarketplaceClient({
             <button
               type="button"
               onClick={() => setFilterDrawerOpen(true)}
-              className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/90 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
+              className="shrink-0 rounded-full bg-primary px-3.5 py-2 text-left text-xs font-medium text-white transition-colors hover:bg-primary/90 hover:text-white"
               aria-label="Open seller filters"
               aria-expanded={filterDrawerOpen}
             >
