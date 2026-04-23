@@ -45,6 +45,7 @@ import {
 } from "@/lib/design/listing-drawer-comments";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { guardBooleanOpenChange } from "@/lib/guard-boolean-open-change";
+import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-interaction-gate";
 import { cn } from "@/lib/utils";
 
 export type ListingDetailDrawerProps = {
@@ -217,6 +218,17 @@ export function ListingDetailDrawer({
     if (open) setDescExpanded(false);
   }, [listing.id, open]);
 
+  const interactionLocked = !!soldHistory;
+
+  function runUnlessSoldHistory(fn: () => void) {
+    if (interactionLocked) {
+      fn();
+      return;
+    }
+    if (blockDesignInteractionWithoutWorldId()) return;
+    fn();
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -237,7 +249,7 @@ export function ListingDetailDrawer({
               size="icon-sm"
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               aria-label="Share listing"
-              onClick={onRequestShare}
+              onClick={() => runUnlessSoldHistory(() => onRequestShare())}
             >
               <Share2 className="size-4" />
             </Button>
@@ -340,7 +352,11 @@ export function ListingDetailDrawer({
                       listing.seller.handle,
                       listing.id,
                     )}
-                    onClick={() => {
+                    onClick={(e) => {
+                      if (blockDesignInteractionWithoutWorldId()) {
+                        e.preventDefault();
+                        return;
+                      }
                       const threadId = `seller-${listing.seller.handle}`;
                       if (hasBuyerAttachedListing(threadId, listing.id)) {
                         toast.info("You already sent this listing to the seller.", {
@@ -365,7 +381,7 @@ export function ListingDetailDrawer({
                 )}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onToggleLike();
+                  runUnlessSoldHistory(onToggleLike);
                 }}
               >
                 <Heart className={cn("size-3.5", liked && "fill-current")} />
@@ -379,7 +395,7 @@ export function ListingDetailDrawer({
                   saved &&
                     "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20",
                 )}
-                onClick={onToggleSave}
+                onClick={() => runUnlessSoldHistory(onToggleSave)}
               >
                 <Bookmark className={cn("size-3.5", saved && "fill-current")} />
                 {saved ? "Saved" : "Save"}
@@ -404,10 +420,13 @@ export function ListingDetailDrawer({
                     key={comment.id}
                     comment={comment}
                     liked={commentLikedIds.has(comment.id)}
-                    onToggleLike={() => onToggleCommentLike(comment.id)}
+                    onToggleLike={() =>
+                      runUnlessSoldHistory(() => onToggleCommentLike(comment.id))
+                    }
                     onDelete={
                       onDeleteComment && isViewerAuthoredComment(comment, viewer?.id)
-                        ? () => onDeleteComment(comment.id)
+                        ? () =>
+                            runUnlessSoldHistory(() => onDeleteComment(comment.id))
                         : undefined
                     }
                     variant="drawer"
@@ -436,7 +455,7 @@ export function ListingDetailDrawer({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    onAddComment();
+                    runUnlessSoldHistory(onAddComment);
                   }
                 }}
                 placeholder="Add a comment…"
@@ -447,7 +466,7 @@ export function ListingDetailDrawer({
                 size="icon-sm"
                 variant="ghost"
                 disabled={!commentDraft.trim()}
-                onClick={onAddComment}
+                onClick={() => runUnlessSoldHistory(onAddComment)}
                 aria-label="Post comment"
                 className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
               >
