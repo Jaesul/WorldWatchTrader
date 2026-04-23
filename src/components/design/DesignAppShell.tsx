@@ -43,7 +43,7 @@ export function DesignAppShell({ children }: { children: ReactNode }) {
   return (
     <DesignToolbarContext.Provider value={value}>
       <div className="flex h-dvh flex-col bg-background">
-        <div className="flex shrink-0 items-center gap-3 bg-background px-4 py-3">
+        <div className="flex shrink-0 items-center gap-3 bg-background px-4 py-5">
           <header className="min-w-0 shrink-0">
             <h1 className="text-2xl font-semibold tracking-tight">World Watch Trader</h1>
           </header>
