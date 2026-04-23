@@ -9,8 +9,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-const CONDITIONS = ["Unworn", "Excellent", "Good", "Fair"];
-const BOX_PAPERS = ["Full set", "Box only", "Papers only", "None"];
+import { BOX_PAPERS, CONDITIONS } from "@/lib/design/listing-form-constants";
 
 const MAX_PHOTOS = 8;
 

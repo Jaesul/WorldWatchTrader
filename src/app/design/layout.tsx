@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { DesignNav } from '@/components/design/DesignNav';
-import { SoldLuxuryCelebrationLayer } from '@/components/design/SoldLuxuryCelebrationLayer';
-import { Toaster } from '@/components/ui/sonner';
+import { DesignAppShell } from '@/components/design/DesignAppShell';
 import { getUserById } from '@/db/queries/users';
 import { DesignEngagementProvider } from '@/lib/design/use-design-engagement';
 import { DesignListingSavesProvider } from '@/lib/design/use-design-listing-saves';
@@ -23,15 +21,7 @@ export default async function DesignLayout({ children }: { children: ReactNode }
     <DesignViewerProvider initialViewer={initialViewer} initialViewers={[]}>
       <DesignListingSavesProvider>
       <DesignEngagementProvider>
-      <div className="flex h-dvh flex-col bg-background">
-        <header className="border-b border-border bg-background px-4 py-3">
-          <h1 className="text-lg font-bold tracking-tight">World Watch Trader</h1>
-        </header>
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-        <DesignNav />
-        <SoldLuxuryCelebrationLayer />
-        <Toaster position="bottom-center" />
-      </div>
+        <DesignAppShell>{children}</DesignAppShell>
       </DesignEngagementProvider>
       </DesignListingSavesProvider>
     </DesignViewerProvider>

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
 import { blockDesignInteractionWithoutWorldId } from '@/lib/design/world-id-interaction-gate';
 
 const tabs = [
@@ -56,6 +57,8 @@ const tabs = [
 export function DesignNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { viewer } = useDesignViewer();
+  const orbGate = { viewerOrbVerified: viewer?.orbVerified === true };
 
   function isActive(key: string) {
     if (key === 'feed') return pathname === '/design';
@@ -89,7 +92,7 @@ export function DesignNav() {
                 className={baseClass}
                 aria-label={tab.key}
                 onClick={() => {
-                  if (blockDesignInteractionWithoutWorldId()) return;
+                  if (blockDesignInteractionWithoutWorldId(orbGate)) return;
                   router.push(tab.href);
                 }}
               >

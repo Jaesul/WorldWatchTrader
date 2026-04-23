@@ -1,5 +1,9 @@
 import type { ViewerDashboardListingJson } from '@/lib/viewer/dashboard';
 import { formatPublishedAtLabel } from '@/lib/design/map-db-feed-to-listing';
+import {
+  descriptionFromListingDetails,
+  parseBoxPapersFromDetails,
+} from '@/lib/design/listing-details-parse';
 
 import type { MyListing } from '@/lib/design/listing-store';
 
@@ -9,20 +13,25 @@ const FALLBACK_PHOTO =
 export function viewerDashboardRowToMyListing(row: ViewerDashboardListingJson): MyListing {
   const updated = new Date(row.updatedAt);
   const status: MyListing['status'] =
-    row.status === 'draft' || row.status === 'active'
+    row.status === 'draft' || row.status === 'active' || row.status === 'pending'
       ? row.status
       : row.status === 'sold'
         ? 'sold'
         : 'archived';
+
+  const details = row.details;
+  const body = descriptionFromListingDetails(details);
+  const description =
+    body || (row.teaser?.trim() ? row.teaser : '');
 
   return {
     id: row.id,
     model: row.title,
     price: row.priceUsd,
     currency: 'USD',
-    description: row.teaser || '',
-    condition: '',
-    boxPapers: '',
+    description,
+    condition: row.condition ?? '',
+    boxPapers: parseBoxPapersFromDetails(details),
     photoCount: row.heroUrl ? 1 : 0,
     photo: row.heroUrl ?? FALLBACK_PHOTO,
     status,

@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import {
   Collapsible,
@@ -49,6 +50,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { useDesignToolbar } from "@/components/design/DesignAppShell";
 import { DesignListingCommentRow } from "@/components/design/DesignListingCommentRow";
 import { ListingDetailDrawer } from "@/components/design/ListingDetailDrawer";
 import {
@@ -116,6 +118,58 @@ const FEED_PRICE_MIN = 0;
 const FEED_PRICE_MAX = 150_000;
 
 const VIEW_MODE_STORAGE_KEY = "wwt-design-feed-view-mode";
+
+/** Progressive list: initial chunk and each infinite-scroll step. */
+const PAGE_SIZE = 5;
+
+/** Max listing hits shown in the search drawer. */
+const SEARCH_DRAWER_MATCH_LIMIT = 20;
+
+const SCROLL_ROOT_SELECTOR = "[data-design-scroll-root]";
+
+function FeedListingSkeleton() {
+  return (
+    <Card className="gap-0 overflow-hidden py-0 shadow-sm">
+      <CardHeader className="border-b px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-10 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-2 py-0.5">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </div>
+      </CardHeader>
+      <Skeleton className="aspect-[4/3] w-full rounded-none" />
+      <CardContent className="space-y-2 px-4 py-3">
+        <Skeleton className="h-5 w-28" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-[85%] max-w-[280px]" />
+      </CardContent>
+      <div className="border-t px-4 py-2">
+        <Skeleton className="h-8 w-full rounded-full" />
+      </div>
+      <div className="flex border-t">
+        <Skeleton className="h-11 flex-1 rounded-none" />
+        <Skeleton className="h-11 flex-1 rounded-none" />
+        <Skeleton className="h-11 flex-1 rounded-none" />
+      </div>
+    </Card>
+  );
+}
+
+function GridListingSkeleton() {
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <Skeleton className="aspect-[4/3] w-full rounded-none" />
+      <div className="space-y-2 p-2.5">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-[90%]" />
+      </div>
+    </div>
+  );
+}
 
 function readStoredViewMode(): ViewMode {
   if (typeof window === "undefined") return "feed";
@@ -346,32 +400,6 @@ function PhotoCarousel({ photos, alt }: { photos: string[]; alt: string }) {
           <span className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
             {activeIdx + 1}/{photos.length}
           </span>
-          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2">
-            {photos.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  scrollTo(i);
-                }}
-                className={cn(
-                  "flex size-3 min-h-9 min-w-9 shrink-0 items-center justify-center rounded-full transition-all active:scale-90",
-                  i === activeIdx
-                    ? "bg-white shadow-sm"
-                    : "bg-white/45 hover:bg-white/70",
-                )}
-                aria-label={`Photo ${i + 1}`}
-              >
-                <span
-                  className={cn(
-                    "size-2 rounded-full",
-                    i === activeIdx ? "bg-black/40" : "bg-white",
-                  )}
-                />
-              </button>
-            ))}
-          </div>
         </>
       )}
     </div>
@@ -388,9 +416,11 @@ export function DesignMarketplaceClient({
   initialCommentsByListingId: Record<string, FakeComment[]>;
 }) {
   const { viewer } = useDesignViewer();
+  const { setToolbar } = useDesignToolbar();
 
   const [search, setSearch] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchDrawerOpen, setSearchDrawerOpen] = useState(false);
+  const [searchDraft, setSearchDraft] = useState("");
   const [sortBy, setSortBy] = useState<SortOption | null>(null);
   const [sellerBadgeFilter, setSellerBadgeFilter] =
     useState<ListingBadge | null>(null);
@@ -405,6 +435,15 @@ export function DesignMarketplaceClient({
   ]);
   const [viewMode, setViewMode] = useState<ViewMode>("feed");
   const [drawerListing, setDrawerListing] = useState<DesignFeedListing | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadMoreGuardRef = useRef({
+    visibleCount: PAGE_SIZE,
+    filteredLen: 0,
+    isLoadingMore: false,
+  });
 
   const sellerFilterBadges = useMemo(
     () => [
@@ -451,10 +490,25 @@ export function DesignMarketplaceClient({
     new Set(),
   );
 
-  const suggestedSearches = SEARCH_RECOMMENDATIONS.filter((item) => {
-    const haystack = `${item.title} ${item.subtitle}`.toLowerCase();
-    return search.trim() === "" || haystack.includes(search.toLowerCase());
-  }).slice(0, 5);
+  const drawerSuggestedSearches = useMemo(
+    () =>
+      SEARCH_RECOMMENDATIONS.filter((item) => {
+        const haystack = `${item.title} ${item.subtitle}`.toLowerCase();
+        return (
+          searchDraft.trim() === "" ||
+          haystack.includes(searchDraft.toLowerCase())
+        );
+      }).slice(0, 5),
+    [searchDraft],
+  );
+
+  const drawerListingMatches = useMemo(() => {
+    const q = searchDraft.trim();
+    if (!q) return [];
+    return initialListings
+      .filter((l) => listingMatchesFeedSearch(l, searchDraft))
+      .slice(0, SEARCH_DRAWER_MATCH_LIMIT);
+  }, [initialListings, searchDraft]);
 
   const priceFiltered =
     priceRange[0] > FEED_PRICE_MIN || priceRange[1] < FEED_PRICE_MAX;
@@ -478,30 +532,102 @@ export function DesignMarketplaceClient({
     setFilterDrawerOpen(false);
   }
 
-  const sortedForFeed = initialListings
-    .filter((listing) => {
-      const matchSearch = listingMatchesFeedSearch(listing, search);
-      const matchBadge =
-        !sellerBadgeFilter || listing.seller.badges.includes(sellerBadgeFilter);
-      const matchPrice =
-        listing.price >= priceRange[0] && listing.price <= priceRange[1];
-      return matchSearch && matchBadge && matchPrice;
-    })
-    .sort((a: DesignFeedListing, b: DesignFeedListing) => {
-      const s = sortBy ?? "newest";
-      if (s === "price-asc") return a.price - b.price;
-      if (s === "price-desc") return b.price - a.price;
-      if (s === "newest")
+  const sortedForFeed = useMemo(() => {
+    return initialListings
+      .filter((listing) => {
+        const matchSearch = listingMatchesFeedSearch(listing, search);
+        const matchBadge =
+          !sellerBadgeFilter || listing.seller.badges.includes(sellerBadgeFilter);
+        const matchPrice =
+          listing.price >= priceRange[0] && listing.price <= priceRange[1];
+        return matchSearch && matchBadge && matchPrice;
+      })
+      .sort((a: DesignFeedListing, b: DesignFeedListing) => {
+        const s = sortBy ?? "newest";
+        if (s === "price-asc") return a.price - b.price;
+        if (s === "price-desc") return b.price - a.price;
+        if (s === "newest")
+          return b._publishedAt - a._publishedAt || a.id.localeCompare(b.id);
+        if (s === "oldest")
+          return a._publishedAt - b._publishedAt || a.id.localeCompare(b.id);
         return b._publishedAt - a._publishedAt || a.id.localeCompare(b.id);
-      if (s === "oldest")
-        return a._publishedAt - b._publishedAt || a.id.localeCompare(b.id);
-      return b._publishedAt - a._publishedAt || a.id.localeCompare(b.id);
-    });
+      });
+  }, [
+    initialListings,
+    search,
+    sellerBadgeFilter,
+    priceRange,
+    sortBy,
+  ]);
 
-  const filtered =
-    (sortBy ?? "newest") === "newest"
+  const filtered = useMemo(() => {
+    return (sortBy ?? "newest") === "newest"
       ? staggerNoAdjacentSameSeller(sortedForFeed)
       : sortedForFeed;
+  }, [sortBy, sortedForFeed]);
+
+  const visibleListings = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount],
+  );
+
+  const hasMore = visibleCount < filtered.length;
+
+  const skeletonSlotCount = isLoadingMore
+    ? Math.min(PAGE_SIZE, Math.max(0, filtered.length - visibleCount))
+    : 0;
+
+  loadMoreGuardRef.current = {
+    visibleCount,
+    filteredLen: filtered.length,
+    isLoadingMore,
+  };
+
+  useEffect(() => {
+    setVisibleCount(Math.min(PAGE_SIZE, filtered.length));
+    setIsLoadingMore(false);
+    if (loadMoreTimeoutRef.current) {
+      clearTimeout(loadMoreTimeoutRef.current);
+      loadMoreTimeoutRef.current = null;
+    }
+  }, [search, sortBy, sellerBadgeFilter, priceRange]);
+
+  useEffect(() => {
+    const root = document.querySelector(
+      SCROLL_ROOT_SELECTOR,
+    ) as Element | null;
+    const target = loadMoreSentinelRef.current;
+    if (!root || !target) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        const g = loadMoreGuardRef.current;
+        if (g.isLoadingMore || g.visibleCount >= g.filteredLen) return;
+
+        if (loadMoreTimeoutRef.current) {
+          clearTimeout(loadMoreTimeoutRef.current);
+        }
+        setIsLoadingMore(true);
+        loadMoreTimeoutRef.current = setTimeout(() => {
+          loadMoreTimeoutRef.current = null;
+          const cap = loadMoreGuardRef.current.filteredLen;
+          setVisibleCount((c) => Math.min(c + PAGE_SIZE, cap));
+          setIsLoadingMore(false);
+        }, 320);
+      },
+      { root, rootMargin: "220px 0px 0px 0px", threshold: 0 },
+    );
+
+    obs.observe(target);
+    return () => {
+      obs.disconnect();
+      if (loadMoreTimeoutRef.current) {
+        clearTimeout(loadMoreTimeoutRef.current);
+        loadMoreTimeoutRef.current = null;
+      }
+    };
+  }, [viewMode, filtered.length, hasMore]);
 
   function toggleLike(id: string, event: React.MouseEvent) {
     event.stopPropagation();
@@ -557,6 +683,80 @@ export function DesignMarketplaceClient({
     void toggleSaveListing(listingId);
   }
 
+  const toolbarNode = useMemo(
+    () => (
+      <>
+        <Button
+          variant="ghost"
+          size={search.trim() ? "sm" : "icon-sm"}
+          type="button"
+          onClick={() => setSearchDrawerOpen(true)}
+          className={cn(
+            "shrink-0 rounded-full",
+            search.trim() &&
+              "min-w-0 max-w-[min(100%,11rem)] shrink gap-1.5 px-2.5",
+          )}
+          aria-label={
+            search.trim() ? `Search (${search.trim()})` : "Open search"
+          }
+        >
+          <Search className="size-5 shrink-0" strokeWidth={2.4} />
+          {search.trim() ? (
+            <span className="truncate text-xs font-normal">
+              {search.trim()}
+            </span>
+          ) : null}
+        </Button>
+        <Button
+          variant={
+            filterDrawerOpen || hasNonVerifiedFilters ? "default" : "ghost"
+          }
+          size="icon-sm"
+          type="button"
+          onClick={() => setFilterDrawerOpen(true)}
+          className="shrink-0 rounded-full"
+          aria-label="Open filters"
+          aria-expanded={filterDrawerOpen}
+        >
+          <Filter className="size-5" strokeWidth={2.4} />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          type="button"
+          onClick={() => {
+            setViewMode((v) => {
+              const next = v === "feed" ? "grid" : "feed";
+              persistViewMode(next);
+              return next;
+            });
+          }}
+          aria-label={
+            viewMode === "feed"
+              ? "Switch to grid view"
+              : "Switch to feed view"
+          }
+          className="shrink-0 rounded-full"
+        >
+          {viewMode === "feed" ? (
+            <LayoutGrid className="size-5" strokeWidth={2.4} />
+          ) : (
+            <List className="size-5" strokeWidth={2.4} />
+          )}
+        </Button>
+      </>
+    ),
+    [search, viewMode, filterDrawerOpen, hasNonVerifiedFilters],
+  );
+
+  useEffect(() => {
+    setToolbar(toolbarNode);
+  }, [setToolbar, toolbarNode]);
+
+  useEffect(() => {
+    return () => setToolbar(null);
+  }, [setToolbar]);
+
   // Drawer helpers
   const drawerComments: RichComment[] = drawerListing
     ? (commentsByListing[drawerListing.id] ?? [])
@@ -569,20 +769,45 @@ export function DesignMarketplaceClient({
 
   return (
     <div className="bg-muted/30">
-      {/* ── Action bar: search + filters drawer + view mode (one row) ── */}
-      <div className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 pb-3 pt-4 backdrop-blur">
-        <div className="flex min-w-0 items-center gap-2">
-          <div
-            className="relative min-w-0 flex-1"
-            onBlur={() => {
-              window.setTimeout(() => setSearchOpen(false), 100);
-            }}
-          >
-            {/*
-              Icon must sit beside a transparent input — a full-width input background paints over
-              absolutely positioned icons in the padding zone (looks like a hollow ring on iOS).
-            */}
-            <div className="flex min-h-10 items-center gap-0 rounded-full border border-border/60 bg-muted/40 px-1 shadow-sm focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/35">
+      {/* Vaul Overlay returns before useCallback when modal={false} — breaks Rules of Hooks. */}
+      <Drawer
+        direction="right"
+        open={searchDrawerOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            setSearchDraft(search);
+          } else {
+            setSearch(searchDraft.trim());
+            if (filterDrawerOpen) setFilterDrawerOpen(false);
+          }
+          setSearchDrawerOpen(open);
+        }}
+      >
+        <DrawerContent className="z-[50] mt-0 flex h-[100dvh] max-h-[100dvh] w-[min(100%,22rem)] flex-col gap-0 rounded-none border-l p-0 sm:max-w-md data-[vaul-drawer-direction=right]:mt-0">
+          <DrawerHeader className="border-b border-border px-4 pb-3 pt-4 text-left">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <DrawerTitle>Search</DrawerTitle>
+                <DrawerDescription>
+                  Find watches, brands, or sellers.
+                </DrawerDescription>
+              </div>
+              <DrawerClose asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="shrink-0 rounded-full"
+                  aria-label="Close search"
+                >
+                  <X className="size-4" />
+                </Button>
+              </DrawerClose>
+            </div>
+          </DrawerHeader>
+
+          <div className="shrink-0 border-b border-border px-4 py-3">
+            <div className="flex min-h-10 min-w-0 items-center gap-0 rounded-full border border-border/60 bg-muted/40 px-1 shadow-sm focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/35">
               <span
                 className="pointer-events-none flex size-9 shrink-0 items-center justify-center text-muted-foreground"
                 aria-hidden
@@ -594,93 +819,103 @@ export function DesignMarketplaceClient({
                 inputMode="search"
                 enterKeyHint="search"
                 autoComplete="off"
-                placeholder="Search Rolex, brands, sellers..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                onFocus={() => setSearchOpen(true)}
+                placeholder="Rolex, brands, sellers…"
+                value={searchDraft}
+                onChange={(e) => setSearchDraft(e.target.value)}
                 className="h-10 min-w-0 flex-1 border-0 bg-transparent py-0 pr-3 pl-0 text-base shadow-none md:text-sm focus-visible:border-0 focus-visible:ring-0"
               />
             </div>
-            {searchOpen && suggestedSearches.length > 0 ? (
-              <Card className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 gap-0 overflow-hidden border-border/70 py-0 shadow-lg">
-                <CardHeader className="px-3 py-2.5">
-                  <CardDescription className="text-xs uppercase tracking-[0.18em] text-muted-foreground/80">
-                    Suggested searches
-                  </CardDescription>
-                </CardHeader>
-                <Separator />
-                <CardContent className="p-1.5">
-                  <div className="flex flex-col">
-                    {suggestedSearches.map((item) => (
-                      <button
-                        key={item.query}
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          setSearch(item.query);
-                          setSearchOpen(false);
-                        }}
-                        className="flex items-start gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60"
-                      >
-                        <div className="mt-0.5 rounded-full bg-muted p-1.5 text-muted-foreground">
-                          <Search className="size-3.5" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {item.title}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {item.subtitle}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null}
           </div>
 
-          <Button
-            variant={
-              filterDrawerOpen || hasNonVerifiedFilters ? "default" : "outline"
-            }
-            size="icon-sm"
-            type="button"
-            onClick={() => setFilterDrawerOpen(true)}
-            className="shrink-0 rounded-full"
-            aria-label="Open filters"
-            aria-expanded={filterDrawerOpen}
-          >
-            <Filter className="size-3.5" />
-          </Button>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+            {drawerSuggestedSearches.length > 0 ? (
+              <section className="mb-6" aria-labelledby="search-suggested-heading">
+                <h2
+                  id="search-suggested-heading"
+                  className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Suggested searches
+                </h2>
+                <div className="flex flex-col gap-1">
+                  {drawerSuggestedSearches.map((item) => (
+                    <button
+                      key={item.query}
+                      type="button"
+                      onClick={() => {
+                        setSearch(item.query);
+                        setSearchDraft(item.query);
+                        setSearchDrawerOpen(false);
+                      }}
+                      className="flex items-start gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-muted/60"
+                    >
+                      <div className="mt-0.5 rounded-full bg-muted p-1.5 text-muted-foreground">
+                        <Search className="size-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {item.title}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {item.subtitle}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
-          <Button
-            variant="outline"
-            size="icon-sm"
-            type="button"
-            onClick={() => {
-              setViewMode((v) => {
-                const next = v === "feed" ? "grid" : "feed";
-                persistViewMode(next);
-                return next;
-              });
-            }}
-            aria-label={
-              viewMode === "feed"
-                ? "Switch to grid view"
-                : "Switch to feed view"
-            }
-            className="shrink-0 rounded-full"
-          >
-            {viewMode === "feed" ? (
-              <LayoutGrid className="size-3.5" />
-            ) : (
-              <List className="size-3.5" />
-            )}
-          </Button>
-        </div>
-      </div>
+            {drawerListingMatches.length > 0 ? (
+              <section aria-labelledby="search-listings-heading">
+                <h2
+                  id="search-listings-heading"
+                  className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Listings
+                </h2>
+                <div className="flex flex-col gap-1">
+                  {drawerListingMatches.map((listing) => (
+                    <button
+                      key={listing.id}
+                      type="button"
+                      onClick={() => {
+                        setSearch(listing.model);
+                        setSearchDraft(listing.model);
+                        setSearchDrawerOpen(false);
+                      }}
+                      className="flex w-full gap-3 rounded-xl px-1 py-2 text-left transition-colors hover:bg-muted/60"
+                    >
+                      <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+                        {listing.photos[0] ? (
+                          <Image
+                            src={listing.photos[0]}
+                            alt={listing.model}
+                            fill
+                            className="object-cover"
+                            sizes="56px"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1 py-0.5">
+                        <p className="line-clamp-2 text-sm font-medium text-foreground">
+                          {listing.model}
+                        </p>
+                        <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+                          {formatPrice(listing.price)}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : searchDraft.trim() ? (
+              <p className="text-sm text-muted-foreground">
+                No listings match that search.
+              </p>
+            ) : null}
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       <Drawer
         direction="right"
@@ -690,7 +925,10 @@ export function DesignMarketplaceClient({
           if (open) setPriceRangeDraft(priceRange);
         }}
       >
-        <DrawerContent className="mt-0 flex h-[100dvh] max-h-[100dvh] w-[min(100%,22rem)] gap-0 rounded-none border-l p-0 sm:max-w-md data-[vaul-drawer-direction=right]:mt-0">
+        <DrawerContent
+          overlayClassName="z-[55]"
+          className="z-[60] mt-0 flex h-[100dvh] max-h-[100dvh] w-[min(100%,22rem)] gap-0 rounded-none border-l p-0 sm:max-w-md data-[vaul-drawer-direction=right]:mt-0"
+        >
           <DrawerHeader className="border-b border-border px-4 pb-3 pt-4 text-left">
             <DrawerTitle>Filters</DrawerTitle>
             <DrawerDescription>
@@ -893,7 +1131,7 @@ export function DesignMarketplaceClient({
       ) : viewMode === "feed" ? (
         // ── Feed view ──────────────────────────────────────────────────────────
         <div className="flex flex-col gap-3 p-3">
-          {filtered.map((listing) => {
+          {visibleListings.map((listing) => {
             const liked = likedListingIds.has(listing.id);
             const saved = savedIds.has(listing.id);
             const likeCount = displayListingLikes(listing.id, listing.likes);
@@ -1148,11 +1386,23 @@ export function DesignMarketplaceClient({
               </Card>
             );
           })}
+          {skeletonSlotCount > 0
+            ? Array.from({ length: skeletonSlotCount }).map((_, i) => (
+                <FeedListingSkeleton key={`feed-skel-${visibleCount}-${i}`} />
+              ))
+            : null}
+          {hasMore || isLoadingMore ? (
+            <div
+              ref={loadMoreSentinelRef}
+              className="h-8 w-full shrink-0"
+              aria-hidden
+            />
+          ) : null}
         </div>
       ) : (
         // ── Grid view ──────────────────────────────────────────────────────────
         <div className="grid grid-cols-2 gap-2 p-2">
-          {filtered.map((listing) => {
+          {visibleListings.map((listing) => {
             const liked = likedListingIds.has(listing.id);
             const saved = savedIds.has(listing.id);
             const likeCount = displayListingLikes(listing.id, listing.likes);
@@ -1299,6 +1549,18 @@ export function DesignMarketplaceClient({
               </div>
             );
           })}
+          {skeletonSlotCount > 0
+            ? Array.from({ length: skeletonSlotCount }).map((_, i) => (
+                <GridListingSkeleton key={`grid-skel-${visibleCount}-${i}`} />
+              ))
+            : null}
+          {hasMore || isLoadingMore ? (
+            <div
+              ref={loadMoreSentinelRef}
+              className="col-span-2 h-8 w-full shrink-0"
+              aria-hidden
+            />
+          ) : null}
         </div>
       )}
 

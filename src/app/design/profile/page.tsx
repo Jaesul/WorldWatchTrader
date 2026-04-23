@@ -1,57 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ListingEditDrawer } from "@/components/design/ListingEditDrawer";
+import { MarkSoldSheet } from "@/components/design/MarkSoldSheet";
 import { type MyListing, type ListingStatus } from "@/lib/design/listing-store";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
-import { useViewerDashboardListings } from "@/lib/design/use-viewer-dashboard-listings";
+import { useViewerDashboardListingsInfinite } from "@/lib/design/use-viewer-dashboard-listings-infinite";
+import { STATUS_CONFIG } from "@/lib/design/listing-status-config";
+import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-interaction-gate";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<
-  ListingStatus,
-  { label: string; description: string; color: string }
-> = {
-  draft: {
-    label: "Draft",
-    description: "Not yet published — invisible in feed",
-    color: "bg-muted text-muted-foreground border-border",
-  },
-  active: {
-    label: "Active",
-    description: "Live in feed — open for messages",
-    color: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  },
-  pending: {
-    label: "Pending",
-    description: "Deal in progress — hidden from feed",
-    color: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  },
-  sold: {
-    label: "Sold",
-    description: "Transaction complete — moved to history",
-    color: "bg-blue-500/15 text-blue-600 border-blue-500/30",
-  },
-  archived: {
-    label: "Archived",
-    description: "Manually removed — no review triggered",
-    color: "bg-muted text-muted-foreground/60 border-border/60",
-  },
-};
-
-type ProfileTab = "active" | "history";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+type ProfileTab = "active" | "pending" | "history";
 
 function formatPrice(price: number, currency: string) {
   const symbol =
@@ -65,82 +27,146 @@ function formatPrice(price: number, currency: string) {
   return symbol + price.toLocaleString("en-US");
 }
 
-// ── Listing card ──────────────────────────────────────────────────────────────
+function ListingCardSkeleton() {
+  return (
+    <div className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3">
+      <Skeleton className="size-12 shrink-0 rounded-lg" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <Skeleton className="h-4 w-[55%] max-w-[200px]" />
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-2.5 w-16" />
+      </div>
+      <Skeleton className="h-5 w-14 shrink-0 rounded-full" />
+    </div>
+  );
+}
 
 function ListingCard({
   listing,
   onOpen,
 }: {
   listing: MyListing;
-  onOpen?: () => void;
+  onOpen: () => void;
 }) {
   const cfg = STATUS_CONFIG[listing.status];
-  const inner = (
-    <>
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:bg-card/80"
+    >
       <img
         src={listing.photo}
         alt={listing.model}
         className="size-12 shrink-0 rounded-lg object-cover bg-muted"
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">
-          {listing.model}
-        </p>
+        <p className="truncate text-sm font-semibold text-foreground">{listing.model}</p>
         <p className="text-xs text-muted-foreground">
           {formatPrice(listing.price, listing.currency)}
           {listing.condition ? ` · ${listing.condition}` : ""}
         </p>
-        <p className="mt-0.5 text-[10px] text-muted-foreground/60">
-          {listing.postedAt}
-        </p>
+        <p className="mt-0.5 text-[10px] text-muted-foreground/60">{listing.postedAt}</p>
       </div>
       <span
         className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cfg.color}`}
       >
         {cfg.label}
       </span>
-    </>
-  );
-  const className =
-    "flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:bg-card/80";
-  if (!onOpen) {
-    return <div className={className}>{inner}</div>;
-  }
-  return (
-    <button type="button" onClick={onOpen} className={className}>
-      {inner}
     </button>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function ProfilePage() {
   const { viewer, allViewers, setViewerId } = useDesignViewer();
+  const orbGate = { viewerOrbVerified: viewer?.orbVerified === true };
   const [activeTab, setActiveTab] = useState<ProfileTab>("active");
   const [selectedListing, setSelectedListing] = useState<MyListing | null>(null);
+  const [soldSheetListing, setSoldSheetListing] = useState<MyListing | null>(null);
 
-  const allListings = useViewerDashboardListings();
+  const {
+    listings: allListings,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    error,
+    loadMore,
+    refresh,
+  } = useViewerDashboardListingsInfinite(15);
+
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
+  const hasMoreRef = useRef(hasMore);
+  hasMoreRef.current = hasMore;
+  const isLoadingMoreRef = useRef(isLoadingMore);
+  isLoadingMoreRef.current = isLoadingMore;
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const hit = entries.some((e) => e.isIntersecting);
+        if (
+          hit &&
+          hasMoreRef.current &&
+          !isLoadingMoreRef.current
+        ) {
+          void loadMoreRef.current();
+        }
+      },
+      { root: null, rootMargin: "120px", threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [allListings.length, activeTab]);
+
+  const persistStatusChange = useCallback(async (listingId: string, status: ListingStatus) => {
+    const r = await fetch(`/api/design/listings/${listingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ status }),
+    });
+    const j = (await r.json().catch(() => ({}))) as { error?: string };
+    if (!r.ok) {
+      toast.error(typeof j.error === "string" ? j.error : "Update failed");
+      throw new Error("persist failed");
+    }
+    await refresh();
+  }, [refresh]);
 
   const activeListings = allListings.filter(
     (l) => l.status === "active" || l.status === "draft",
   );
+  const pendingListings = allListings.filter((l) => l.status === "pending");
   const historyListings = allListings.filter(
     (l) => l.status === "sold" || l.status === "archived",
   );
 
   const tabs: { id: ProfileTab; label: string; count: number }[] = [
     { id: "active", label: "Active", count: activeListings.length },
+    { id: "pending", label: "Pending", count: pendingListings.length },
     { id: "history", label: "History", count: historyListings.length },
   ];
 
   const visibleListings =
-    activeTab === "active" ? activeListings : historyListings;
+    activeTab === "active"
+      ? activeListings
+      : activeTab === "pending"
+        ? pendingListings
+        : historyListings;
 
   const emptyMessages: Record<ProfileTab, { title: string; body: string }> = {
     active: {
       title: "No active listings",
       body: "Post your first watch to get started.",
+    },
+    pending: {
+      title: "No pending listings",
+      body: "Mark a listing as Pending when a deal is in progress.",
     },
     history: {
       title: "No history yet",
@@ -172,6 +198,10 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-lg pb-10">
+      {error ? (
+        <p className="px-4 py-2 text-center text-xs text-rose-600">{error}</p>
+      ) : null}
+
       {allViewers.length > 0 && (
         <div className="border-b border-border px-4 py-3">
           <label
@@ -196,7 +226,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Profile header */}
       <div className="relative px-4 pb-4 pt-6">
         <div className="flex items-start gap-4">
           <img
@@ -206,19 +235,13 @@ export default function ProfilePage() {
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-lg font-semibold text-foreground">
-                {viewer.username}
-              </h1>
+              <h1 className="text-lg font-semibold text-foreground">{viewer.username}</h1>
               {viewer.handle ? (
                 <span className="text-xs text-muted-foreground">@{viewer.handle}</span>
               ) : null}
               {viewer.orbVerified ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-world-verified/15 px-2 py-0.5 text-[10px] font-semibold text-world-verified">
-                  <svg
-                    viewBox="0 0 12 12"
-                    fill="currentColor"
-                    className="size-3"
-                  >
+                  <svg viewBox="0 0 12 12" fill="currentColor" className="size-3">
                     <path d="M6 0a6 6 0 1 0 0 12A6 6 0 0 0 6 0zm2.78 4.47a.5.5 0 0 0-.7-.7L5.5 6.29 4.42 5.22a.5.5 0 0 0-.7.7l1.6 1.6a.5.5 0 0 0 .7 0l3-3z" />
                   </svg>
                   World Verified
@@ -235,9 +258,7 @@ export default function ProfilePage() {
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">
-                  {activeListings.length}
-                </span>{" "}
+                <span className="font-semibold text-foreground">{activeListings.length}</span>{" "}
                 active
               </div>
             </div>
@@ -254,16 +275,12 @@ export default function ProfilePage() {
           </Button>
         </div>
 
-        <p className="mt-3 break-all text-xs text-muted-foreground">
-          {viewer.walletAddress}
-        </p>
+        <p className="mt-3 break-all text-xs text-muted-foreground">{viewer.walletAddress}</p>
       </div>
 
       {!viewer.orbVerified && (
         <div className="mx-4 mb-4 rounded-xl border border-world-verified/35 bg-world-verified/10 p-4">
-          <p className="text-sm font-semibold text-world-verified">
-            Verify with World ID
-          </p>
+          <p className="text-sm font-semibold text-world-verified">Verify with World ID</p>
           <p className="mt-0.5 text-xs text-foreground/70">
             Link your World ID to unlock the World Verified badge (production flow).
           </p>
@@ -282,9 +299,7 @@ export default function ProfilePage() {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-world-verified">
-              World ID verified
-            </p>
+            <p className="text-sm font-semibold text-world-verified">World ID verified</p>
             <p className="text-xs text-world-verified/70">
               Orb verification on this account in the database.
             </p>
@@ -292,12 +307,12 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Tabs */}
       <div className="border-b border-border">
         <div className="flex px-4">
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.id
@@ -322,19 +337,27 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Listing list */}
       <div className="px-4 pt-4">
-        {visibleListings.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-2.5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ListingCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : visibleListings.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-sm font-medium text-foreground">
-              {emptyMessages[activeTab].title}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {emptyMessages[activeTab].body}
-            </p>
+            <p className="text-sm font-medium text-foreground">{emptyMessages[activeTab].title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{emptyMessages[activeTab].body}</p>
             {activeTab === "active" && (
               <Button className="mt-4" size="sm" asChild>
-                <Link href="/design/post">Post a listing</Link>
+                <Link
+                  href="/design/post"
+                  onClick={(e) => {
+                    if (blockDesignInteractionWithoutWorldId(orbGate)) e.preventDefault();
+                  }}
+                >
+                  Post a listing
+                </Link>
               </Button>
             )}
           </div>
@@ -344,97 +367,60 @@ export default function ProfilePage() {
               <ListingCard
                 key={listing.id}
                 listing={listing}
-                onOpen={() => setSelectedListing(listing)}
+                onOpen={() => {
+                  if (blockDesignInteractionWithoutWorldId(orbGate)) return;
+                  setSelectedListing(listing);
+                }}
               />
             ))}
             {activeTab === "active" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-1 w-full"
-                asChild
-              >
-                <Link href="/design/post">+ Add listing</Link>
+              <Button variant="outline" size="sm" className="mt-1 w-full" asChild>
+                <Link
+                  href="/design/post"
+                  onClick={(e) => {
+                    if (blockDesignInteractionWithoutWorldId(orbGate)) e.preventDefault();
+                  }}
+                >
+                  + Add listing
+                </Link>
               </Button>
             )}
+            {hasMore && visibleListings.length > 0 ? (
+              <div ref={sentinelRef} className="h-4 w-full shrink-0" aria-hidden />
+            ) : null}
+            {isLoadingMore ? (
+              <div className="space-y-2 pt-1">
+                <ListingCardSkeleton />
+                <ListingCardSkeleton />
+              </div>
+            ) : null}
           </div>
         )}
       </div>
 
-      <Drawer
-        open={selectedListing !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedListing(null);
-        }}
-      >
-        <DrawerContent>
-          {selectedListing ? (
-            <>
-              <DrawerHeader className="text-left">
-                <DrawerTitle className="pr-8">{selectedListing.model}</DrawerTitle>
-                <DrawerDescription>
-                  {formatPrice(selectedListing.price, selectedListing.currency)} ·{" "}
-                  {selectedListing.postedAt}
-                </DrawerDescription>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATUS_CONFIG[selectedListing.status].color}`}
-                  >
-                    {STATUS_CONFIG[selectedListing.status].label}
-                  </span>
-                </div>
-              </DrawerHeader>
-              <div className="max-h-[50vh] space-y-4 overflow-y-auto px-4 pb-2">
-                <img
-                  src={selectedListing.photo}
-                  alt={selectedListing.model}
-                  className="aspect-[4/3] w-full rounded-lg object-cover bg-muted"
-                />
-                {selectedListing.description ? (
-                  <p className="text-sm leading-relaxed text-foreground/90">
-                    {selectedListing.description}
-                  </p>
-                ) : null}
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-                  {selectedListing.condition ? (
-                    <>
-                      <dt className="text-muted-foreground">Condition</dt>
-                      <dd className="font-medium text-foreground">
-                        {selectedListing.condition}
-                      </dd>
-                    </>
-                  ) : null}
-                  {selectedListing.boxPapers ? (
-                    <>
-                      <dt className="text-muted-foreground">Box &amp; papers</dt>
-                      <dd className="font-medium text-foreground">
-                        {selectedListing.boxPapers}
-                      </dd>
-                    </>
-                  ) : null}
-                  <dt className="text-muted-foreground">Photos</dt>
-                  <dd className="font-medium text-foreground">
-                    {selectedListing.photoCount}
-                  </dd>
-                </dl>
-                <p className="text-[11px] text-muted-foreground">
-                  {STATUS_CONFIG[selectedListing.status].description}
-                </p>
-              </div>
-              <DrawerFooter className="flex-row gap-2 sm:justify-start">
-                <DrawerClose asChild>
-                  <Button type="button" variant="outline" className="flex-1 sm:flex-none">
-                    Close
-                  </Button>
-                </DrawerClose>
-                <Button type="button" className="flex-1 sm:flex-none" asChild>
-                  <Link href="/design">Open feed</Link>
-                </Button>
-              </DrawerFooter>
-            </>
-          ) : null}
-        </DrawerContent>
-      </Drawer>
+      {selectedListing ? (
+        <ListingEditDrawer
+          key={selectedListing.id}
+          listing={selectedListing}
+          open={!!selectedListing}
+          onClose={() => setSelectedListing(null)}
+          onRequestSold={(l) => setSoldSheetListing(l)}
+          onAfterMutate={() => refresh()}
+        />
+      ) : null}
+
+      {soldSheetListing ? (
+        <MarkSoldSheet
+          open={!!soldSheetListing}
+          onOpenChange={(open) => {
+            if (!open) setSoldSheetListing(null);
+          }}
+          listing={soldSheetListing}
+          previousStatus={soldSheetListing.status}
+          persistStatusChange={persistStatusChange}
+          onSold={() => setSoldSheetListing(null)}
+        />
+      ) : null}
     </div>
   );
 }

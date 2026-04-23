@@ -10,9 +10,17 @@ export type ViewerDashboardListingJson = {
   heroUrl: string | null;
   updatedAt: string;
   teaser: string;
+  details: string;
+  condition: string | null;
+};
+
+export type ViewerDashboardCursorJson = {
+  updatedAt: string;
+  id: string;
 };
 
 export type ViewerDashboardResponse = {
   viewer: AppViewer | null;
   listings: ViewerDashboardListingJson[];
+  nextCursor: ViewerDashboardCursorJson | null;
 };

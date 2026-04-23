@@ -314,6 +314,6 @@ export const dmMessagesRelations = relations(dmMessages, ({ one }) => ({
   sender: one(users, { fields: [dmMessages.senderId], references: [users.id] }),
 }));
 
-export type ListingStatus = 'draft' | 'active' | 'sold' | 'archived';
+export type ListingStatus = 'draft' | 'active' | 'pending' | 'sold' | 'archived';
 
 export type ListingDealStatus = 'pending' | 'submitted' | 'confirmed' | 'failed';

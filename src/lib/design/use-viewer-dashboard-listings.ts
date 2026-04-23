@@ -19,7 +19,7 @@ export function useViewerDashboardListings(): MyListing[] {
       return;
     }
     let cancelled = false;
-    fetch('/api/design/viewer-dashboard', { credentials: 'same-origin' })
+    fetch('/api/design/viewer-dashboard?limit=100', { credentials: 'same-origin' })
       .then((r) => r.json())
       .then((j: ViewerDashboardResponse) => {
         if (cancelled || !j.listings) return;

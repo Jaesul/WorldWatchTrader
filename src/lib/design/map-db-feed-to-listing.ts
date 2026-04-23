@@ -1,24 +1,16 @@
 import type { HomeListingWithPhotosRow } from '@/db/queries/listings';
 import type { Badge, Listing } from '@/lib/design/data';
+import {
+  descriptionFromListingDetails,
+  parseBoxPapersFromDetails,
+} from '@/lib/design/listing-details-parse';
 
 const PLACEHOLDER_AVATAR = 'https://i.pravatar.cc/150?u=unknown-seller';
 
 const FALLBACK_HERO =
   'https://images.unsplash.com/photo-1611243705491-71487c2ed137?auto=format&fit=crop&w=800&q=80';
 
-const BOX_PAPERS_RE = /\n\nBox\/papers:\s*([\s\S]+)$/;
-
 export type DesignFeedListing = Listing & { _publishedAt: number; _sellerId: string };
-
-function parseBoxPapers(details: string): string {
-  const m = details.match(BOX_PAPERS_RE);
-  return m?.[1]?.trim() ?? '';
-}
-
-function descriptionFromDetails(details: string): string {
-  const stripped = details.replace(BOX_PAPERS_RE, '').trim();
-  return stripped || details.trim();
-}
 
 export function formatPublishedAtLabel(publishedAt: Date, nowMs = Date.now()): string {
   const diffMs = Math.max(0, nowMs - publishedAt.getTime());
@@ -68,9 +60,9 @@ export function mapDbRowToDesignFeedListing(row: HomeListingWithPhotosRow): Desi
     id: listing.id,
     model: listing.title,
     price: listing.priceUsd,
-    description: descriptionFromDetails(details),
+    description: descriptionFromListingDetails(details),
     condition: listing.condition ?? '',
-    boxPapers: parseBoxPapers(details),
+    boxPapers: parseBoxPapersFromDetails(details),
     postedAt: formatPublishedAtLabel(publishedAt),
     likes: likeCount,
     seller: {

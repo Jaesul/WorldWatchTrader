@@ -13,6 +13,15 @@ const FIND_ORB_URL = "https://world.org/find-orb";
 /** Stable id so rapid blocked actions replace one toast instead of stacking. */
 const ORB_GATE_TOAST_ID = "wwt-design-orb-gate";
 
+export type BlockDesignInteractionOptions = {
+  /**
+   * When true, the current design viewer is orb-verified in the database.
+   * Pass from `useDesignViewer().viewer?.orbVerified` so the gate matches server-backed status,
+   * not only the localStorage prototype toggle.
+   */
+  viewerOrbVerified?: boolean;
+};
+
 function OrbGateToastMarkup() {
   return (
     <div
@@ -45,9 +54,12 @@ function OrbGateToastMarkup() {
 /**
  * @returns true when the action should be blocked (user is not orb-verified in the design sandbox).
  */
-export function blockDesignInteractionWithoutWorldId(): boolean {
+export function blockDesignInteractionWithoutWorldId(
+  options?: BlockDesignInteractionOptions,
+): boolean {
   if (typeof window === "undefined") return false;
   if (readWorldIdVerified()) return false;
+  if (options?.viewerOrbVerified === true) return false;
 
   toast.custom(() => <OrbGateToastMarkup />, {
     id: ORB_GATE_TOAST_ID,

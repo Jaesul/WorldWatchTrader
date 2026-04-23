@@ -146,6 +146,8 @@ export interface MarkSoldSheetProps {
   /** Pre-selects a buyer (e.g. when opened from a message thread). */
   prefilledBuyer?: PlatformUser | null;
   onSold?: () => void;
+  /** When set, sold / undo use this (e.g. DB PATCH) instead of design `listing-store`. */
+  persistStatusChange?: (listingId: string, status: ListingStatus) => Promise<void>;
 }
 
 export function MarkSoldSheet({
@@ -155,6 +157,7 @@ export function MarkSoldSheet({
   previousStatus = 'active',
   prefilledBuyer,
   onSold,
+  persistStatusChange,
 }: MarkSoldSheetProps) {
   const [step, setStep] = useState<Step>('select-buyer');
   const [buyer, setBuyer] = useState<BuyerChoice | null>(
@@ -202,7 +205,7 @@ export function MarkSoldSheet({
   const showStandaloneSelectedBuyer =
     buyer?.kind === 'platform' && !selectedInSuggested && !selectedInSearchResults;
 
-  function finalize(skipReview: boolean) {
+  async function finalize(skipReview: boolean) {
     if (!skipReview) {
       submitSellerReview({
         listingId: listing.id,
@@ -212,14 +215,35 @@ export function MarkSoldSheet({
         submittedAt: new Date().toISOString(),
       });
     }
-    updateListing(listing.id, { status: 'sold' });
+    try {
+      if (persistStatusChange) {
+        await persistStatusChange(listing.id, 'sold');
+      } else {
+        updateListing(listing.id, { status: 'sold' });
+      }
+    } catch {
+      toast.error('Could not mark listing as sold.');
+      return;
+    }
     showSoldLuxuryCelebration(pickRandomLuxurySoldGif());
     onOpenChange(false);
     onSold?.();
     toast(`"${listing.model}" marked as sold.`, {
       action: {
         label: 'Undo',
-        onClick: () => updateListing(listing.id, { status: previousStatus }),
+        onClick: () => {
+          void (async () => {
+            try {
+              if (persistStatusChange) {
+                await persistStatusChange(listing.id, previousStatus);
+              } else {
+                updateListing(listing.id, { status: previousStatus });
+              }
+            } catch {
+              toast.error('Could not undo.');
+            }
+          })();
+        },
       },
     });
   }
@@ -348,7 +372,7 @@ export function MarkSoldSheet({
               disabled={!buyer}
               onClick={() => {
                 if (buyer?.kind === 'off-platform') {
-                  finalize(true);
+                  void finalize(true);
                 } else {
                   setStep('review');
                 }
@@ -384,11 +408,11 @@ export function MarkSoldSheet({
               />
             </div>
 
-            <Button className="w-full" onClick={() => finalize(false)}>
+            <Button className="w-full" onClick={() => void finalize(false)}>
               Submit review & mark as sold
             </Button>
             <button
-              onClick={() => finalize(true)}
+              onClick={() => void finalize(true)}
               className="mt-3 w-full text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Skip review

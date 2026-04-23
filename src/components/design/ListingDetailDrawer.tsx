@@ -157,32 +157,6 @@ export function ListingPhotoCarousel({
           <span className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
             {activeIdx + 1}/{photos.length}
           </span>
-          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2">
-            {photos.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  scrollTo(i);
-                }}
-                className={cn(
-                  "flex size-3 min-h-9 min-w-9 shrink-0 items-center justify-center rounded-full transition-all active:scale-90",
-                  i === activeIdx
-                    ? "bg-white shadow-sm"
-                    : "bg-white/45 hover:bg-white/70",
-                )}
-                aria-label={`Photo ${i + 1}`}
-              >
-                <span
-                  className={cn(
-                    "size-2 rounded-full",
-                    i === activeIdx ? "bg-black/40" : "bg-white",
-                  )}
-                />
-              </button>
-            ))}
-          </div>
         </>
       )}
     </div>
@@ -209,6 +183,7 @@ export function ListingDetailDrawer({
   soldHistory,
 }: ListingDetailDrawerProps) {
   const { viewer } = useDesignViewer();
+  const orbGate = { viewerOrbVerified: viewer?.orbVerified === true };
   const isOwnListing = Boolean(
     viewer?.id &&
       "_sellerId" in listing &&
@@ -227,7 +202,7 @@ export function ListingDetailDrawer({
       fn();
       return;
     }
-    if (blockDesignInteractionWithoutWorldId()) return;
+    if (blockDesignInteractionWithoutWorldId(orbGate)) return;
     fn();
   }
 
@@ -363,7 +338,7 @@ export function ListingDetailDrawer({
                   <Link
                     href={designDmReplyHref(listing.id)}
                     onClick={(e) => {
-                      if (blockDesignInteractionWithoutWorldId()) {
+                      if (blockDesignInteractionWithoutWorldId(orbGate)) {
                         e.preventDefault();
                         return;
                       }

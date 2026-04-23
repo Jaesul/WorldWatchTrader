@@ -12,7 +12,7 @@ type Schema = typeof schema;
 type Db = PostgresJsDatabase<Schema>;
 type Tx = PgTransaction<PostgresJsQueryResultHKT, Schema, ExtractTablesWithRelations<Schema>>;
 
-const STATUSES: ListingStatus[] = ['draft', 'active', 'sold', 'archived'];
+const STATUSES: ListingStatus[] = ['draft', 'active', 'pending', 'sold', 'archived'];
 
 function assertStatus(s: string): asserts s is ListingStatus {
   if (!STATUSES.includes(s as ListingStatus)) {
@@ -413,6 +413,52 @@ export async function listSellerDashboardListingsWithHero(
     listing,
     heroUrl: heroByListing.get(listing.id) ?? null,
   }));
+}
+
+/** Paginated seller dashboard rows + cursor (same ordering as `listListings` seller dashboard). */
+export async function listSellerDashboardListingsPageWithHero(
+  sellerId: string,
+  limit: number,
+  cursor?: SellerListingCursor,
+): Promise<{
+  rows: SellerDashboardListingRow[];
+  nextCursor: SellerListingCursor | undefined;
+}> {
+  const db = getDb();
+  const cap = Math.min(Math.max(limit, 1), 100);
+  const { items, nextCursor: rawNext } = await listListings({
+    sellerId,
+    sellerDashboard: true,
+    limit: cap,
+    cursor,
+  });
+  const nextCursor: SellerListingCursor | undefined =
+    rawNext && 'updatedAt' in rawNext ? rawNext : undefined;
+
+  if (items.length === 0) {
+    return { rows: [], nextCursor: undefined };
+  }
+
+  const ids = items.map((l) => l.id);
+  const photoRows = await db
+    .select()
+    .from(listingPhotos)
+    .where(inArray(listingPhotos.listingId, ids))
+    .orderBy(asc(listingPhotos.sortOrder), asc(listingPhotos.createdAt));
+
+  const heroByListing = new Map<string, string>();
+  for (const p of photoRows) {
+    if (!heroByListing.has(p.listingId)) {
+      heroByListing.set(p.listingId, p.url);
+    }
+  }
+
+  const rows = items.map((listing) => ({
+    listing,
+    heroUrl: heroByListing.get(listing.id) ?? null,
+  }));
+
+  return { rows, nextCursor };
 }
 
 export type GetListingOptions = {
