@@ -520,8 +520,6 @@ export function DesignMarketplaceClient({
     sortIsExplicitCustom ||
     sellerBadgeFilter !== null ||
     priceFiltered;
-  const hasNonVerifiedFilters =
-    sortIsExplicitCustom || sellerBadgeFilter !== null || priceFiltered;
 
   const currentSortLabel = useMemo(() => {
     const effectiveSort = sortBy ?? "newest";
@@ -705,14 +703,15 @@ export function DesignMarketplaceClient({
           onClick={() => setSearchDrawerOpen(true)}
           className={cn(
             "shrink-0 rounded-full",
+            !search.trim() && "size-9 p-2.5",
             search.trim() &&
-              "min-w-0 max-w-[min(100%,11rem)] shrink gap-1.5 px-2.5",
+              "min-w-0 max-w-[min(100%,11rem)] shrink gap-1.5 px-3 py-2",
           )}
           aria-label={
             search.trim() ? `Search (${search.trim()})` : "Open search"
           }
         >
-          <Search className="size-5 shrink-0" strokeWidth={2.4} />
+          <Search className="size-4 shrink-0" strokeWidth={2.4} />
           {search.trim() ? (
             <span className="truncate text-xs font-normal">
               {search.trim()}
@@ -735,12 +734,12 @@ export function DesignMarketplaceClient({
               ? "Switch to grid view"
               : "Switch to feed view"
           }
-          className="shrink-0 rounded-full"
+          className="size-9 shrink-0 rounded-full p-2.5"
         >
           {viewMode === "feed" ? (
-            <LayoutGrid className="size-5" strokeWidth={2.4} />
+            <LayoutGrid className="size-4" strokeWidth={2.4} />
           ) : (
-            <List className="size-5" strokeWidth={2.4} />
+            <List className="size-4" strokeWidth={2.4} />
           )}
         </Button>
       </>

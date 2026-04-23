@@ -11,10 +11,11 @@ import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
 /** DB-backed “my listings” for the selected design viewer (same cookie as profile). */
 export function useViewerDashboardListings(): MyListing[] {
   const { viewer } = useDesignViewer();
+  const viewerId = viewer?.id ?? null;
   const [listings, setListings] = useState<MyListing[]>([]);
 
   useEffect(() => {
-    if (!viewer) {
+    if (!viewerId) {
       setListings([]);
       return;
     }
@@ -31,7 +32,7 @@ export function useViewerDashboardListings(): MyListing[] {
     return () => {
       cancelled = true;
     };
-  }, [viewer?.id]);
+  }, [viewerId]);
 
   return listings;
 }

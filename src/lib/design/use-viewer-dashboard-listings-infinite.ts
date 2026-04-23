@@ -11,6 +11,7 @@ import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
 
 export function useViewerDashboardListingsInfinite(pageSize = 15) {
   const { viewer } = useDesignViewer();
+  const viewerId = viewer?.id ?? null;
   const [listings, setListings] = useState<MyListing[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -56,7 +57,7 @@ export function useViewerDashboardListingsInfinite(pageSize = 15) {
   );
 
   const refresh = useCallback(async () => {
-    if (!viewer) {
+    if (!viewerId) {
       reset();
       return;
     }
@@ -72,10 +73,10 @@ export function useViewerDashboardListingsInfinite(pageSize = 15) {
     } finally {
       setIsLoading(false);
     }
-  }, [viewer?.id, fetchPage, reset]);
+  }, [viewerId, fetchPage, reset]);
 
   useEffect(() => {
-    if (!viewer) {
+    if (!viewerId) {
       reset();
       return;
     }
@@ -98,10 +99,10 @@ export function useViewerDashboardListingsInfinite(pageSize = 15) {
     return () => {
       cancelled = true;
     };
-  }, [viewer?.id, fetchPage, reset]); // eslint-disable-line react-hooks/exhaustive-deps -- viewer id only
+  }, [viewerId, fetchPage, reset]);
 
   const loadMore = useCallback(async () => {
-    if (!viewer || !hasMore || isLoadingMore || !cursorRef.current) return;
+    if (!viewerId || !hasMore || isLoadingMore || !cursorRef.current) return;
     setIsLoadingMore(true);
     setError(null);
     try {
@@ -111,7 +112,7 @@ export function useViewerDashboardListingsInfinite(pageSize = 15) {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [viewer, hasMore, isLoadingMore, fetchPage]);
+  }, [viewerId, hasMore, isLoadingMore, fetchPage]);
 
   return {
     listings,
