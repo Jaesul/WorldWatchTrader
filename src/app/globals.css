@@ -167,6 +167,16 @@
   }
 }
 
+/* /design/* — literal white page; token override so bg-background matches */
+html:has([data-design-app]),
+body:has([data-design-app]) {
+  background-color: #ffffff;
+}
+
+[data-design-app] {
+  --background: #ffffff;
+}
+
 [data-slot="collapsible-content"] {
   overflow: hidden;
 }

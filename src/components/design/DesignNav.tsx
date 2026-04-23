@@ -77,7 +77,7 @@ export function DesignNav() {
         const baseClass = cn(
           'flex min-h-14 flex-1 items-center justify-center py-2 transition-colors hover:text-foreground',
           active
-            ? isNewListing
+            ? isNewListing || tab.key === 'feed'
               ? 'text-primary'
               : 'text-foreground'
             : 'text-muted-foreground',

@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
-  Filter,
   Heart,
   LayoutGrid,
   List,
@@ -524,6 +523,19 @@ export function DesignMarketplaceClient({
   const hasNonVerifiedFilters =
     sortIsExplicitCustom || sellerBadgeFilter !== null || priceFiltered;
 
+  const currentSortLabel = useMemo(() => {
+    const effectiveSort = sortBy ?? "newest";
+    return effectiveSort === "newest"
+      ? "Newest"
+      : sortTriggerLabel(effectiveSort);
+  }, [sortBy]);
+
+  const currentPriceLabel = useMemo(() => {
+    return priceFiltered
+      ? `${formatPrice(priceRange[0])} – ${formatPrice(priceRange[1])}`
+      : `${formatPrice(FEED_PRICE_MIN)} – ${formatPrice(FEED_PRICE_MAX)}`;
+  }, [priceFiltered, priceRange]);
+
   function clearFilters() {
     setSortBy(null);
     setSellerBadgeFilter(null);
@@ -708,19 +720,6 @@ export function DesignMarketplaceClient({
           ) : null}
         </Button>
         <Button
-          variant={
-            filterDrawerOpen || hasNonVerifiedFilters ? "default" : "ghost"
-          }
-          size="icon-sm"
-          type="button"
-          onClick={() => setFilterDrawerOpen(true)}
-          className="shrink-0 rounded-full"
-          aria-label="Open filters"
-          aria-expanded={filterDrawerOpen}
-        >
-          <Filter className="size-5" strokeWidth={2.4} />
-        </Button>
-        <Button
           variant="ghost"
           size="icon-sm"
           type="button"
@@ -746,7 +745,7 @@ export function DesignMarketplaceClient({
         </Button>
       </>
     ),
-    [search, viewMode, filterDrawerOpen, hasNonVerifiedFilters],
+    [search, viewMode],
   );
 
   useEffect(() => {
@@ -769,6 +768,43 @@ export function DesignMarketplaceClient({
 
   return (
     <div className="bg-muted/30">
+      <div className="shrink-0 bg-background px-3 py-0">
+        <div
+          className="flex flex-nowrap items-center gap-2 overflow-x-auto py-1"
+          style={{ scrollbarWidth: "none" }}
+        >
+          <button
+            type="button"
+            onClick={() => setFilterDrawerOpen(true)}
+            className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/60 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
+            aria-label="Open sort and filters"
+            aria-expanded={filterDrawerOpen}
+          >
+            {currentSortLabel}
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterDrawerOpen(true)}
+            className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/60 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
+            aria-label="Open price filters"
+            aria-expanded={filterDrawerOpen}
+          >
+            {currentPriceLabel}
+          </button>
+          {sellerBadgeFilter ? (
+            <button
+              type="button"
+              onClick={() => setFilterDrawerOpen(true)}
+              className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/60 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
+              aria-label="Open seller filters"
+              aria-expanded={filterDrawerOpen}
+            >
+              {SELLER_BADGE_LABEL[sellerBadgeFilter] ?? sellerBadgeFilter}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
       {/* Vaul Overlay returns before useCallback when modal={false} — breaks Rules of Hooks. */}
       <Drawer
         direction="right"
