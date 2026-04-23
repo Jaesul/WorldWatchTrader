@@ -711,7 +711,7 @@ export function DesignMarketplaceClient({
             search.trim() ? `Search (${search.trim()})` : "Open search"
           }
         >
-          <Search className="size-4 shrink-0" strokeWidth={2.4} />
+          <Search className="size-[1.125rem] shrink-0" strokeWidth={2.4} />
           {search.trim() ? (
             <span className="truncate text-xs font-normal">
               {search.trim()}
@@ -737,9 +737,9 @@ export function DesignMarketplaceClient({
           className="size-9 shrink-0 rounded-full p-2.5"
         >
           {viewMode === "feed" ? (
-            <LayoutGrid className="size-4" strokeWidth={2.4} />
+            <LayoutGrid className="size-[1.125rem]" strokeWidth={2.4} />
           ) : (
-            <List className="size-4" strokeWidth={2.4} />
+            <List className="size-[1.125rem]" strokeWidth={2.4} />
           )}
         </Button>
       </>
@@ -775,7 +775,7 @@ export function DesignMarketplaceClient({
           <button
             type="button"
             onClick={() => setFilterDrawerOpen(true)}
-            className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/60 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
+            className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/90 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
             aria-label="Open sort and filters"
             aria-expanded={filterDrawerOpen}
           >
@@ -784,7 +784,7 @@ export function DesignMarketplaceClient({
           <button
             type="button"
             onClick={() => setFilterDrawerOpen(true)}
-            className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/60 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
+            className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/90 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
             aria-label="Open price filters"
             aria-expanded={filterDrawerOpen}
           >
@@ -794,7 +794,7 @@ export function DesignMarketplaceClient({
             <button
               type="button"
               onClick={() => setFilterDrawerOpen(true)}
-              className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/60 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
+              className="shrink-0 rounded-full border border-primary bg-primary px-3.5 py-2 text-left text-xs font-medium text-foreground/90 shadow-sm transition-colors hover:bg-primary/90 hover:text-foreground"
               aria-label="Open seller filters"
               aria-expanded={filterDrawerOpen}
             >
@@ -1165,7 +1165,7 @@ export function DesignMarketplaceClient({
         </div>
       ) : viewMode === "feed" ? (
         // ── Feed view ──────────────────────────────────────────────────────────
-        <div className="flex flex-col gap-3 p-3">
+        <div className="flex flex-col gap-3 bg-white p-3">
           {visibleListings.map((listing) => {
             const liked = likedListingIds.has(listing.id);
             const saved = savedIds.has(listing.id);
