@@ -307,6 +307,75 @@ export async function listActiveListingsWithSellerAndPhotos(
   }));
 }
 
+/** Active or sold listings for a seller (public profile / feed-shaped rows). */
+export async function listSellerListingsWithPhotosByStatus(
+  sellerId: string,
+  status: 'active' | 'sold',
+  limit = 100,
+): Promise<HomeListingWithPhotosRow[]> {
+  const db = getDb();
+  const cap = Math.min(Math.max(limit, 1), 100);
+
+  const rows = await db
+    .select({ listing: listings, seller: users })
+    .from(listings)
+    .innerJoin(users, eq(listings.sellerId, users.id))
+    .where(
+      and(
+        eq(listings.sellerId, sellerId),
+        eq(listings.status, status),
+        isNotNull(listings.publishedAt),
+      ),
+    )
+    .orderBy(desc(listings.publishedAt), desc(listings.id))
+    .limit(cap);
+
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((r) => r.listing.id);
+  const photoRows = await db
+    .select()
+    .from(listingPhotos)
+    .where(inArray(listingPhotos.listingId, ids))
+    .orderBy(asc(listingPhotos.sortOrder), asc(listingPhotos.createdAt));
+
+  const photosByListing = new Map<string, string[]>();
+  for (const p of photoRows) {
+    const list = photosByListing.get(p.listingId) ?? [];
+    list.push(p.url);
+    photosByListing.set(p.listingId, list);
+  }
+
+  const likeAgg = await db
+    .select({
+      listingId: listingLikes.listingId,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(listingLikes)
+    .where(inArray(listingLikes.listingId, ids))
+    .groupBy(listingLikes.listingId);
+  const likeCountByListing = new Map<string, number>();
+  for (const r of likeAgg) {
+    likeCountByListing.set(r.listingId, r.n);
+  }
+
+  return rows.map(({ listing, seller }) => ({
+    listing,
+    seller,
+    photos: photosByListing.get(listing.id) ?? [],
+    likeCount: likeCountByListing.get(listing.id) ?? 0,
+  }));
+}
+
+export async function countSellerListingsByStatus(sellerId: string, status: ListingStatus) {
+  const db = getDb();
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(listings)
+    .where(and(eq(listings.sellerId, sellerId), eq(listings.status, status)));
+  return row?.n ?? 0;
+}
+
 export type SellerDashboardListingRow = {
   listing: typeof listings.$inferSelect;
   heroUrl: string | null;

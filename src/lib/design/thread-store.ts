@@ -1,3 +1,5 @@
+import { designDmReplyHref } from '@/lib/design/dm-reply';
+
 /**
  * Module-level message store for the design sandbox.
  * Persists across client-side navigations within a session (no hard refresh).
@@ -188,14 +190,9 @@ export function hasBuyerAttachedListing(
   );
 }
 
-export function replyToSellerListingHref(
-  sellerHandle: string,
-  listingId: string,
-): string {
-  const threadId = `seller-${sellerHandle}`;
-  return hasBuyerAttachedListing(threadId, listingId)
-    ? `/design/messages/${threadId}`
-    : `/design/messages/${threadId}?listing=${listingId}`;
+/** @deprecated sellerHandle ignored — use {@link designDmReplyHref} or `/design/messages/start?listingId=` */
+export function replyToSellerListingHref(_sellerHandle: string, listingId: string): string {
+  return designDmReplyHref(listingId);
 }
 
 export function getLastMessage(threadId: string): ThreadMessage | undefined {

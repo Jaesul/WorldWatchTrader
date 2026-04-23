@@ -11,7 +11,13 @@ import type { OnChainSettlement, PublicProfileSoldRow } from "@/lib/design/on-ch
 import { getListingChipThumbnailById } from "@/lib/design/listing-attachment-thumb";
 import { useViewerDashboardListings } from "@/lib/design/use-viewer-dashboard-listings";
 
-export function PublicProfileSoldListings({ rows }: { rows: PublicProfileSoldRow[] }) {
+export function PublicProfileSoldListings({
+  rows,
+  listingsById,
+}: {
+  rows: PublicProfileSoldRow[];
+  listingsById?: Record<string, Listing>;
+}) {
   const myListings = useViewerDashboardListings();
   const [listingDrawer, setListingDrawer] = useState<{
     listing: Listing;
@@ -32,8 +38,8 @@ export function PublicProfileSoldListings({ rows }: { rows: PublicProfileSoldRow
         </div>
         <div className="divide-y divide-border">
           {rows.map((row) => {
-            const thumb = getListingChipThumbnailById(row.listingId, myListings);
-            const listing = getListingById(row.listingId);
+            const thumb = getListingChipThumbnailById(row.listingId, myListings, listingsById);
+            const listing = listingsById?.[row.listingId] ?? getListingById(row.listingId);
             const title = listing?.model ?? "Listing";
             const priceLine = listing ? `$${listing.price.toLocaleString("en-US")}` : "—";
 
@@ -45,7 +51,7 @@ export function PublicProfileSoldListings({ rows }: { rows: PublicProfileSoldRow
                 <button
                   type="button"
                   onClick={() => {
-                    const full = getListingById(row.listingId);
+                    const full = listingsById?.[row.listingId] ?? getListingById(row.listingId);
                     if (full) setListingDrawer({ listing: full, soldAtLabel: row.soldAtLabel });
                   }}
                   className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

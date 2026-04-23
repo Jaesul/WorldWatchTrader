@@ -5,6 +5,7 @@
  * - Assigns listings evenly across up to the first 3 users by `created_at` (oldest first).
  * - `published_at`: unique timestamps via WeakMap on dummy listing refs (round-robin seller order), strictly decreasing.
  * - Each seeded listing gets several `listing_comments` rows authored by **existing** users (never the listing seller).
+ * - Inserts up to two mock `listing_deals` (confirmed, `executed_with = mock`) and marks those listings `sold`.
  *
  * Destructive for those legacy wallet rows only. Run: `npm run db:seed` (requires DATABASE_URL).
  */
@@ -15,7 +16,8 @@ import postgres from 'postgres';
 import { getAddress } from 'viem';
 
 import * as schema from './schema';
-import { listingComments, listingPhotos, listings, users } from './schema';
+import { listingComments, listingDeals, listingPhotos, listings, users } from './schema';
+import { buildMockPublicProfileSoldParts, mockUserOpHashForListing } from '@/lib/design/on-chain-sale-mock';
 import { LISTINGS, type Listing } from '@/lib/design/data';
 
 loadEnv();
@@ -153,6 +155,20 @@ async function main() {
     const allUserRows = await tx.select({ id: users.id }).from(users);
 
     const dummyTitles = LISTINGS.map((l) => l.model);
+    const wipeListingIds = await tx
+      .select({ id: listings.id })
+      .from(listings)
+      .where(
+        and(inArray(listings.sellerId, chosenSellerIds), inArray(listings.title, dummyTitles)),
+      );
+    if (wipeListingIds.length > 0) {
+      await tx.delete(listingDeals).where(
+        inArray(
+          listingDeals.listingId,
+          wipeListingIds.map((r) => r.id),
+        ),
+      );
+    }
     await tx.delete(listings).where(
       and(inArray(listings.sellerId, chosenSellerIds), inArray(listings.title, dummyTitles)),
     );
@@ -160,6 +176,14 @@ async function main() {
     const groups = splitEvenly([...LISTINGS], sellerRows.length);
     const interleaved = interleavedFromGroups(groups);
     const publishedAtForListing = publishedAtByListingRef(interleaved);
+
+    const dealSeedTargets: {
+      listingId: string;
+      sellerId: string;
+      buyerId: string;
+      priceUsd: number;
+      updatedAt: Date;
+    }[] = [];
 
     for (let w = 0; w < sellerRows.length; w++) {
       const slice = groups[w]!;
@@ -221,7 +245,68 @@ async function main() {
             });
           }
         }
+
+        if (dealSeedTargets.length < 2 && commenterPool.length >= 1) {
+          dealSeedTargets.push({
+            listingId: row.id,
+            sellerId,
+            buyerId: commenterPool[0]!,
+            priceUsd: l.price,
+            updatedAt: now,
+          });
+        }
       }
+    }
+
+    for (const d of dealSeedTargets) {
+      const [[sellerUser], [buyerUser]] = await Promise.all([
+        tx.select().from(users).where(eq(users.id, d.sellerId)).limit(1),
+        tx.select().from(users).where(eq(users.id, d.buyerId)).limit(1),
+      ]);
+      if (!sellerUser || !buyerUser) continue;
+
+      const { settlement } = buildMockPublicProfileSoldParts({
+        listingId: d.listingId,
+        updatedAt: d.updatedAt,
+        priceUsd: d.priceUsd,
+      });
+      const userOpHash = mockUserOpHashForListing({
+        listingId: d.listingId,
+        updatedAt: d.updatedAt,
+        priceUsd: d.priceUsd,
+      });
+      const amountRaw =
+        settlement.token === 'USDC'
+          ? (BigInt(d.priceUsd) * BigInt(1_000_000)).toString()
+          : (BigInt(d.priceUsd) * BigInt(10) ** BigInt(19) / BigInt(24)).toString();
+
+      const confirmedAt = new Date();
+      await tx.insert(listingDeals).values({
+        listingId: d.listingId,
+        sellerId: d.sellerId,
+        buyerId: d.buyerId,
+        status: 'confirmed',
+        chainId: 480,
+        chainName: settlement.chainName,
+        userOpHash,
+        transactionHash: settlement.txHash,
+        blockNumber: settlement.blockNumber,
+        fromAddress: buyerUser.walletAddress,
+        toAddress: sellerUser.walletAddress,
+        tokenContract: null,
+        tokenSymbol: settlement.token,
+        amountRaw,
+        priceUsd: d.priceUsd,
+        executedWith: 'mock',
+        failureReason: null,
+        confirmedAt,
+        createdAt: confirmedAt,
+        updatedAt: confirmedAt,
+      });
+      await tx
+        .update(listings)
+        .set({ status: 'sold', updatedAt: confirmedAt })
+        .where(eq(listings.id, d.listingId));
     }
   });
 
@@ -234,7 +319,7 @@ async function main() {
       : [{ total: 0 }];
 
   console.log(
-    `Seed complete. ${total} listings across ${chosenSellerIds.length} seller(s) (by created_at, excluding ${EXCLUDED_SEED_LOGIN}). Legacy seed wallets removed if present.`,
+    `Seed complete. ${total} listings across ${chosenSellerIds.length} seller(s) (by created_at, excluding ${EXCLUDED_SEED_LOGIN}); up to 2 mock listing_deals + sold rows. Legacy seed wallets removed if present.`,
   );
   await client.end({ timeout: 5 });
 }

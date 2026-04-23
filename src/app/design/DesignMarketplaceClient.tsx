@@ -65,10 +65,7 @@ import {
 } from "@/lib/design/listing-drawer-comments";
 import { useDesignEngagement } from "@/lib/design/use-design-engagement";
 import { useDesignListingSaves } from "@/lib/design/use-design-listing-saves";
-import {
-  hasBuyerAttachedListing,
-  replyToSellerListingHref,
-} from "@/lib/design/thread-store";
+import { designDmReplyHref } from "@/lib/design/dm-reply";
 import { guardBooleanOpenChange } from "@/lib/guard-boolean-open-change";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { cn } from "@/lib/utils";
@@ -444,7 +441,7 @@ export function DesignMarketplaceClient({
     FEED_PRICE_MAX,
   ]);
   const [viewMode, setViewMode] = useState<ViewMode>("feed");
-  const [drawerListing, setDrawerListing] = useState<Listing | null>(null);
+  const [drawerListing, setDrawerListing] = useState<DesignFeedListing | null>(null);
 
   const sellerFilterBadges = useMemo(
     () => [
@@ -1205,30 +1202,27 @@ export function DesignMarketplaceClient({
                     <span>{likeCount}</span>
                   </Button>
                   <Separator orientation="vertical" className="my-3 h-auto" />
-                  <Button
-                    variant="ghost"
-                    asChild
-                    className="h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                  >
-                    <Link
-                      href={replyToSellerListingHref(
-                        listing.seller.handle,
-                        listing.id,
-                      )}
-                      aria-label="Reply to seller"
-                      onClick={() => {
-                        const threadId = `seller-${listing.seller.handle}`;
-                        if (hasBuyerAttachedListing(threadId, listing.id)) {
-                          toast.info("You already sent this listing to the seller.", {
-                            description: "Opening your chat.",
-                            duration: 4500,
-                          });
-                        }
-                      }}
+                  {viewer?.id && listing._sellerId === viewer.id ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled
+                      className="h-11 flex-1 cursor-not-allowed rounded-none text-muted-foreground/40 opacity-50"
+                      aria-label="Cannot reply on your own listing"
                     >
                       <Reply className="size-[18px] -scale-x-100" />
-                    </Link>
-                  </Button>
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      asChild
+                      className="h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                    >
+                      <Link href={designDmReplyHref(listing.id)} aria-label="Reply to seller">
+                        <Reply className="size-[18px] -scale-x-100" />
+                      </Link>
+                    </Button>
+                  )}
                   <Separator orientation="vertical" className="my-3 h-auto" />
                   <Button
                     variant="ghost"
@@ -1355,26 +1349,25 @@ export function DesignMarketplaceClient({
                       {likeCount}
                     </button>
 
-                    <Link
-                      href={replyToSellerListingHref(
-                        listing.seller.handle,
-                        listing.id,
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const threadId = `seller-${listing.seller.handle}`;
-                        if (hasBuyerAttachedListing(threadId, listing.id)) {
-                          toast.info("You already sent this listing to the seller.", {
-                            description: "Opening your chat.",
-                            duration: 4500,
-                          });
-                        }
-                      }}
-                      className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
-                      aria-label="Reply to seller"
-                    >
-                      <Reply className="size-4 -scale-x-100" />
-                    </Link>
+                    {viewer?.id && listing._sellerId === viewer.id ? (
+                      <span
+                        className="flex min-h-11 min-w-11 cursor-not-allowed items-center justify-center rounded-full text-muted-foreground/35"
+                        aria-label="Cannot reply on your own listing"
+                      >
+                        <Reply className="size-4 -scale-x-100" />
+                      </span>
+                    ) : (
+                      <Link
+                        href={designDmReplyHref(listing.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                        aria-label="Reply to seller"
+                      >
+                        <Reply className="size-4 -scale-x-100" />
+                      </Link>
+                    )}
 
                     <button
                       type="button"

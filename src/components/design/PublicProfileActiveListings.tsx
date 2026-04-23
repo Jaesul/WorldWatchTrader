@@ -15,8 +15,11 @@ export interface PublicProfileListingRow {
 
 export function PublicProfileActiveListings({
   rows,
+  listingsById,
 }: {
   rows: PublicProfileListingRow[];
+  /** When set (e.g. DB-backed profile), drawer resolves UUID listings from this map instead of mock `LISTINGS`. */
+  listingsById?: Record<string, Listing>;
 }) {
   const myListings = useViewerDashboardListings();
   const [drawerListing, setDrawerListing] = useState<Listing | null>(null);
@@ -29,13 +32,13 @@ export function PublicProfileActiveListings({
         </div>
         <div className="divide-y divide-border">
           {rows.map((row) => {
-            const thumb = getListingChipThumbnailById(row.id, myListings);
+            const thumb = getListingChipThumbnailById(row.id, myListings, listingsById);
             return (
               <button
                 key={row.id}
                 type="button"
                 onClick={() => {
-                  const full = getListingById(row.id);
+                  const full = listingsById?.[row.id] ?? getListingById(row.id);
                   if (full) setDrawerListing(full);
                 }}
                 className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/20"

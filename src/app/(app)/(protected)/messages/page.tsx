@@ -1,4 +1,7 @@
+import Link from 'next/link';
+
 import { Page } from '@/components/PageLayout';
+import { MessagesInbox } from '@/app/(app)/(protected)/messages/MessagesInbox';
 import { TopBar } from '@worldcoin/mini-apps-ui-kit-react';
 
 export default function MessagesPage() {
@@ -7,14 +10,14 @@ export default function MessagesPage() {
       <Page.Header className="p-0">
         <TopBar title="Messages" />
       </Page.Header>
-      <Page.Main className="flex flex-col gap-4 mb-16">
-        <p className="text-sm text-neutral-600">
-          <strong>UX springboard:</strong> private inbox (empty state). Not the same as public
-          listing comments.
+      <Page.Main className="mb-16 flex flex-col gap-3 px-4">
+        <p className="text-xs text-neutral-500">
+          Private inbox tied to listings.{' '}
+          <Link href="/listings" className="font-medium text-primary underline-offset-2 hover:underline">
+            Browse listings
+          </Link>
         </p>
-        <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
-          No conversations yet — placeholder
-        </p>
+        <MessagesInbox />
       </Page.Main>
     </>
   );

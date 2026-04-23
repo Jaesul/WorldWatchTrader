@@ -1,0 +1,1 @@
+ALTER TABLE "dm_messages" ADD COLUMN "listing_snapshot" jsonb;

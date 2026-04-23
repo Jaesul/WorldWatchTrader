@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   Bookmark,
   ChevronLeft,
@@ -35,10 +34,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { formatPrice, type Listing } from "@/lib/design/data";
-import {
-  hasBuyerAttachedListing,
-  replyToSellerListingHref,
-} from "@/lib/design/thread-store";
+import { designDmReplyHref } from "@/lib/design/dm-reply";
+import type { DesignFeedListing } from "@/lib/design/map-db-feed-to-listing";
 import {
   isViewerAuthoredComment,
   type RichComment,
@@ -212,6 +209,11 @@ export function ListingDetailDrawer({
   soldHistory,
 }: ListingDetailDrawerProps) {
   const { viewer } = useDesignViewer();
+  const isOwnListing = Boolean(
+    viewer?.id &&
+      "_sellerId" in listing &&
+      (listing as DesignFeedListing)._sellerId === viewer.id,
+  );
   const [descExpanded, setDescExpanded] = useState(false);
 
   useEffect(() => {
@@ -345,24 +347,25 @@ export function ListingDetailDrawer({
                 <span className="inline-flex shrink-0 items-center rounded-full border border-border bg-muted/60 px-3 py-1.5 text-xs font-medium text-muted-foreground">
                   Listing ended · {soldHistory.soldAtLabel}
                 </span>
+              ) : isOwnListing ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled
+                  className="shrink-0 cursor-not-allowed rounded-full opacity-50"
+                  aria-label="Cannot reply on your own listing"
+                >
+                  <Reply className="size-3.5 -scale-x-100" />
+                  Reply to seller
+                </Button>
               ) : (
                 <Button asChild size="sm" className="shrink-0 rounded-full">
                   <Link
-                    href={replyToSellerListingHref(
-                      listing.seller.handle,
-                      listing.id,
-                    )}
+                    href={designDmReplyHref(listing.id)}
                     onClick={(e) => {
                       if (blockDesignInteractionWithoutWorldId()) {
                         e.preventDefault();
                         return;
-                      }
-                      const threadId = `seller-${listing.seller.handle}`;
-                      if (hasBuyerAttachedListing(threadId, listing.id)) {
-                        toast.info("You already sent this listing to the seller.", {
-                          description: "Opening your chat.",
-                          duration: 4500,
-                        });
                       }
                     }}
                   >

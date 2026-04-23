@@ -36,7 +36,10 @@ export function formatPublishedAtLabel(publishedAt: Date, nowMs = Date.now()): s
   return `${Math.floor(days / 365)}y ago`;
 }
 
-function sellerHandle(seller: HomeListingWithPhotosRow['seller']): string {
+export function sellerPublicProfileSlug(seller: {
+  id: string;
+  handle: string | null;
+}): string {
   if (seller.handle) return seller.handle;
   return `user_${seller.id.replace(/^0x/i, '').slice(0, 10)}`;
 }
@@ -46,6 +49,14 @@ function sellerBadges(seller: HomeListingWithPhotosRow['seller']): Badge[] {
   if (seller.orbVerified) badges.push('world-verified');
   if (seller.powerSeller) badges.push('power-seller');
   return badges;
+}
+
+export function mapHomeRowToDesignListing(row: HomeListingWithPhotosRow): Listing {
+  const full = mapDbRowToDesignFeedListing(row);
+  const { _publishedAt: _p, _sellerId: _s, ...listing } = full;
+  void _p;
+  void _s;
+  return listing;
 }
 
 export function mapDbRowToDesignFeedListing(row: HomeListingWithPhotosRow): DesignFeedListing {
@@ -64,7 +75,7 @@ export function mapDbRowToDesignFeedListing(row: HomeListingWithPhotosRow): Desi
     likes: likeCount,
     seller: {
       name: seller.username,
-      handle: sellerHandle(seller),
+      handle: sellerPublicProfileSlug(seller),
       badges: sellerBadges(seller),
       avatar: seller.profilePictureUrl ?? PLACEHOLDER_AVATAR,
     },
