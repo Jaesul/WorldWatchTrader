@@ -2,6 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import Link from "next/link";
 import { type MyListing, type ListingStatus } from "@/lib/design/listing-store";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
@@ -109,6 +118,7 @@ function ListingCard({
 export default function ProfilePage() {
   const { viewer, allViewers, setViewerId } = useDesignViewer();
   const [activeTab, setActiveTab] = useState<ProfileTab>("active");
+  const [selectedListing, setSelectedListing] = useState<MyListing | null>(null);
 
   const allListings = useViewerDashboardListings();
 
@@ -331,7 +341,11 @@ export default function ProfilePage() {
         ) : (
           <div className="space-y-2.5">
             {visibleListings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                onOpen={() => setSelectedListing(listing)}
+              />
             ))}
             {activeTab === "active" && (
               <Button
@@ -347,6 +361,80 @@ export default function ProfilePage() {
         )}
       </div>
 
+      <Drawer
+        open={selectedListing !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedListing(null);
+        }}
+      >
+        <DrawerContent>
+          {selectedListing ? (
+            <>
+              <DrawerHeader className="text-left">
+                <DrawerTitle className="pr-8">{selectedListing.model}</DrawerTitle>
+                <DrawerDescription>
+                  {formatPrice(selectedListing.price, selectedListing.currency)} ·{" "}
+                  {selectedListing.postedAt}
+                </DrawerDescription>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATUS_CONFIG[selectedListing.status].color}`}
+                  >
+                    {STATUS_CONFIG[selectedListing.status].label}
+                  </span>
+                </div>
+              </DrawerHeader>
+              <div className="max-h-[50vh] space-y-4 overflow-y-auto px-4 pb-2">
+                <img
+                  src={selectedListing.photo}
+                  alt={selectedListing.model}
+                  className="aspect-[4/3] w-full rounded-lg object-cover bg-muted"
+                />
+                {selectedListing.description ? (
+                  <p className="text-sm leading-relaxed text-foreground/90">
+                    {selectedListing.description}
+                  </p>
+                ) : null}
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  {selectedListing.condition ? (
+                    <>
+                      <dt className="text-muted-foreground">Condition</dt>
+                      <dd className="font-medium text-foreground">
+                        {selectedListing.condition}
+                      </dd>
+                    </>
+                  ) : null}
+                  {selectedListing.boxPapers ? (
+                    <>
+                      <dt className="text-muted-foreground">Box &amp; papers</dt>
+                      <dd className="font-medium text-foreground">
+                        {selectedListing.boxPapers}
+                      </dd>
+                    </>
+                  ) : null}
+                  <dt className="text-muted-foreground">Photos</dt>
+                  <dd className="font-medium text-foreground">
+                    {selectedListing.photoCount}
+                  </dd>
+                </dl>
+                <p className="text-[11px] text-muted-foreground">
+                  {STATUS_CONFIG[selectedListing.status].description}
+                </p>
+              </div>
+              <DrawerFooter className="flex-row gap-2 sm:justify-start">
+                <DrawerClose asChild>
+                  <Button type="button" variant="outline" className="flex-1 sm:flex-none">
+                    Close
+                  </Button>
+                </DrawerClose>
+                <Button type="button" className="flex-1 sm:flex-none" asChild>
+                  <Link href="/design">Open feed</Link>
+                </Button>
+              </DrawerFooter>
+            </>
+          ) : null}
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

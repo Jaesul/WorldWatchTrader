@@ -67,12 +67,12 @@ export function DesignNav() {
   }
 
   return (
-    <nav className="sticky bottom-0 z-30 flex items-center border-t border-border bg-card px-2">
+    <nav className="sticky bottom-0 z-30 flex items-center border-t border-border bg-card px-2 pt-2 pb-3.5">
       {tabs.map((tab, index) => {
         const active = isActive(tab.key);
         const isNewListing = tab.key === 'new-listing';
         const baseClass = cn(
-          'flex min-h-14 flex-1 items-center justify-center py-3 transition-colors hover:text-foreground',
+          'flex min-h-14 flex-1 items-center justify-center py-2 transition-colors hover:text-foreground',
           active
             ? isNewListing
               ? 'text-primary'

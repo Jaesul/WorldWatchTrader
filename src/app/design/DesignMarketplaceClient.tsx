@@ -2,11 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Bookmark,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -37,18 +36,19 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { DesignListingCommentRow } from "@/components/design/DesignListingCommentRow";
 import { ListingDetailDrawer } from "@/components/design/ListingDetailDrawer";
 import {
@@ -65,7 +65,6 @@ import {
 import { useDesignEngagement } from "@/lib/design/use-design-engagement";
 import { useDesignListingSaves } from "@/lib/design/use-design-listing-saves";
 import { designDmReplyHref } from "@/lib/design/dm-reply";
-import { guardBooleanOpenChange } from "@/lib/guard-boolean-open-change";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -111,38 +110,6 @@ function sortTriggerLabel(sort: SortOption | null): string {
   const effective = sort ?? "newest";
   return SORT_CHOICES.find((c) => c.value === effective)?.label ?? "Sort by";
 }
-
-const PriceRangeTriggerChip = forwardRef<
-  HTMLButtonElement,
-  {
-    priceFiltered: boolean;
-    sheetOpen: boolean;
-    onClick?: () => void;
-  }
->(function PriceRangeTriggerChip(
-  { priceFiltered: rangeActive, sheetOpen, onClick },
-  ref,
-) {
-  return (
-    <button
-      ref={ref}
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-8 w-fit shrink-0 cursor-pointer items-center gap-1 rounded-full border px-3 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-        rangeActive
-          ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
-          : "border-border bg-background text-foreground hover:bg-muted/60",
-      )}
-      aria-haspopup="dialog"
-      aria-expanded={sheetOpen}
-    >
-      <span className="whitespace-nowrap">Price range</span>
-      <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
-    </button>
-  );
-});
-PriceRangeTriggerChip.displayName = "PriceRangeTriggerChip";
 
 /** Slider domain for the feed price filter (USD, design sandbox). */
 const FEED_PRICE_MIN = 0;
@@ -427,10 +394,7 @@ export function DesignMarketplaceClient({
   const [sortBy, setSortBy] = useState<SortOption | null>(null);
   const [sellerBadgeFilter, setSellerBadgeFilter] =
     useState<ListingBadge | null>(null);
-  const [worldVerified, setWorldVerified] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [sortSheetOpen, setSortSheetOpen] = useState(false);
-  const [priceSheetOpen, setPriceSheetOpen] = useState(false);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([
     FEED_PRICE_MIN,
     FEED_PRICE_MAX,
@@ -502,7 +466,6 @@ export function DesignMarketplaceClient({
   const hasFilters =
     sortIsExplicitCustom ||
     sellerBadgeFilter !== null ||
-    worldVerified ||
     priceFiltered;
   const hasNonVerifiedFilters =
     sortIsExplicitCustom || sellerBadgeFilter !== null || priceFiltered;
@@ -510,31 +473,19 @@ export function DesignMarketplaceClient({
   function clearFilters() {
     setSortBy(null);
     setSellerBadgeFilter(null);
-    setWorldVerified(false);
     setPriceRange([FEED_PRICE_MIN, FEED_PRICE_MAX]);
     setPriceRangeDraft([FEED_PRICE_MIN, FEED_PRICE_MAX]);
-    setPriceSheetOpen(false);
-    setFilterOpen(false);
-  }
-
-  function handlePriceSheetOpenChange(value: unknown) {
-    if (typeof value !== "boolean") return;
-    if (value) {
-      setPriceRangeDraft(priceRange);
-    }
-    setPriceSheetOpen(value);
+    setFilterDrawerOpen(false);
   }
 
   const sortedForFeed = initialListings
     .filter((listing) => {
       const matchSearch = listingMatchesFeedSearch(listing, search);
-      const matchVerified =
-        !worldVerified || listing.seller.badges.includes("world-verified");
       const matchBadge =
         !sellerBadgeFilter || listing.seller.badges.includes(sellerBadgeFilter);
       const matchPrice =
         listing.price >= priceRange[0] && listing.price <= priceRange[1];
-      return matchSearch && matchVerified && matchBadge && matchPrice;
+      return matchSearch && matchBadge && matchPrice;
     })
     .sort((a: DesignFeedListing, b: DesignFeedListing) => {
       const s = sortBy ?? "newest";
@@ -618,323 +569,96 @@ export function DesignMarketplaceClient({
 
   return (
     <div className="bg-muted/30">
-      {/* ── Action bar ── */}
+      {/* ── Action bar: search + filters drawer + view mode (one row) ── */}
       <div className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 pb-3 pt-4 backdrop-blur">
-        {/* Search row */}
-        <div
-          className="relative mb-3"
-          onBlur={() => {
-            window.setTimeout(() => setSearchOpen(false), 100);
-          }}
-        >
-          {/*
-            Icon must sit beside a transparent input — a full-width input background paints over
-            absolutely positioned icons in the padding zone (looks like a hollow ring on iOS).
-          */}
-          <div className="flex min-h-10 items-center gap-0 rounded-full border border-border/60 bg-muted/40 px-1 shadow-sm focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/35">
-            <span
-              className="pointer-events-none flex size-9 shrink-0 items-center justify-center text-muted-foreground"
-              aria-hidden
-            >
-              <Search className="size-4" strokeWidth={2.25} />
-            </span>
-            <Input
-              type="text"
-              inputMode="search"
-              enterKeyHint="search"
-              autoComplete="off"
-              placeholder="Search Rolex, brands, sellers..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onFocus={() => setSearchOpen(true)}
-              className="h-10 min-w-0 flex-1 border-0 bg-transparent py-0 pr-3 pl-0 text-base shadow-none md:text-sm focus-visible:border-0 focus-visible:ring-0"
-            />
-          </div>
-          {searchOpen && suggestedSearches.length > 0 ? (
-            <Card className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 gap-0 overflow-hidden border-border/70 py-0 shadow-lg">
-              <CardHeader className="px-3 py-2.5">
-                <CardDescription className="text-xs uppercase tracking-[0.18em] text-muted-foreground/80">
-                  Suggested searches
-                </CardDescription>
-              </CardHeader>
-              <Separator />
-              <CardContent className="p-1.5">
-                <div className="flex flex-col">
-                  {suggestedSearches.map((item) => (
-                    <button
-                      key={item.query}
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        setSearch(item.query);
-                        setSearchOpen(false);
-                      }}
-                      className="flex items-start gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60"
-                    >
-                      <div className="mt-0.5 rounded-full bg-muted p-1.5 text-muted-foreground">
-                        <Search className="size-3.5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {item.title}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {item.subtitle}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
-        </div>
-
-        {/* Filter + view toggle row */}
-        <div className="flex min-w-0 items-center gap-2 pb-0.5">
-          {/* Scrollable filters */}
+        <div className="flex min-w-0 items-center gap-2">
           <div
-            className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            style={{ WebkitOverflowScrolling: "touch" }}
+            className="relative min-w-0 flex-1"
+            onBlur={() => {
+              window.setTimeout(() => setSearchOpen(false), 100);
+            }}
           >
-            {/* Clear */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearFilters}
-              disabled={!hasFilters}
-              className="shrink-0 rounded-full"
-              aria-label="Clear all filters"
-            >
-              <X className="size-3.5" />
-            </Button>
-
-            {/* Funnel */}
-            <Button
-              variant={
-                filterOpen || hasNonVerifiedFilters ? "default" : "outline"
-              }
-              size="sm"
-              onClick={() => setFilterOpen((v) => !v)}
-              className="shrink-0 rounded-full"
-              aria-label="Toggle filters"
-              aria-expanded={filterOpen}
-            >
-              <Filter className="size-3.5" />
-            </Button>
-
-            {/* Price range: pinned after funnel when active; nested under expanded filters when inactive */}
-            <Sheet
-              open={priceSheetOpen}
-              onOpenChange={handlePriceSheetOpenChange}
-            >
-              {priceFiltered ? (
-                <SheetTrigger asChild>
-                  <PriceRangeTriggerChip
-                    priceFiltered={priceFiltered}
-                    sheetOpen={priceSheetOpen}
-                  />
-                </SheetTrigger>
-              ) : null}
-              <SheetContent
-                side="bottom"
-                className="max-h-[min(85dvh,520px)] rounded-t-2xl px-4 pb-6 pt-2"
-                style={{
-                  paddingBottom:
-                    "max(1.5rem, env(safe-area-inset-bottom, 0px))",
-                }}
+            {/*
+              Icon must sit beside a transparent input — a full-width input background paints over
+              absolutely positioned icons in the padding zone (looks like a hollow ring on iOS).
+            */}
+            <div className="flex min-h-10 items-center gap-0 rounded-full border border-border/60 bg-muted/40 px-1 shadow-sm focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/35">
+              <span
+                className="pointer-events-none flex size-9 shrink-0 items-center justify-center text-muted-foreground"
+                aria-hidden
               >
-                <SheetHeader className="text-left">
-                  <SheetTitle>Price range</SheetTitle>
-                  <SheetDescription>
-                    Drag both handles, then confirm to filter listings by asking
-                    price.
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="mt-6 px-1">
-                  <p className="mb-4 text-center text-sm font-semibold tabular-nums text-foreground">
-                    {formatPrice(priceRangeDraft[0])} —{" "}
-                    {formatPrice(priceRangeDraft[1])}
-                  </p>
-                  <Slider
-                    value={priceRangeDraft}
-                    onValueChange={(v) =>
-                      setPriceRangeDraft([
-                        v[0] ?? FEED_PRICE_MIN,
-                        v[1] ?? FEED_PRICE_MAX,
-                      ])
-                    }
-                    min={FEED_PRICE_MIN}
-                    max={FEED_PRICE_MAX}
-                    step={500}
-                    minStepsBetweenThumbs={1}
-                    className="touch-pan-y py-2"
-                    aria-label="Filter by price range"
-                  />
-                  <div className="mt-2 flex justify-between text-xs text-muted-foreground tabular-nums">
-                    <span>{formatPrice(FEED_PRICE_MIN)}</span>
-                    <span>{formatPrice(FEED_PRICE_MAX)}</span>
-                  </div>
-                </div>
-                <div className="mt-6 flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-w-0 flex-1 rounded-xl"
-                    disabled={
-                      priceRangeDraft[0] === FEED_PRICE_MIN &&
-                      priceRangeDraft[1] === FEED_PRICE_MAX
-                    }
-                    onClick={() =>
-                      setPriceRangeDraft([
-                        FEED_PRICE_MIN,
-                        FEED_PRICE_MAX,
-                      ])
-                    }
-                  >
-                    Reset price range
-                  </Button>
-                  <Button
-                    type="button"
-                    className="min-w-0 flex-1 rounded-xl"
-                    onClick={() => {
-                      setPriceRange(priceRangeDraft);
-                      setPriceSheetOpen(false);
-                    }}
-                  >
-                    Confirm
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            {/* Expanding filter controls */}
-            <div
-              className={cn(
-                "flex shrink-0 items-center gap-2 overflow-hidden transition-[max-width,opacity] duration-300 ease-in-out",
-                filterOpen
-                  ? "max-w-[min(100dvw,120rem)] opacity-100"
-                  : "max-w-0 opacity-0 pointer-events-none",
-              )}
-            >
-              {!priceFiltered ? (
-                <PriceRangeTriggerChip
-                  priceFiltered={priceFiltered}
-                  sheetOpen={priceSheetOpen}
-                  onClick={() => {
-                    setPriceRangeDraft(priceRange);
-                    setPriceSheetOpen(true);
-                  }}
-                />
-              ) : null}
-              <Sheet
-                open={sortSheetOpen}
-                onOpenChange={guardBooleanOpenChange(setSortSheetOpen)}
-              >
-                <SheetTrigger asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      "inline-flex h-8 w-fit max-w-full shrink-0 cursor-pointer items-center gap-1 rounded-full border px-3 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                      sortIsExplicitCustom
-                        ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "border-border bg-background text-foreground hover:bg-muted/60",
-                    )}
-                    aria-haspopup="dialog"
-                    aria-expanded={sortSheetOpen}
-                  >
-                    <span className="min-w-0 truncate whitespace-nowrap">
-                      {sortTriggerLabel(sortBy)}
-                    </span>
-                    <ChevronDown
-                      className="size-3.5 shrink-0 opacity-60"
-                      aria-hidden
-                    />
-                  </button>
-                </SheetTrigger>
-                <SheetContent
-                  side="bottom"
-                  className="max-h-[min(85dvh,560px)] rounded-t-2xl px-4 pb-6 pt-2"
-                >
-                  <SheetHeader className="text-left">
-                    <SheetTitle>Sort listings</SheetTitle>
-                    <SheetDescription>
-                      Choose how results are ordered in the feed.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="mt-4 flex flex-col gap-2">
-                    {SORT_CHOICES.map(({ value, label }) => (
+                <Search className="size-4" strokeWidth={2.25} />
+              </span>
+              <Input
+                type="text"
+                inputMode="search"
+                enterKeyHint="search"
+                autoComplete="off"
+                placeholder="Search Rolex, brands, sellers..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                onFocus={() => setSearchOpen(true)}
+                className="h-10 min-w-0 flex-1 border-0 bg-transparent py-0 pr-3 pl-0 text-base shadow-none md:text-sm focus-visible:border-0 focus-visible:ring-0"
+              />
+            </div>
+            {searchOpen && suggestedSearches.length > 0 ? (
+              <Card className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 gap-0 overflow-hidden border-border/70 py-0 shadow-lg">
+                <CardHeader className="px-3 py-2.5">
+                  <CardDescription className="text-xs uppercase tracking-[0.18em] text-muted-foreground/80">
+                    Suggested searches
+                  </CardDescription>
+                </CardHeader>
+                <Separator />
+                <CardContent className="p-1.5">
+                  <div className="flex flex-col">
+                    {suggestedSearches.map((item) => (
                       <button
-                        key={value}
+                        key={item.query}
                         type="button"
+                        onMouseDown={(event) => event.preventDefault()}
                         onClick={() => {
-                          setSortBy(value);
-                          setSortSheetOpen(false);
+                          setSearch(item.query);
+                          setSearchOpen(false);
                         }}
-                        className={cn(
-                          "rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors",
-                          sortBy === value ||
-                            (sortBy === null && value === "newest")
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-background hover:bg-muted/50",
-                        )}
+                        className="flex items-start gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60"
                       >
-                        {label}
+                        <div className="mt-0.5 rounded-full bg-muted p-1.5 text-muted-foreground">
+                          <Search className="size-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {item.title}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {item.subtitle}
+                          </p>
+                        </div>
                       </button>
                     ))}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSortBy(null);
-                        setSortSheetOpen(false);
-                      }}
-                      disabled={sortBy === null}
-                      className="rounded-xl border border-dashed border-border px-4 py-3 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/40 disabled:pointer-events-none disabled:opacity-40"
-                    >
-                      Newest first (default)
-                    </button>
                   </div>
-                </SheetContent>
-              </Sheet>
-
-              {sellerFilterBadges.map((badge) => (
-                <Button
-                  key={badge}
-                  variant={sellerBadgeFilter === badge ? "default" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    setSellerBadgeFilter(
-                      sellerBadgeFilter === badge ? null : badge,
-                    )
-                  }
-                  className="shrink-0 rounded-full"
-                >
-                  <Star className="size-3.5" />
-                  {SELLER_BADGE_LABEL[badge] ?? badge}
-                </Button>
-              ))}
-            </div>
-
-            {/* World Verified */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setWorldVerified((v) => !v)}
-              className={cn(
-                "shrink-0 rounded-full",
-                worldVerified &&
-                  "border-world-verified bg-world-verified text-white hover:bg-world-verified/90 hover:text-white",
-              )}
-            >
-              <OrbIcon className="size-3.5 shrink-0" inverted={worldVerified} />
-              World Verified
-            </Button>
+                </CardContent>
+              </Card>
+            ) : null}
           </div>
 
-          {/* View toggle — pinned right, not scrollable */}
+          <Button
+            variant={
+              filterDrawerOpen || hasNonVerifiedFilters ? "default" : "outline"
+            }
+            size="icon-sm"
+            type="button"
+            onClick={() => setFilterDrawerOpen(true)}
+            className="shrink-0 rounded-full"
+            aria-label="Open filters"
+            aria-expanded={filterDrawerOpen}
+          >
+            <Filter className="size-3.5" />
+          </Button>
+
           <Button
             variant="outline"
             size="icon-sm"
+            type="button"
             onClick={() => {
               setViewMode((v) => {
                 const next = v === "feed" ? "grid" : "feed";
@@ -957,6 +681,190 @@ export function DesignMarketplaceClient({
           </Button>
         </div>
       </div>
+
+      <Drawer
+        direction="right"
+        open={filterDrawerOpen}
+        onOpenChange={(open) => {
+          setFilterDrawerOpen(open);
+          if (open) setPriceRangeDraft(priceRange);
+        }}
+      >
+        <DrawerContent className="mt-0 flex h-[100dvh] max-h-[100dvh] w-[min(100%,22rem)] gap-0 rounded-none border-l p-0 sm:max-w-md data-[vaul-drawer-direction=right]:mt-0">
+          <DrawerHeader className="border-b border-border px-4 pb-3 pt-4 text-left">
+            <DrawerTitle>Filters</DrawerTitle>
+            <DrawerDescription>
+              Sort, price band, and seller badges. Current sort:{" "}
+              <span className="font-medium text-foreground">
+                {sortTriggerLabel(sortBy)}
+              </span>
+              {priceFiltered ? (
+                <>
+                  {" "}
+                  · Price{" "}
+                  <span className="font-medium text-foreground tabular-nums">
+                    {formatPrice(priceRange[0])} — {formatPrice(priceRange[1])}
+                  </span>
+                </>
+              ) : null}
+            </DrawerDescription>
+          </DrawerHeader>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+            <div className="space-y-6">
+              <section aria-labelledby="filter-sort-heading">
+                <h2
+                  id="filter-sort-heading"
+                  className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Sort
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {SORT_CHOICES.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setSortBy(value)}
+                      className={cn(
+                        "rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors",
+                        sortBy === value ||
+                          (sortBy === null && value === "newest")
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background hover:bg-muted/50",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setSortBy(null)}
+                    disabled={sortBy === null}
+                    className="rounded-xl border border-dashed border-border px-4 py-3 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/40 disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    Newest first (default)
+                  </button>
+                </div>
+              </section>
+
+              <Separator />
+
+              <section aria-labelledby="filter-price-heading">
+                <h2
+                  id="filter-price-heading"
+                  className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Price range
+                </h2>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Drag both handles, then apply to filter by asking price.
+                </p>
+                <p className="mb-4 text-center text-sm font-semibold tabular-nums text-foreground">
+                  {formatPrice(priceRangeDraft[0])} —{" "}
+                  {formatPrice(priceRangeDraft[1])}
+                </p>
+                <Slider
+                  value={priceRangeDraft}
+                  onValueChange={(v) =>
+                    setPriceRangeDraft([
+                      v[0] ?? FEED_PRICE_MIN,
+                      v[1] ?? FEED_PRICE_MAX,
+                    ])
+                  }
+                  min={FEED_PRICE_MIN}
+                  max={FEED_PRICE_MAX}
+                  step={500}
+                  minStepsBetweenThumbs={1}
+                  className="touch-pan-y py-2"
+                  aria-label="Filter by price range"
+                />
+                <div className="mt-2 flex justify-between text-xs text-muted-foreground tabular-nums">
+                  <span>{formatPrice(FEED_PRICE_MIN)}</span>
+                  <span>{formatPrice(FEED_PRICE_MAX)}</span>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-w-0 flex-1 rounded-xl"
+                    disabled={
+                      priceRangeDraft[0] === FEED_PRICE_MIN &&
+                      priceRangeDraft[1] === FEED_PRICE_MAX
+                    }
+                    onClick={() =>
+                      setPriceRangeDraft([FEED_PRICE_MIN, FEED_PRICE_MAX])
+                    }
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    type="button"
+                    className="min-w-0 flex-1 rounded-xl"
+                    onClick={() => setPriceRange(priceRangeDraft)}
+                  >
+                    Apply price
+                  </Button>
+                </div>
+              </section>
+
+              {sellerFilterBadges.length > 0 ? (
+                <>
+                  <Separator />
+                  <section aria-labelledby="filter-seller-heading">
+                    <h2
+                      id="filter-seller-heading"
+                      className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                    >
+                      Seller
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                      {sellerFilterBadges.map((badge) => (
+                        <Button
+                          key={badge}
+                          variant={
+                            sellerBadgeFilter === badge ? "default" : "outline"
+                          }
+                          size="sm"
+                          type="button"
+                          onClick={() =>
+                            setSellerBadgeFilter(
+                              sellerBadgeFilter === badge ? null : badge,
+                            )
+                          }
+                          className="rounded-full"
+                        >
+                          <Star className="size-3.5" />
+                          {SELLER_BADGE_LABEL[badge] ?? badge}
+                        </Button>
+                      ))}
+                    </div>
+                  </section>
+                </>
+              ) : null}
+            </div>
+          </div>
+
+          <DrawerFooter className="border-t border-border bg-background">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="min-w-0 flex-1 rounded-xl"
+                disabled={!hasFilters}
+                onClick={clearFilters}
+              >
+                <X className="mr-1.5 size-3.5" />
+                Clear all
+              </Button>
+              <DrawerClose asChild>
+                <Button type="button" className="min-w-0 flex-1 rounded-xl">
+                  Done
+                </Button>
+              </DrawerClose>
+            </div>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       {/* ── Content ── */}
       {filtered.length === 0 ? (
