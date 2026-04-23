@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 export default function DesignJaeNewListingPage() {
   return (
     <Page className="min-h-0">
-      <Page.Header className="p-0 px-4 pt-4" data-design-chrome>
+      <Page.Header className="p-0 px-4" data-design-chrome>
         <Link
           href="/design/jae/listings"
           className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), '-ml-2 mb-2 w-fit px-2')}

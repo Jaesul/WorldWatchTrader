@@ -73,7 +73,7 @@ export function DesignAppShell({ children }: { children: ReactNode }) {
           <header className="min-w-0 flex-1">
             <h1
               className={`flex flex-col items-start font-semibold tracking-tight transition-all duration-200 ${
-                isCompact ? "gap-0.5 text-sm" : "gap-1 text-xl"
+                isCompact ? "gap-0.5 text-base" : "gap-1 text-xl"
               }`}
             >
               <span

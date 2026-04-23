@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { DesignDmInboxSkeleton } from '@/app/design/messages/DesignDmInboxSkeleton';
+import { WorldOrbIcon } from '@/components/icons/world-orb';
 import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
 
 type ApiThread = {
@@ -64,17 +65,7 @@ function ThreadRow({ thread }: { thread: ApiThread }) {
         />
         {c.orbVerified && (
           <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-world-verified ring-2 ring-background">
-            <svg
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="white"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="size-2.5"
-            >
-              <polyline points="2 6 5 9 10 3" />
-            </svg>
+            <WorldOrbIcon className="size-2.5 text-white" />
           </span>
         )}
       </div>
@@ -191,7 +182,7 @@ export default function DesignMessagesPage() {
 
   return (
     <div className="flex flex-col">
-      <div className="border-b border-border px-4 pb-3 pt-5">
+      <div className="border-b border-border px-4 pb-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <h1 className="text-xl font-semibold text-foreground">Messages</h1>
           <button
@@ -255,17 +246,7 @@ export default function DesignMessagesPage() {
                   </div>
                   {t.counterpart.orbVerified && (
                     <span className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-full bg-world-verified">
-                      <svg
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth={1.8}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="size-2.5"
-                      >
-                        <polyline points="2 6 5 9 10 3" />
-                      </svg>
+                      <WorldOrbIcon className="size-2.5 text-white" />
                     </span>
                   )}
                 </Link>

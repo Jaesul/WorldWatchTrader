@@ -66,7 +66,7 @@ function DesignJaeMessagesPageContent() {
   if (!resolved) {
     return (
       <Page className="min-h-0">
-        <Page.Header className="p-0 px-4 pt-4" data-design-chrome>
+        <Page.Header className="p-0 px-4" data-design-chrome>
           <h1 className="text-lg font-semibold text-foreground">Messages</h1>
         </Page.Header>
         <Page.Main className="flex flex-col gap-4 px-4 pb-8">
@@ -80,7 +80,7 @@ function DesignJaeMessagesPageContent() {
 
   return (
     <Page className="min-h-0 [font-family:Inter,ui-sans-serif,system-ui,sans-serif]">
-      <Page.Header className="p-0 px-4 pt-4" data-design-chrome>
+      <Page.Header className="p-0 px-4" data-design-chrome>
         <div className="flex flex-col gap-1">
           <h1 className="text-lg font-semibold text-foreground">Messages</h1>
           <p className="text-sm text-muted-foreground">
@@ -208,7 +208,7 @@ export default function DesignJaeMessagesPage() {
     <Suspense
       fallback={
         <Page className="min-h-0">
-          <Page.Header className="p-0 px-4 pt-4" data-design-chrome>
+          <Page.Header className="p-0 px-4" data-design-chrome>
             <h1 className="text-lg font-semibold text-foreground">Messages</h1>
           </Page.Header>
           <Page.Main className="flex flex-col gap-4 px-4 pb-8">

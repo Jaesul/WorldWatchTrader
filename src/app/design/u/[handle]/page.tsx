@@ -89,7 +89,7 @@ export default async function PublicProfilePage({
 
   return (
     <div className="mx-auto max-w-lg pb-10">
-      <div className="px-4 pb-4 pt-6">
+      <div className="px-4 pb-4 pt-0">
         <div className="flex items-start gap-4">
           <img
             src={avatarUrl}

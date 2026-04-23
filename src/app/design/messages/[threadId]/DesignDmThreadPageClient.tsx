@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Forward } from 'lucide-react';
 
 import { DesignDmThreadSkeleton } from '@/app/design/messages/DesignDmThreadSkeleton';
+import { WorldOrbIcon } from '@/components/icons/world-orb';
 import { DmListingSnapshotCard } from '@/components/dm/DmListingSnapshotCard';
 import { Button } from '@/components/ui/button';
 import { useDmThreadStream, type DmStreamMessage } from '@/hooks/useDmThreadStream';
@@ -235,9 +236,7 @@ export function DesignDmThreadPageClient({
             <img src={avatarUrl(c)} alt="" className="size-9 rounded-full object-cover bg-foreground" />
             {c.orbVerified && (
               <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-world-verified ring-1 ring-background">
-                <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-2">
-                  <polyline points="2 6 5 9 10 3" />
-                </svg>
+                <WorldOrbIcon className="size-2 text-white" />
               </span>
             )}
           </div>

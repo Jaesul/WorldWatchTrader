@@ -26,7 +26,7 @@ export default function SavedPage() {
 
   return (
     <div className="flex flex-col">
-      <div className="border-b border-border px-4 pb-3 pt-5">
+      <div className="border-b border-border px-4 pb-3">
         <h1 className="text-xl font-semibold text-foreground">Saved</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {loading

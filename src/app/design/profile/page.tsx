@@ -203,7 +203,7 @@ export default function ProfilePage() {
       ) : null}
 
       {allViewers.length > 0 && (
-        <div className="border-b border-border px-4 py-3">
+        <div className="border-b border-border px-4 pb-3">
           <label
             htmlFor="design-viewer-select"
             className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
@@ -226,7 +226,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div className="relative px-4 pb-4 pt-6">
+      <div className="relative px-4 pb-4 pt-0">
         <div className="flex items-start gap-4">
           <img
             src={avatarUrl}

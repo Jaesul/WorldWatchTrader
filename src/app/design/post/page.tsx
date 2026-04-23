@@ -154,7 +154,7 @@ export default function NewListingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-10 pt-6">
+    <div className="mx-auto max-w-lg px-4 pb-10 pt-0">
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-foreground">New listing</h1>
         <p className="mt-0.5 text-sm text-muted-foreground">

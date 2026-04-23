@@ -52,6 +52,7 @@ import {
 import { useDesignToolbar } from "@/components/design/DesignAppShell";
 import { DesignListingCommentRow } from "@/components/design/DesignListingCommentRow";
 import { ListingDetailDrawer } from "@/components/design/ListingDetailDrawer";
+import { WorldOrbIcon } from "@/components/icons/world-orb";
 import {
   formatPrice,
   listingMatchesFeedSearch,
@@ -1483,17 +1484,7 @@ export function DesignMarketplaceClient({
                         className="flex size-3.5 shrink-0 items-center justify-center rounded-full bg-world-verified"
                         aria-label="World Verified"
                       >
-                        <svg
-                          viewBox="0 0 12 12"
-                          fill="none"
-                          stroke="white"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="size-2"
-                        >
-                          <polyline points="2 6 5 9 10 3" />
-                        </svg>
+                        <WorldOrbIcon className="size-2 text-white" />
                       </span>
                     )}
                     {listing.seller.badges.includes("power-seller") && (

@@ -75,7 +75,7 @@ export default async function DesignJaeListingsPage({ searchParams }: PageProps)
 
   return (
     <Page className="min-h-0">
-      <Page.Header className="p-0 px-4 pt-4" data-design-chrome>
+      <Page.Header className="p-0 px-4" data-design-chrome>
         <div className="flex flex-col gap-1">
           <h1 className="text-lg font-semibold text-foreground">Listings</h1>
           <p className="text-sm text-muted-foreground">

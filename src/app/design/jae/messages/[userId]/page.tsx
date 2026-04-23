@@ -75,7 +75,7 @@ export default function DesignJaeConversationPage() {
 
   if (!resolved) {
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background px-4 pt-4 [font-family:Inter,ui-sans-serif,system-ui,sans-serif]">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background px-4 pt-0 [font-family:Inter,ui-sans-serif,system-ui,sans-serif]">
         <div className="shrink-0">
           <h1 className="text-lg font-semibold text-foreground">Messages</h1>
         </div>
@@ -90,7 +90,7 @@ export default function DesignJaeConversationPage() {
 
   if (!otherUser || !conversation) {
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background px-4 pt-4 [font-family:Inter,ui-sans-serif,system-ui,sans-serif]">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background px-4 pt-0 [font-family:Inter,ui-sans-serif,system-ui,sans-serif]">
         <div className="shrink-0">
           <h1 className="text-lg font-semibold text-foreground">Conversation not found</h1>
         </div>
@@ -128,7 +128,7 @@ export default function DesignJaeConversationPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background px-4 pt-4 [font-family:Inter,ui-sans-serif,system-ui,sans-serif]">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background px-4 pt-0 [font-family:Inter,ui-sans-serif,system-ui,sans-serif]">
       <div className="shrink-0 pb-3">
         <div className="flex items-start gap-3">
           <Button

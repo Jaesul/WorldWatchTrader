@@ -11,6 +11,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { WorldOrbIcon } from '@/components/icons/world-orb';
 import { updateListing, type MyListing, type ListingStatus } from '@/lib/design/listing-store';
 import { submitSellerReview } from '@/lib/design/review-store';
 import { getThreadIdsForMyListing } from '@/lib/design/thread-store';
@@ -54,9 +55,7 @@ type Step = 'select-buyer' | 'review';
 function VerifiedDot() {
   return (
     <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-world-verified ring-1 ring-background">
-      <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-2">
-        <polyline points="2 6 5 9 10 3" />
-      </svg>
+      <WorldOrbIcon className="size-2 text-white" />
     </span>
   );
 }

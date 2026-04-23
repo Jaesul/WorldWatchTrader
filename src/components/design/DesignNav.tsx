@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils';
 import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
 import { blockDesignInteractionWithoutWorldId } from '@/lib/design/world-id-interaction-gate';
 
+const ACTIVE_NAV_CLASS = 'text-[#ffc85c]';
+
 const tabs = [
   {
     key: 'feed',
@@ -76,11 +78,7 @@ export function DesignNav() {
         const isNewListing = tab.key === 'new-listing';
         const baseClass = cn(
           'flex min-h-14 flex-1 items-center justify-center py-2 transition-colors hover:text-foreground',
-          active
-            ? isNewListing || tab.key === 'feed'
-              ? 'text-primary'
-              : 'text-foreground'
-            : 'text-muted-foreground',
+          active ? ACTIVE_NAV_CLASS : 'text-muted-foreground',
         );
 
         return (
