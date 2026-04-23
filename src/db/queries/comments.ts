@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 
 import { getDb } from '@/db';
 import { listingComments, listings, users } from '@/db/schema';
@@ -43,6 +43,27 @@ export async function listCommentsForListing(listingId: string) {
     .innerJoin(users, eq(listingComments.authorId, users.id))
     .where(and(eq(listingComments.listingId, listingId), isNull(listingComments.deletedAt)))
     .orderBy(asc(listingComments.createdAt));
+}
+
+export type ListingCommentWithAuthor = Awaited<
+  ReturnType<typeof listCommentsForListing>
+>[number];
+
+/** All non-deleted comments for any of the given listings (feed / design shell). */
+export async function listCommentsForListingIds(listingIds: string[]) {
+  if (listingIds.length === 0) return [];
+  const db = getDb();
+  return db
+    .select({
+      comment: listingComments,
+      author: users,
+    })
+    .from(listingComments)
+    .innerJoin(users, eq(listingComments.authorId, users.id))
+    .where(
+      and(inArray(listingComments.listingId, listingIds), isNull(listingComments.deletedAt)),
+    )
+    .orderBy(asc(listingComments.listingId), asc(listingComments.createdAt));
 }
 
 export async function updateComment(authorId: string, commentId: string, body: string) {

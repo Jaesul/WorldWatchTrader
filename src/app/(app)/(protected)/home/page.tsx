@@ -26,10 +26,12 @@ export default async function Home() {
           }
         />
       </Page.Header>
-      <Page.Main className="flex flex-col items-center justify-start gap-4 mb-16">
-        <p className="w-full text-center text-sm text-neutral-600">
-          <SpringboardLink href="/listings">Open listings (UX springboard)</SpringboardLink>
+      <Page.Main className="mb-16 flex flex-col items-center justify-start gap-4">
+        <p className="w-full max-w-lg text-center text-sm text-neutral-600">
+          Marketplace listings, messages, and related flows live in the{' '}
+          <SpringboardLink href="/design">design prototype</SpringboardLink> for now.
         </p>
+
         <UserInfo />
         <Verify action="test-action" />
         <Pay />

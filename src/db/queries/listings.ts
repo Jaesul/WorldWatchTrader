@@ -1,5 +1,5 @@
 import type { ExtractTablesWithRelations } from 'drizzle-orm';
-import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
 import type { PostgresJsDatabase, PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import type * as schema from '@/db/schema';
@@ -203,6 +203,216 @@ export async function listListings(params: ListListingsParams = {}) {
       : undefined;
 
   return { items, nextCursor };
+}
+
+export type HomeListingRow = {
+  listing: typeof listings.$inferSelect;
+  seller: typeof users.$inferSelect;
+  heroUrl: string | null;
+};
+
+/** Active feed for home: seller join + first photo URL per listing. */
+export async function listActiveListingsWithSellerAndHero(limit = 20): Promise<HomeListingRow[]> {
+  const db = getDb();
+  const cap = Math.min(Math.max(limit, 1), 50);
+
+  const rows = await db
+    .select({ listing: listings, seller: users })
+    .from(listings)
+    .innerJoin(users, eq(listings.sellerId, users.id))
+    .where(and(eq(listings.status, 'active'), isNotNull(listings.publishedAt)))
+    .orderBy(desc(listings.publishedAt), desc(listings.id))
+    .limit(cap);
+
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((r) => r.listing.id);
+  const photoRows = await db
+    .select()
+    .from(listingPhotos)
+    .where(inArray(listingPhotos.listingId, ids))
+    .orderBy(asc(listingPhotos.sortOrder), asc(listingPhotos.createdAt));
+
+  const heroByListing = new Map<string, string>();
+  for (const p of photoRows) {
+    if (!heroByListing.has(p.listingId)) {
+      heroByListing.set(p.listingId, p.url);
+    }
+  }
+
+  return rows.map(({ listing, seller }) => ({
+    listing,
+    seller,
+    heroUrl: heroByListing.get(listing.id) ?? null,
+  }));
+}
+
+export type HomeListingWithPhotosRow = {
+  listing: typeof listings.$inferSelect;
+  seller: typeof users.$inferSelect;
+  photos: string[];
+  /** Total `listing_likes` rows for this listing (all users). */
+  likeCount: number;
+};
+
+/** Active listings with seller join and all photo URLs (ordered) for design feed / carousels. */
+export async function listActiveListingsWithSellerAndPhotos(
+  limit = 50,
+): Promise<HomeListingWithPhotosRow[]> {
+  const db = getDb();
+  const cap = Math.min(Math.max(limit, 1), 100);
+
+  const rows = await db
+    .select({ listing: listings, seller: users })
+    .from(listings)
+    .innerJoin(users, eq(listings.sellerId, users.id))
+    .where(and(eq(listings.status, 'active'), isNotNull(listings.publishedAt)))
+    .orderBy(desc(listings.publishedAt), desc(listings.id))
+    .limit(cap);
+
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((r) => r.listing.id);
+  const photoRows = await db
+    .select()
+    .from(listingPhotos)
+    .where(inArray(listingPhotos.listingId, ids))
+    .orderBy(asc(listingPhotos.sortOrder), asc(listingPhotos.createdAt));
+
+  const photosByListing = new Map<string, string[]>();
+  for (const p of photoRows) {
+    const list = photosByListing.get(p.listingId) ?? [];
+    list.push(p.url);
+    photosByListing.set(p.listingId, list);
+  }
+
+  const likeAgg = await db
+    .select({
+      listingId: listingLikes.listingId,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(listingLikes)
+    .where(inArray(listingLikes.listingId, ids))
+    .groupBy(listingLikes.listingId);
+  const likeCountByListing = new Map<string, number>();
+  for (const r of likeAgg) {
+    likeCountByListing.set(r.listingId, r.n);
+  }
+
+  return rows.map(({ listing, seller }) => ({
+    listing,
+    seller,
+    photos: photosByListing.get(listing.id) ?? [],
+    likeCount: likeCountByListing.get(listing.id) ?? 0,
+  }));
+}
+
+/** Active or sold listings for a seller (public profile / feed-shaped rows). */
+export async function listSellerListingsWithPhotosByStatus(
+  sellerId: string,
+  status: 'active' | 'sold',
+  limit = 100,
+): Promise<HomeListingWithPhotosRow[]> {
+  const db = getDb();
+  const cap = Math.min(Math.max(limit, 1), 100);
+
+  const rows = await db
+    .select({ listing: listings, seller: users })
+    .from(listings)
+    .innerJoin(users, eq(listings.sellerId, users.id))
+    .where(
+      and(
+        eq(listings.sellerId, sellerId),
+        eq(listings.status, status),
+        isNotNull(listings.publishedAt),
+      ),
+    )
+    .orderBy(desc(listings.publishedAt), desc(listings.id))
+    .limit(cap);
+
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((r) => r.listing.id);
+  const photoRows = await db
+    .select()
+    .from(listingPhotos)
+    .where(inArray(listingPhotos.listingId, ids))
+    .orderBy(asc(listingPhotos.sortOrder), asc(listingPhotos.createdAt));
+
+  const photosByListing = new Map<string, string[]>();
+  for (const p of photoRows) {
+    const list = photosByListing.get(p.listingId) ?? [];
+    list.push(p.url);
+    photosByListing.set(p.listingId, list);
+  }
+
+  const likeAgg = await db
+    .select({
+      listingId: listingLikes.listingId,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(listingLikes)
+    .where(inArray(listingLikes.listingId, ids))
+    .groupBy(listingLikes.listingId);
+  const likeCountByListing = new Map<string, number>();
+  for (const r of likeAgg) {
+    likeCountByListing.set(r.listingId, r.n);
+  }
+
+  return rows.map(({ listing, seller }) => ({
+    listing,
+    seller,
+    photos: photosByListing.get(listing.id) ?? [],
+    likeCount: likeCountByListing.get(listing.id) ?? 0,
+  }));
+}
+
+export async function countSellerListingsByStatus(sellerId: string, status: ListingStatus) {
+  const db = getDb();
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(listings)
+    .where(and(eq(listings.sellerId, sellerId), eq(listings.status, status)));
+  return row?.n ?? 0;
+}
+
+export type SellerDashboardListingRow = {
+  listing: typeof listings.$inferSelect;
+  heroUrl: string | null;
+};
+
+/** Seller dashboard (all statuses): listings + first photo URL per row. */
+export async function listSellerDashboardListingsWithHero(
+  sellerId: string,
+  limit = 100,
+): Promise<SellerDashboardListingRow[]> {
+  const db = getDb();
+  const cap = Math.min(Math.max(limit, 1), 100);
+  const { items } = await listListings({
+    sellerId,
+    sellerDashboard: true,
+    limit: cap,
+  });
+  if (items.length === 0) return [];
+
+  const ids = items.map((l) => l.id);
+  const photoRows = await db
+    .select()
+    .from(listingPhotos)
+    .where(inArray(listingPhotos.listingId, ids))
+    .orderBy(asc(listingPhotos.sortOrder), asc(listingPhotos.createdAt));
+
+  const heroByListing = new Map<string, string>();
+  for (const p of photoRows) {
+    if (!heroByListing.has(p.listingId)) {
+      heroByListing.set(p.listingId, p.url);
+    }
+  }
+
+  return items.map((listing) => ({
+    listing,
+    heroUrl: heroByListing.get(listing.id) ?? null,
+  }));
 }
 
 export type GetListingOptions = {

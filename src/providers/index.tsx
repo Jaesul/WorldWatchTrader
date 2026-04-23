@@ -1,4 +1,5 @@
 'use client';
+import { Toaster } from '@/components/ui/sonner';
 import '@uploadthing/react/styles.css';
 import { MiniKitProvider } from '@worldcoin/minikit-js/minikit-provider';
 import { Session } from 'next-auth';
@@ -36,7 +37,10 @@ export default function ClientProviders({
   return (
     <ErudaProvider>
       <MiniKitProvider>
-        <SessionProvider session={session}>{children}</SessionProvider>
+        <SessionProvider session={session}>
+          {children}
+          <Toaster position="bottom-center" />
+        </SessionProvider>
       </MiniKitProvider>
     </ErudaProvider>
   );

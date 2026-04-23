@@ -3,14 +3,18 @@
  * Saves persist to localStorage and sync across tabs via subscribe().
  */
 
-const STORAGE_KEY = 'wwt-design-saved-listing-ids';
+const STORAGE_KEY = "wwt-design-saved-listing-ids";
 
 const likedIds = new Set<string>();
 const savedIds = new Set<string>();
 
 const listeners = new Set<() => void>();
+const likeListeners = new Set<() => void>();
 
 let hydrated = false;
+
+/** Until true on the client, saved snapshot stays empty so SSR + first paint match (avoids hydration errors). */
+let clientSaveSnapshotReady = false;
 
 function applySavedIdsFromJson(raw: string | null): void {
   savedIds.clear();
@@ -19,7 +23,7 @@ function applySavedIdsFromJson(raw: string | null): void {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return;
     for (const id of parsed) {
-      if (typeof id === 'string') savedIds.add(id);
+      if (typeof id === "string") savedIds.add(id);
     }
   } catch {
     /* ignore */
@@ -27,8 +31,8 @@ function applySavedIdsFromJson(raw: string | null): void {
 }
 
 function attachCrossTabSync(): void {
-  if (typeof window === 'undefined') return;
-  window.addEventListener('storage', (e) => {
+  if (typeof window === "undefined") return;
+  window.addEventListener("storage", (e) => {
     if (e.key !== STORAGE_KEY) return;
     applySavedIdsFromJson(e.newValue);
     notifySaved();
@@ -36,7 +40,7 @@ function attachCrossTabSync(): void {
 }
 
 function hydrateSavedFromStorage(): void {
-  if (hydrated || typeof window === 'undefined') return;
+  if (hydrated || typeof window === "undefined") return;
   hydrated = true;
   attachCrossTabSync();
   try {
@@ -47,7 +51,7 @@ function hydrateSavedFromStorage(): void {
 }
 
 function persistSaved(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...savedIds]));
   } catch {
@@ -59,6 +63,10 @@ function notifySaved(): void {
   for (const l of listeners) l();
 }
 
+function notifyLiked(): void {
+  for (const l of likeListeners) l();
+}
+
 // ── Likes (in-memory only, design prototype) ────────────────────────────────
 
 export function isLiked(id: string): boolean {
@@ -68,14 +76,32 @@ export function isLiked(id: string): boolean {
 export function toggleLike(id: string): boolean {
   if (likedIds.has(id)) {
     likedIds.delete(id);
+    notifyLiked();
     return false;
   }
   likedIds.add(id);
+  notifyLiked();
   return true;
 }
 
 export function getLikedIds(): ReadonlySet<string> {
   return likedIds;
+}
+
+export function subscribeLiked(onStoreChange: () => void): () => void {
+  likeListeners.add(onStoreChange);
+  return () => {
+    likeListeners.delete(onStoreChange);
+  };
+}
+
+/** Stable string for useSyncExternalStore — sorted ids joined by comma */
+export function getLikedSnapshot(): string {
+  return [...likedIds].sort().join(",");
+}
+
+export function getServerLikedSnapshot(): string {
+  return "";
 }
 
 // ── Saves (persisted) ─────────────────────────────────────────────────────
@@ -89,20 +115,35 @@ export function subscribeSaved(onStoreChange: () => void): () => void {
 
 /** Stable string for useSyncExternalStore — sorted ids joined by comma */
 export function getSavedSnapshot(): string {
+  if (typeof window !== 'undefined' && !clientSaveSnapshotReady) {
+    return '';
+  }
   hydrateSavedFromStorage();
-  return [...savedIds].sort().join(',');
+  return [...savedIds].sort().join(",");
 }
 
 export function getServerSavedSnapshot(): string {
   return '';
 }
 
+/** Call once after mount (e.g. from `useSavedIds`) so localStorage can hydrate without SSR mismatch. */
+export function ackSavedStoreClientHydrated(): void {
+  if (typeof window === 'undefined' || clientSaveSnapshotReady) return;
+  clientSaveSnapshotReady = true;
+  hydrateSavedFromStorage();
+  notifySaved();
+}
+
 export function isSaved(id: string): boolean {
+  if (typeof window !== 'undefined' && !clientSaveSnapshotReady) {
+    return false;
+  }
   hydrateSavedFromStorage();
   return savedIds.has(id);
 }
 
 export function toggleSave(id: string): boolean {
+  clientSaveSnapshotReady = true;
   hydrateSavedFromStorage();
   let saved: boolean;
   if (savedIds.has(id)) {
@@ -118,6 +159,9 @@ export function toggleSave(id: string): boolean {
 }
 
 export function getSavedIds(): ReadonlySet<string> {
+  if (typeof window !== 'undefined' && !clientSaveSnapshotReady) {
+    return savedIds;
+  }
   hydrateSavedFromStorage();
   return savedIds;
 }

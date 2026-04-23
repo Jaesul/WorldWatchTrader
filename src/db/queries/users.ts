@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { asc, eq, or, sql } from 'drizzle-orm';
 
 import { getDb, users } from '@/db';
 
@@ -48,6 +48,81 @@ export async function getUserById(id: string) {
   const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return rows[0] ?? null;
 }
+
+const USER_SLUG_RE = /^user_([0-9a-f]{10})$/i;
+
+/**
+ * Resolve `/design/u/[handle]` slug to a user: explicit `handle`, `username`, or
+ * synthetic `user_${first10HexOfWalletId}` (same rule as feed `sellerHandle()`).
+ */
+export async function getUserByPublicProfileSlug(slug: string) {
+  const raw = slug.trim();
+  if (!raw) return null;
+
+  const db = getDb();
+
+  const m = USER_SLUG_RE.exec(raw);
+  if (m) {
+    const prefix = m[1]!.toLowerCase();
+    const rows = await db
+      .select()
+      .from(users)
+      .where(sql`lower(replace(${users.id}, '0x', '')) like ${prefix + '%'}`)
+      .orderBy(users.id)
+      .limit(2);
+    if (rows.length === 1) return rows[0]!;
+    if (rows.length > 1) {
+      const exact = rows.find(
+        (u) => u.id.replace(/^0x/i, '').toLowerCase().startsWith(prefix),
+      );
+      return exact ?? rows[0]!;
+    }
+  }
+
+  const lower = raw.toLowerCase();
+  const rows = await db
+    .select()
+    .from(users)
+    .where(
+      or(
+        sql`lower(${users.handle}) = ${lower}`,
+        sql`lower(${users.username}) = ${lower}`,
+      )!,
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/** All users for the `/design` viewer picker (stable order). */
+export async function listUsersForPicker() {
+  const db = getDb();
+  return db
+    .select({
+      id: users.id,
+      walletAddress: users.walletAddress,
+      username: users.username,
+      handle: users.handle,
+      profilePictureUrl: users.profilePictureUrl,
+      orbVerified: users.orbVerified,
+      powerSeller: users.powerSeller,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .orderBy(asc(users.createdAt));
+}
+
+/** Primary-key–cheap default viewer for design APIs (avoid `listUsersForPicker` on every request). */
+export async function getDefaultDesignViewerUserId(): Promise<string | null> {
+  const db = getDb();
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .orderBy(asc(users.createdAt))
+    .limit(1);
+  return rows[0]?.id ?? null;
+}
+
+export type UserPickerRow = Awaited<ReturnType<typeof listUsersForPicker>>[number];
 
 export type PatchUserInput = {
   username?: string;

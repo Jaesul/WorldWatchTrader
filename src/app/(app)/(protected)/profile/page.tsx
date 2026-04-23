@@ -9,8 +9,7 @@ export default function ProfilePage() {
       </Page.Header>
       <Page.Main className="flex flex-col gap-4 mb-16">
         <p className="text-sm text-neutral-600">
-          <strong>UX springboard:</strong> World ID badge, wallet line, fake “connected”
-          Instagram/Facebook chips, reputation strip (placeholders).
+          <strong>UX springboard:</strong> World ID badge, wallet line, reputation strip (placeholders).
         </p>
       </Page.Main>
     </>

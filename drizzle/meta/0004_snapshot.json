@@ -1,0 +1,1290 @@
+{
+  "id": "34af6a1a-121e-4331-8ff6-1589a46b77eb",
+  "prevId": "2e52080a-6b36-470d-9f4b-65b030e2ee04",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.dm_messages": {
+      "name": "dm_messages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "thread_id": {
+          "name": "thread_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sender_id": {
+          "name": "sender_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dm_messages_thread_created_idx": {
+          "name": "dm_messages_thread_created_idx",
+          "columns": [
+            {
+              "expression": "thread_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dm_messages_thread_id_dm_threads_id_fk": {
+          "name": "dm_messages_thread_id_dm_threads_id_fk",
+          "tableFrom": "dm_messages",
+          "tableTo": "dm_threads",
+          "columnsFrom": [
+            "thread_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "dm_messages_sender_id_users_id_fk": {
+          "name": "dm_messages_sender_id_users_id_fk",
+          "tableFrom": "dm_messages",
+          "tableTo": "users",
+          "columnsFrom": [
+            "sender_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dm_threads": {
+      "name": "dm_threads",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "listing_id": {
+          "name": "listing_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "buyer_id": {
+          "name": "buyer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seller_id": {
+          "name": "seller_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_message_at": {
+          "name": "last_message_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dm_threads_buyer_seller_listing_uidx": {
+          "name": "dm_threads_buyer_seller_listing_uidx",
+          "columns": [
+            {
+              "expression": "buyer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "seller_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "listing_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dm_threads_buyer_last_msg_idx": {
+          "name": "dm_threads_buyer_last_msg_idx",
+          "columns": [
+            {
+              "expression": "buyer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "last_message_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dm_threads_seller_last_msg_idx": {
+          "name": "dm_threads_seller_last_msg_idx",
+          "columns": [
+            {
+              "expression": "seller_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "last_message_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dm_threads_listing_id_listings_id_fk": {
+          "name": "dm_threads_listing_id_listings_id_fk",
+          "tableFrom": "dm_threads",
+          "tableTo": "listings",
+          "columnsFrom": [
+            "listing_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dm_threads_buyer_id_users_id_fk": {
+          "name": "dm_threads_buyer_id_users_id_fk",
+          "tableFrom": "dm_threads",
+          "tableTo": "users",
+          "columnsFrom": [
+            "buyer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dm_threads_seller_id_users_id_fk": {
+          "name": "dm_threads_seller_id_users_id_fk",
+          "tableFrom": "dm_threads",
+          "tableTo": "users",
+          "columnsFrom": [
+            "seller_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listing_comment_likes": {
+      "name": "listing_comment_likes",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comment_id": {
+          "name": "comment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "listing_comment_likes_comment_id_idx": {
+          "name": "listing_comment_likes_comment_id_idx",
+          "columns": [
+            {
+              "expression": "comment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "listing_comment_likes_user_id_users_id_fk": {
+          "name": "listing_comment_likes_user_id_users_id_fk",
+          "tableFrom": "listing_comment_likes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "listing_comment_likes_comment_id_listing_comments_id_fk": {
+          "name": "listing_comment_likes_comment_id_listing_comments_id_fk",
+          "tableFrom": "listing_comment_likes",
+          "tableTo": "listing_comments",
+          "columnsFrom": [
+            "comment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "listing_comment_likes_user_id_comment_id_pk": {
+          "name": "listing_comment_likes_user_id_comment_id_pk",
+          "columns": [
+            "user_id",
+            "comment_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listing_comments": {
+      "name": "listing_comments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "listing_id": {
+          "name": "listing_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "listing_comments_listing_created_idx": {
+          "name": "listing_comments_listing_created_idx",
+          "columns": [
+            {
+              "expression": "listing_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "listing_comments_listing_id_listings_id_fk": {
+          "name": "listing_comments_listing_id_listings_id_fk",
+          "tableFrom": "listing_comments",
+          "tableTo": "listings",
+          "columnsFrom": [
+            "listing_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "listing_comments_author_id_users_id_fk": {
+          "name": "listing_comments_author_id_users_id_fk",
+          "tableFrom": "listing_comments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "author_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listing_deals": {
+      "name": "listing_deals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "listing_id": {
+          "name": "listing_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seller_id": {
+          "name": "seller_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "buyer_id": {
+          "name": "buyer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "chain_id": {
+          "name": "chain_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 480
+        },
+        "chain_name": {
+          "name": "chain_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'World Chain'"
+        },
+        "user_op_hash": {
+          "name": "user_op_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transaction_hash": {
+          "name": "transaction_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "block_number": {
+          "name": "block_number",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "from_address": {
+          "name": "from_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "to_address": {
+          "name": "to_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token_contract": {
+          "name": "token_contract",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token_symbol": {
+          "name": "token_symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_raw": {
+          "name": "amount_raw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_usd": {
+          "name": "price_usd",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "executed_with": {
+          "name": "executed_with",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failure_reason": {
+          "name": "failure_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmed_at": {
+          "name": "confirmed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "listing_deals_listing_id_idx": {
+          "name": "listing_deals_listing_id_idx",
+          "columns": [
+            {
+              "expression": "listing_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "listing_deals_buyer_id_idx": {
+          "name": "listing_deals_buyer_id_idx",
+          "columns": [
+            {
+              "expression": "buyer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "listing_deals_seller_id_idx": {
+          "name": "listing_deals_seller_id_idx",
+          "columns": [
+            {
+              "expression": "seller_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "listing_deals_status_idx": {
+          "name": "listing_deals_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "listing_deals_created_at_idx": {
+          "name": "listing_deals_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "listing_deals_user_op_hash_uidx": {
+          "name": "listing_deals_user_op_hash_uidx",
+          "columns": [
+            {
+              "expression": "user_op_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"listing_deals\".\"user_op_hash\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "listing_deals_transaction_hash_uidx": {
+          "name": "listing_deals_transaction_hash_uidx",
+          "columns": [
+            {
+              "expression": "transaction_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"listing_deals\".\"transaction_hash\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "listing_deals_listing_id_listings_id_fk": {
+          "name": "listing_deals_listing_id_listings_id_fk",
+          "tableFrom": "listing_deals",
+          "tableTo": "listings",
+          "columnsFrom": [
+            "listing_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "listing_deals_seller_id_users_id_fk": {
+          "name": "listing_deals_seller_id_users_id_fk",
+          "tableFrom": "listing_deals",
+          "tableTo": "users",
+          "columnsFrom": [
+            "seller_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "listing_deals_buyer_id_users_id_fk": {
+          "name": "listing_deals_buyer_id_users_id_fk",
+          "tableFrom": "listing_deals",
+          "tableTo": "users",
+          "columnsFrom": [
+            "buyer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listing_likes": {
+      "name": "listing_likes",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "listing_id": {
+          "name": "listing_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "listing_likes_listing_id_idx": {
+          "name": "listing_likes_listing_id_idx",
+          "columns": [
+            {
+              "expression": "listing_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "listing_likes_user_id_users_id_fk": {
+          "name": "listing_likes_user_id_users_id_fk",
+          "tableFrom": "listing_likes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "listing_likes_listing_id_listings_id_fk": {
+          "name": "listing_likes_listing_id_listings_id_fk",
+          "tableFrom": "listing_likes",
+          "tableTo": "listings",
+          "columnsFrom": [
+            "listing_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "listing_likes_user_id_listing_id_pk": {
+          "name": "listing_likes_user_id_listing_id_pk",
+          "columns": [
+            "user_id",
+            "listing_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listing_photos": {
+      "name": "listing_photos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "listing_id": {
+          "name": "listing_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "listing_photos_listing_sort_idx": {
+          "name": "listing_photos_listing_sort_idx",
+          "columns": [
+            {
+              "expression": "listing_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "listing_photos_listing_id_listings_id_fk": {
+          "name": "listing_photos_listing_id_listings_id_fk",
+          "tableFrom": "listing_photos",
+          "tableTo": "listings",
+          "columnsFrom": [
+            "listing_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listing_saves": {
+      "name": "listing_saves",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "listing_id": {
+          "name": "listing_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "listing_saves_listing_id_idx": {
+          "name": "listing_saves_listing_id_idx",
+          "columns": [
+            {
+              "expression": "listing_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "listing_saves_user_id_users_id_fk": {
+          "name": "listing_saves_user_id_users_id_fk",
+          "tableFrom": "listing_saves",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "listing_saves_listing_id_listings_id_fk": {
+          "name": "listing_saves_listing_id_listings_id_fk",
+          "tableFrom": "listing_saves",
+          "tableTo": "listings",
+          "columnsFrom": [
+            "listing_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "listing_saves_user_id_listing_id_pk": {
+          "name": "listing_saves_user_id_listing_id_pk",
+          "columns": [
+            "user_id",
+            "listing_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listings": {
+      "name": "listings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "seller_id": {
+          "name": "seller_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "teaser": {
+          "name": "teaser",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "details": {
+          "name": "details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "price_usd": {
+          "name": "price_usd",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "condition": {
+          "name": "condition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_number": {
+          "name": "model_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "case_size": {
+          "name": "case_size",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state_region": {
+          "name": "state_region",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country_code": {
+          "name": "country_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "orb_verified_at_listing": {
+          "name": "orb_verified_at_listing",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "listings_seller_status_published_idx": {
+          "name": "listings_seller_status_published_idx",
+          "columns": [
+            {
+              "expression": "seller_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "published_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "listings_status_published_idx": {
+          "name": "listings_status_published_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "published_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "listings_seller_id_users_id_fk": {
+          "name": "listings_seller_id_users_id_fk",
+          "tableFrom": "listings",
+          "tableTo": "users",
+          "columnsFrom": [
+            "seller_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "wallet_address": {
+          "name": "wallet_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "profile_picture_url": {
+          "name": "profile_picture_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handle": {
+          "name": "handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "orb_verified": {
+          "name": "orb_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "power_seller": {
+          "name": "power_seller",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_wallet_address_unique": {
+          "name": "users_wallet_address_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "wallet_address"
+          ]
+        },
+        "users_handle_unique": {
+          "name": "users_handle_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "handle"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

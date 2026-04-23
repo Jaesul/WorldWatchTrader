@@ -150,6 +150,19 @@ export const LISTINGS: Listing[] = [
     photos: [P.patekNautilus, P.apRO, P.cartier],
   },
   {
+    id: '12',
+    model: 'Rolex Datejust 41 126334',
+    price: 9800,
+    description:
+      'Blue dial on Jubilee. Full set from 2023. Worn lightly; case lines remain sharp.',
+    condition: 'Excellent',
+    boxPapers: 'Full set',
+    postedAt: '1w ago',
+    likes: 6,
+    seller: { name: 'Marco R.', handle: 'marcor', badges: ['power-seller'], avatar: 'https://i.pravatar.cc/150?u=marcor' },
+    photos: [P.rolexDJ, P.rolexSub, P.rolexGMT],
+  },
+  {
     id: '5',
     model: 'Cartier Santos 40mm WSSA0018',
     price: 6400,
@@ -196,4 +209,32 @@ export function formatPrice(n: number) {
 
 export function getListingById(id: string): Listing | undefined {
   return LISTINGS.find((l) => l.id === id);
+}
+
+/**
+ * Feed / home search: every whitespace-separated token must appear as a
+ * substring somewhere in the listing model or seller identity (name, handle,
+ * compact forms). Leading `@` on a token is ignored so `@alexkim` matches.
+ */
+export function listingMatchesFeedSearch(listing: Listing, raw: string): boolean {
+  const q = raw.trim().toLowerCase();
+  if (!q) return true;
+
+  const name = listing.seller.name.toLowerCase();
+  const handle = listing.seller.handle.toLowerCase();
+  const model = listing.model.toLowerCase();
+
+  const haystack = [
+    model,
+    name,
+    handle,
+    name.replace(/\./g, ''),
+    name.replace(/\s+/g, ''),
+  ].join(' ');
+
+  const tokens = q.split(/\s+/).filter(Boolean);
+  return tokens.every((tok) => {
+    const t = tok.replace(/^@+/g, '').trim();
+    return t.length > 0 && haystack.includes(t);
+  });
 }

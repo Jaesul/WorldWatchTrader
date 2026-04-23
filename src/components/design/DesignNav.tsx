@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   BadgePlus,
   Bookmark,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { blockDesignInteractionWithoutWorldId } from '@/lib/design/world-id-interaction-gate';
 
 const tabs = [
   {
@@ -54,6 +55,7 @@ const tabs = [
 
 export function DesignNav() {
   const pathname = usePathname();
+  const router = useRouter();
 
   function isActive(key: string) {
     if (key === 'feed') return pathname === '/design';
@@ -81,9 +83,23 @@ export function DesignNav() {
         return (
           <div key={tab.key} className="flex flex-1 items-center">
             {index > 0 ? <div aria-hidden className="h-6 w-px bg-border" /> : null}
-            <Link href={tab.href} className={baseClass} aria-label={tab.key}>
-              {tab.icon(active)}
-            </Link>
+            {isNewListing ? (
+              <button
+                type="button"
+                className={baseClass}
+                aria-label={tab.key}
+                onClick={() => {
+                  if (blockDesignInteractionWithoutWorldId()) return;
+                  router.push(tab.href);
+                }}
+              >
+                {tab.icon(active)}
+              </button>
+            ) : (
+              <Link href={tab.href} className={baseClass} aria-label={tab.key}>
+                {tab.icon(active)}
+              </Link>
+            )}
           </div>
         );
       })}
