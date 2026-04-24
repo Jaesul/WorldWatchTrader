@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
 
 import { DesignNav } from "@/components/design/DesignNav";
@@ -16,14 +17,27 @@ import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 
 /**
  * Design route shell: compact brand row, scroll root for page content,
- * bottom nav and toasts.
+ * bottom nav and toasts. The `/design/welcome` route renders without the
+ * shell chrome so the full-bleed landing layout can breathe.
  */
 export function DesignAppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isWelcome = pathname === "/design/welcome";
   const { viewer } = useDesignViewer();
   const avatarUrl = viewer?.profilePictureUrl?.trim() || undefined;
   const avatarLabel = viewer?.username ?? "Profile";
   const avatarInitial =
     viewer?.username?.trim().charAt(0).toUpperCase() ?? "";
+
+  if (isWelcome) {
+    return (
+      <div className="flex min-h-dvh flex-col bg-background">
+        {children}
+        <SoldLuxuryCelebrationLayer />
+        <Toaster position="bottom-center" />
+      </div>
+    );
+  }
 
   return (
     <div data-design-app className="flex h-dvh flex-col bg-background">

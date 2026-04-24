@@ -44,6 +44,9 @@
   --color-world-verified: var(--world-verified);
   --color-world-verified-foreground: var(--world-verified-foreground);
   --color-blue-energy: var(--blue-energy);
+  --color-blue-bell: var(--blue-bell);
+  --color-platinum: var(--platinum);
+  --color-honey-bronze: var(--honey-bronze);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -54,116 +57,140 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Brand palette
-   60 % Ghost White    (#f6f8ff)  — dominant backgrounds & surfaces
-   30 % Rosy Granite   (#84828f)  — secondary text, borders, muted chrome
-  10 % Amber Gold     (#FFAA03)  — active filters, button interactions
-   Prussian Blue       (#0b132b)  — foreground text
-   Signature blue      (#4392f1)  — World / Orb verification UI + World Verified badge
+   Brand palette (Coolors)
+   Blue Bell     #058ed9 — links, verification / World ID surfaces, chart accent
+   Platinum      #eff1f3 — page background, soft chrome
+   Honey Bronze  #f6ae2d — primary CTAs, rings, active filters
+   Foreground    #0f2433 — body text (deep blue-gray, pairs with blue-bell)
 ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* ── 60 % – Ghost White backgrounds ──────────────────────────── */
-  --background: oklch(0.975 0.012 258); /* #f6f8ff            */
-  --foreground: oklch(0.13 0.048 264); /* #0b132b prussian   */
-  --card: oklch(1 0 0); /* pure white surface */
-  --card-foreground: oklch(0.13 0.048 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.048 264);
+  /* ── Core swatches (hex / hsla from spec) ───────────────────── */
+  --blue-bell: #058ed9;
+  --platinum: #eff1f3;
+  --honey-bronze: #f6ae2d;
 
-  /* ── 10 % – Amber Gold primary / accent ─────────────────────── */
-  --primary: #FFAA03;
-  --primary-foreground: oklch(1 0 0); /* white on amber     */
-  --accent: #FFAA03;
-  --accent-foreground: oklch(0 0 0);
-  --ring: #FFAA03;
+  /* Brand gradients (optional: bg-[image:var(--gradient-brand-right)] etc.) */
+  --gradient-brand-right: linear-gradient(
+    90deg,
+    var(--blue-bell),
+    var(--platinum),
+    var(--honey-bronze)
+  );
+  --gradient-brand-bottom: linear-gradient(
+    180deg,
+    var(--blue-bell),
+    var(--platinum),
+    var(--honey-bronze)
+  );
+  --gradient-brand-radial: radial-gradient(
+    circle at center,
+    var(--blue-bell),
+    var(--platinum),
+    var(--honey-bronze)
+  );
 
-  /* ── 30 % – Rosy Granite secondary / muted / borders ─────────── */
-  --secondary: oklch(0.585 0.02 308); /* #84828f            */
-  --secondary-foreground: oklch(0.13 0.048 264); /* prussian on granite */
-  --muted: oklch(0.955 0.01 258); /* deeper ghost white  */
-  --muted-foreground: oklch(0.585 0.02 308); /* rosy-granite text  */
-  --border: oklch(0.585 0.02 308 / 25%);
-  --input: oklch(0.585 0.02 308 / 20%);
+  /* ── Surfaces (minimal: white canvas, hairline separation) ───── */
+  --background: #ffffff;
+  --foreground: #0f2433;
+  --card: #ffffff;
+  --card-foreground: #0f2433;
+  --popover: #ffffff;
+  --popover-foreground: #0f2433;
 
-  /* ── Destructive ──────────────────────────────────────────────── */
+  /* ── Primary / accent — Honey Bronze ─────────────────────────── */
+  --primary: var(--honey-bronze);
+  --primary-foreground: #0f2433;
+  --accent: var(--honey-bronze);
+  --accent-foreground: #0f2433;
+  --ring: var(--honey-bronze);
+
+  /* ── Secondary / muted — cool neutrals (blue-bell family) ───── */
+  --secondary: #5a6d7c;
+  --secondary-foreground: #eff1f3;
+  --muted: #f4f6f8;
+  --muted-foreground: #5c6570;
+  --border: #e6e9ed;
+  --input: #eceff3;
+
+  /* ── Destructive ─────────────────────────────────────────────── */
   --destructive: oklch(0.577 0.245 27.325);
 
-  --radius: 0.625rem;
+  --radius: 0.5rem;
 
-  /* ── World / Orb — signature blue (badge + verification prompts) ─ */
-  --world-verified: oklch(0.625 0.188 252); /* #4392f1        */
-  --world-verified-foreground: oklch(1 0 0);
-  --blue-energy: oklch(0.22 0.055 264);
+  /* ── World / Orb — Blue Bell ─────────────────────────────────── */
+  --world-verified: var(--blue-bell);
+  --world-verified-foreground: #ffffff;
 
-  /* Dark nav bar (matches prussian family, slightly lifted for contrast) */
-  --blue-energy: oklch(0.22 0.055 264);
+  /* Dark chrome / nav strip */
+  --blue-energy: #0a2f47;
 
-  /* ── Charts (granite → lemon ramp) ───────────────────────────── */
-  --chart-1: #FFAA03;
-  --chart-2: oklch(0.75 0.11 90); /* amber-sage       */
-  --chart-3: oklch(0.585 0.02 308); /* rosy-granite     */
-  --chart-4: oklch(0.35 0.04 264); /* mid-prussian     */
-  --chart-5: oklch(0.13 0.048 264); /* prussian blue    */
+  /* ── Charts (bronze → blue-bell ramp) ────────────────────────── */
+  --chart-1: var(--honey-bronze);
+  --chart-2: color-mix(in oklab, var(--honey-bronze) 70%, var(--blue-bell));
+  --chart-3: var(--blue-bell);
+  --chart-4: #4a6d85;
+  --chart-5: #0f2433;
 
   /* ── Sidebar ──────────────────────────────────────────────────── */
-  --sidebar: oklch(0.955 0.01 258);
-  --sidebar-foreground: oklch(0.13 0.048 264);
-  --sidebar-primary: #FFAA03;
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0);
-  --sidebar-accent-foreground: oklch(0.13 0.048 264);
-  --sidebar-border: oklch(0.585 0.02 308 / 25%);
-  --sidebar-ring: #FFAA03;
+  --sidebar: #fafbfc;
+  --sidebar-foreground: #0f2433;
+  --sidebar-primary: var(--honey-bronze);
+  --sidebar-primary-foreground: #0f2433;
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: #0f2433;
+  --sidebar-border: #e6e9ed;
+  --sidebar-ring: var(--honey-bronze);
 }
 
-/* dark class mirrors :root — light-first palette */
+/* .dark mirrors :root for now — same Coolors-driven light palette */
 .dark {
-  --background: oklch(0.975 0.012 258);
-  --foreground: oklch(0.13 0.048 264);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.048 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.048 264);
-  --primary: #FFAA03;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.585 0.02 308);
-  --secondary-foreground: oklch(0.13 0.048 264);
-  --muted: oklch(0.955 0.01 258);
-  --muted-foreground: oklch(0.585 0.02 308);
-  --accent: #FFAA03;
-  --accent-foreground: oklch(0 0 0);
+  --background: #ffffff;
+  --foreground: #0f2433;
+  --card: #ffffff;
+  --card-foreground: #0f2433;
+  --popover: #ffffff;
+  --popover-foreground: #0f2433;
+  --primary: var(--honey-bronze);
+  --primary-foreground: #0f2433;
+  --secondary: #5a6d7c;
+  --secondary-foreground: #eff1f3;
+  --muted: #f4f6f8;
+  --muted-foreground: #5c6570;
+  --accent: var(--honey-bronze);
+  --accent-foreground: #0f2433;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.585 0.02 308 / 25%);
-  --input: oklch(0.585 0.02 308 / 20%);
-  --ring: #FFAA03;
-  --world-verified: oklch(0.625 0.188 252);
-  --world-verified-foreground: oklch(1 0 0);
-  --blue-energy: oklch(0.22 0.055 264);
-  --chart-1: #FFAA03;
-  --chart-2: oklch(0.75 0.11 90);
-  --chart-3: oklch(0.585 0.02 308);
-  --chart-4: oklch(0.35 0.04 264);
-  --chart-5: oklch(0.13 0.048 264);
-  --sidebar: oklch(0.955 0.01 258);
-  --sidebar-foreground: oklch(0.13 0.048 264);
-  --sidebar-primary: #FFAA03;
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0);
-  --sidebar-accent-foreground: oklch(0.13 0.048 264);
-  --sidebar-border: oklch(0.585 0.02 308 / 25%);
-  --sidebar-ring: #FFAA03;
+  --border: #e6e9ed;
+  --input: #eceff3;
+  --ring: var(--honey-bronze);
+  --world-verified: var(--blue-bell);
+  --world-verified-foreground: #ffffff;
+  --blue-energy: #0a2f47;
+  --chart-1: var(--honey-bronze);
+  --chart-2: color-mix(in oklab, var(--honey-bronze) 70%, var(--blue-bell));
+  --chart-3: var(--blue-bell);
+  --chart-4: #4a6d85;
+  --chart-5: #0f2433;
+  --sidebar: #fafbfc;
+  --sidebar-foreground: #0f2433;
+  --sidebar-primary: var(--honey-bronze);
+  --sidebar-primary-foreground: #0f2433;
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: #0f2433;
+  --sidebar-border: #e6e9ed;
+  --sidebar-ring: var(--honey-bronze);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring/40;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
   html {
     @apply font-sans;
+    text-rendering: optimizeLegibility;
   }
 }
 

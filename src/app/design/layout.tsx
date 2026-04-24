@@ -18,9 +18,9 @@ export default async function DesignLayout({ children }: { children: ReactNode }
   return (
     <DesignViewerProvider initialViewer={initialViewer} initialViewers={[]}>
       <DesignListingSavesProvider>
-      <DesignEngagementProvider>
-        <DesignAppShell>{children}</DesignAppShell>
-      </DesignEngagementProvider>
+        <DesignEngagementProvider>
+          <DesignAppShell>{children}</DesignAppShell>
+        </DesignEngagementProvider>
       </DesignListingSavesProvider>
     </DesignViewerProvider>
   );

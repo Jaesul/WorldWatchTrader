@@ -21,20 +21,20 @@ const tabs = [
     key: 'feed',
     href: '/design',
     icon: (active: boolean) => (
-      <House fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2.2 : 1.8} className="size-6" />
+      <House fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2 : 1.75} className="size-[22px]" />
     ),
   },
   {
     key: 'messages',
     href: '/design/messages',
     icon: (active: boolean) => (
-      <MessageCircle fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2.2 : 1.8} className="size-6" />
+      <MessageCircle fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2 : 1.75} className="size-[22px]" />
     ),
   },
   {
     key: 'new-listing',
     href: '/design/post',
-    icon: () => <BadgePlus strokeWidth={1.8} className="size-6" />,
+    icon: () => <BadgePlus strokeWidth={1.75} className="size-[22px]" />,
   },
   {
     key: 'saved',
@@ -42,8 +42,8 @@ const tabs = [
     icon: (active: boolean) => (
       <Bookmark
         fill={active ? 'currentColor' : 'none'}
-        strokeWidth={active ? 2.2 : 1.8}
-        className="size-6"
+        strokeWidth={active ? 2 : 1.75}
+        className="size-[22px]"
       />
     ),
   },
@@ -51,7 +51,7 @@ const tabs = [
     key: 'profile',
     href: '/design/profile',
     icon: (active: boolean) => (
-      <User fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2.2 : 1.8} className="size-6" />
+      <User fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2 : 1.75} className="size-[22px]" />
     ),
   },
 ];
@@ -72,8 +72,8 @@ export function DesignNav() {
   }
 
   return (
-    <nav className="sticky bottom-0 z-30 flex items-center border-t border-border bg-card px-2 pt-2 pb-3.5">
-      {tabs.map((tab, index) => {
+    <nav className="sticky bottom-0 z-30 flex items-center border-t border-border bg-card px-2 pb-[max(0.875rem,env(safe-area-inset-bottom))] pt-2">
+      {tabs.map((tab) => {
         const active = isActive(tab.key);
         const isNewListing = tab.key === 'new-listing';
         const baseClass = cn(
@@ -83,7 +83,6 @@ export function DesignNav() {
 
         return (
           <div key={tab.key} className="flex flex-1 items-center">
-            {index > 0 ? <div aria-hidden className="h-6 w-px bg-border" /> : null}
             {isNewListing ? (
               <button
                 type="button"

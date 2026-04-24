@@ -2,10 +2,12 @@
 
 ## Split by person (who works on what)
 
-| Partner | Scope | Why it’s split this way | Doc |
-|---------|--------|-------------------------|-----|
-| **Nico** | **Landing** (story + entry), **Home** (hub after “I’m in”), **My profile** vs **other people’s profiles** (trust + identity) | All of this is **browser-only** on **`/design/*`** so Nico never needs World App, ngrok, or sign-in to iterate. He owns **first impression** and **who is who**. | [`NICO_WORK_PLAN.md`](./NICO_WORK_PLAN.md) |
-| **Jae** | **Listings** (browse → create → detail), **public comments** on listings, **private Messages**, **pay**, **deals/reviews**, DB, MiniKit | This is the **marketplace engine** and **money path**—needs real routes, auth, and World when integrated. Reputation **data** here **feeds** Nico’s profile designs. | [`JAE_WORK_PLAN.md`](./JAE_WORK_PLAN.md) |
+
+| Partner  | Scope                                                                                                                                   | Why it’s split this way                                                                                                                                              | Doc                                        |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **Nico** | **Landing** (story + entry), **Home** (hub after “I’m in”), **My profile** vs **other people’s profiles** (trust + identity)            | All of this is **browser-only** on `**/design/*`** so Nico never needs World App, ngrok, or sign-in to iterate. He owns **first impression** and **who is who**.     | `[NICO_WORK_PLAN.md](./NICO_WORK_PLAN.md)` |
+| **Jae**  | **Listings** (browse → create → detail), **public comments** on listings, **private Messages**, **pay**, **deals/reviews**, DB, MiniKit | This is the **marketplace engine** and **money path**—needs real routes, auth, and World when integrated. Reputation **data** here **feeds** Nico’s profile designs. | `[JAE_WORK_PLAN.md](./JAE_WORK_PLAN.md)`   |
+
 
 **Page purposes in one glance**
 
@@ -15,29 +17,33 @@
 
 This file stays the **full prompt archive** (all tiers). **Nico** and **Jae** use their two docs above for **day-to-day** tasks and URLs.
 
-This doc **chunks** [`design_doc.md`](./design_doc.md) so **two people** can work in parallel:
+This doc **chunks** `[design_doc.md](./design_doc.md)` so **two people** can work in parallel:
 
-| Role | Who | How they work |
-|------|-----|----------------|
+
+| Role            | Who                             | How they work                                                                                                                                                                |
+| --------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UX designer** | Your partner (no code expected) | **Designs by writing prompts** (e.g. in Cursor/ChatGPT): screen flows, copy, layout intent, states, and accessibility. They **do not** need to read TypeScript or touch Git. |
-| **SWE** | You | Implements: database, APIs, World MiniKit, auth, and wiring. You can **paste the UX prompt packs** into your AI assistant to generate UI faster, then integrate. |
+| **SWE**         | You                             | Implements: database, APIs, World MiniKit, auth, and wiring. You can **paste the UX prompt packs** into your AI assistant to generate UI faster, then integrate.             |
+
 
 **Product decisions (locked):**
 
-| Topic | Decision |
-|--------|-----------|
-| **Payments** | **Direct pay** to seller in World App. **Escrow** = **stretch** only (mention in copy/future section). |
-| **World ID** | **Required to list and to buy** (block flows until verified). |
-| **Fees** | **Near-zero** for users = **small network gas only**; no app fee in the MVP story. |
-| **“Unified” IG/FB** | **Demo only:** UI looks “connected”; **no real linking** behind the scenes. |
-| **Comments vs messaging** | **Listing comments = public.** **Messaging = private** 1:1. |
+
+| Topic                     | Decision                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Payments**              | **Direct pay** to seller in World App. **Escrow** = **stretch** only (mention in copy/future section). |
+| **World ID**              | **Required to list and to buy** (block flows until verified).                                          |
+| **Fees**                  | **Near-zero** for users = **small network gas only**; no app fee in the MVP story.                     |
+| **“Unified” IG/FB**       | **Demo only:** UI looks “connected”; **no real linking** behind the scenes.                            |
+| **Comments vs messaging** | **Listing comments = public.** **Messaging = private** 1:1.                                            |
+
 
 ---
 
 ## How you work together (simple)
 
 1. **UX goes first per tier (lightweight):** For each tier below, the UX person fills a **Prompt pack** (copy the template, answer the bullets). They paste it in chat to **you** or to **your** AI while you implement.
-2. **SWE implements** using [`HACKATHON_SPEC.md`](./HACKATHON_SPEC.md) and this doc’s **SWE checklist**—no need for your partner to understand the stack.
+2. **SWE implements** using `[HACKATHON_SPEC.md](./HACKATHON_SPEC.md)` and this doc’s **SWE checklist**—no need for your partner to understand the stack.
 3. **Sync 15–20 min** when a tier starts: UX explains the flow in plain language; SWE says “possible / cut for time” once.
 4. **Handoff artifact:** One message or doc section per tier titled **“Tier X — UX prompt pack”** so nothing is lost.
 
@@ -45,10 +51,10 @@ This doc **chunks** [`design_doc.md`](./design_doc.md) so **two people** can wor
 
 ## Design system — **shadcn/ui** (everyone)
 
-- **Product UI** (layouts, forms, modals, lists, profile chrome, listings, messages) is implemented with **[shadcn/ui](https://ui.shadcn.com/)** on Tailwind — see [`HACKATHON_SPEC.md`](./HACKATHON_SPEC.md).
+- **Product UI** (layouts, forms, modals, lists, profile chrome, listings, messages) is implemented with **[shadcn/ui](https://ui.shadcn.com/)** on Tailwind — see `[HACKATHON_SPEC.md](./HACKATHON_SPEC.md)`.
 - **LLM prompts:** Instruct the model to use **shadcn components only** (Button, Card, Dialog, Sheet, Input, Badge, …). **Do not** ask for Material UI, Bootstrap, Chakra, or unrelated CSS kits unless the team explicitly agrees.
-- **If something looks off:** Ask **“Is this using shadcn/ui?”** and regenerate or have Jae refactor to **`src/components/ui/*`**.
-- **Exception:** **`@worldcoin/mini-apps-ui-kit-react`** (and MiniKit-driven flows) for wallet-native patterns where the docs recommend it — still keep **surrounding** screens shadcn-consistent where possible.
+- **If something looks off:** Ask **“Is this using shadcn/ui?”** and regenerate or have Jae refactor to `**src/components/ui/*`**.
+- **Exception:** `**@worldcoin/mini-apps-ui-kit-react`** (and MiniKit-driven flows) for wallet-native patterns where the docs recommend it — still keep **surrounding** screens shadcn-consistent where possible.
 
 ---
 
@@ -109,9 +115,9 @@ Output: bullet list of screens + for each screen list sections and exact suggest
 
 ### SWE — Checklist
 
-- [ ] Routes match **URL map** (end of doc); landing vs protected home.
-- [ ] Navigation wired to real routes; stubs OK for Messages early.
-- [ ] Empty states exist where UX specifies.
+- Routes match **URL map** (end of doc); landing vs protected home.
+- Navigation wired to real routes; stubs OK for Messages early.
+- Empty states exist where UX specifies.
 
 ---
 
@@ -146,9 +152,9 @@ Output: screen-by-screen copy + component list in plain English.
 
 ### SWE — Checklist
 
-- [ ] Schema + APIs for listings + `listing_comments`.
-- [ ] Server: **cannot create listing** unless user verified (World ID).
-- [ ] Browse/detail/create + comment thread per UX copy.
+- Schema + APIs for listings + `listing_comments`.
+- Server: **cannot create listing** unless user verified (World ID).
+- Browse/detail/create + comment thread per UX copy.
 
 ---
 
@@ -177,8 +183,8 @@ Output: exact copy + layout order top to bottom.
 
 ### SWE — Checklist
 
-- [ ] Profile routes; persist verification flag for gates.
-- [ ] “Connected” accounts = static/demo data per UX (no OAuth).
+- Profile routes; persist verification flag for gates.
+- “Connected” accounts = static/demo data per UX (no OAuth).
 
 ---
 
@@ -206,7 +212,7 @@ Output: copy + flow diagram in words (step 1 → 2 → 3).
 
 ### SWE — Checklist
 
-- [ ] Deals + reviews schema; uniqueness rule; aggregates for profile.
+- Deals + reviews schema; uniqueness rule; aggregates for profile.
 
 ---
 
@@ -234,9 +240,9 @@ Output: every string the user reads during pay + success/fail.
 
 ### SWE — Checklist
 
-- [ ] `MiniKit.pay` wired; **block** if buyer not verified.
-- [ ] Deal row updated idempotently from payment reference.
-- [ ] Escrow stays **out of code**; optional README blurb from UX stretch text.
+- `MiniKit.pay` wired; **block** if buyer not verified.
+- Deal row updated idempotently from payment reference.
+- Escrow stays **out of code**; optional README blurb from UX stretch text.
 
 ---
 
@@ -264,35 +270,39 @@ Output: copy + when to show which screen.
 
 ### SWE — Checklist
 
-- [ ] Threads + messages schema; private by design.
-- [ ] “Message seller” entry point from listing.
+- Threads + messages schema; private by design.
+- “Message seller” entry point from listing.
 
 ---
 
 ## URL map (SWE implements; UX uses for prompts)
 
-| Path | Purpose |
-|------|---------|
-| `/` | Landing |
-| `/home` | Signed-in home |
-| `/listings` | Browse |
-| `/listings/new` | Create listing (verified only) |
-| `/listings/[id]` | Detail + **public** comments |
-| `/messages` | **Private** inbox |
-| `/messages/[threadId]` | Thread |
-| `/profile` or `/me` | Me |
-| `/u/[walletOrUsername]` | Other user |
+
+| Path                    | Purpose                        |
+| ----------------------- | ------------------------------ |
+| `/`                     | Landing                        |
+| `/home`                 | Signed-in home                 |
+| `/listings`             | Browse                         |
+| `/listings/new`         | Create listing (verified only) |
+| `/listings/[id]`        | Detail + **public** comments   |
+| `/messages`             | **Private** inbox              |
+| `/messages/[threadId]`  | Thread                         |
+| `/profile` or `/me`     | Me                             |
+| `/u/[walletOrUsername]` | Other user                     |
+
 
 ---
 
 ## Phasing (who does what when)
 
-| Phase | Nico | Jae |
-|-------|------|-----|
-| **Kickoff** | Landing + Home prompts ([`NICO_WORK_PLAN.md`](./NICO_WORK_PLAN.md)) | Listings/message stubs + schema direction |
-| **Early** | Profile prompts + springboard screens | Listings CRUD + public comments |
-| **Mid** | Reputation-on-profile copy (Tier 4 display) | Deals, reviews, MiniKit pay |
-| **Late** | — | Messaging + “Message seller” |
+
+| Phase       | Nico                                                                | Jae                                       |
+| ----------- | ------------------------------------------------------------------- | ----------------------------------------- |
+| **Kickoff** | Landing + Home prompts (`[NICO_WORK_PLAN.md](./NICO_WORK_PLAN.md)`) | Listings/message stubs + schema direction |
+| **Early**   | Profile prompts + springboard screens                               | Listings CRUD + public comments           |
+| **Mid**     | Reputation-on-profile copy (Tier 4 display)                         | Deals, reviews, MiniKit pay               |
+| **Late**    | —                                                                   | Messaging + “Message seller”              |
+
 
 ---
 
@@ -301,3 +311,4 @@ Output: copy + when to show which screen.
 - **Escrow** (hold funds until confirm) — UX may keep one paragraph; SWE does not build for MVP.
 - **Off-platform** deals counting toward reputation.
 - **Real** Instagram/Facebook OAuth (replace demo chips).
+
