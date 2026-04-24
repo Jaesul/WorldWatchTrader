@@ -74,38 +74,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const dbOrbVerified = existing?.orbVerified ?? false;
         const verifiedAt = existing?.verifiedAt ?? null;
 
-        console.log('[auth] World App login debug', {
-          address: finalPayload.address,
-          walletAddress,
-          verificationStatus:
-            typeof userInfo === 'object' && userInfo !== null && 'verificationStatus' in userInfo
-              ? userInfo.verificationStatus
-              : undefined,
-          derivedOrbVerified: orbVerified,
-          preservedDbOrbVerified: dbOrbVerified,
-          existingUser: existing
-            ? {
-                id: existing.id,
-                walletAddress: existing.walletAddress,
-                orbVerified: existing.orbVerified,
-                verifiedAt: existing.verifiedAt,
-                updatedAt: existing.updatedAt,
-              }
-            : null,
-        });
-        console.log(
-          '[auth] World App raw user info',
-          JSON.stringify(userInfo, null, 2),
-        );
-        console.log('[auth] World App upsert payload', {
-          id: finalPayload.address,
-          walletAddress,
-          username: userInfo.username ?? '',
-          profilePictureUrl: userInfo.profilePictureUrl,
-          orbVerified: dbOrbVerified,
-          verifiedAt,
-        });
-
         await upsertUserFromSession({
           id: finalPayload.address,
           walletAddress,
@@ -132,7 +100,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.profilePictureUrl = user.profilePictureUrl;
         token.orbVerified = user.orbVerified;
       }
-      if (token.userId) {
+      if (token.userId && token.orbVerified !== true) {
         const row = await getUserById(token.userId as string);
         if (row) token.orbVerified = row.orbVerified;
       }

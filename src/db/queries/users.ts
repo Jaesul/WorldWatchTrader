@@ -122,6 +122,12 @@ export async function getDefaultDesignViewerUserId(): Promise<string | null> {
   return rows[0]?.id ?? null;
 }
 
+export async function getDefaultDesignViewer() {
+  const db = getDb();
+  const rows = await db.select().from(users).orderBy(asc(users.createdAt)).limit(1);
+  return rows[0] ?? null;
+}
+
 export type UserPickerRow = Awaited<ReturnType<typeof listUsersForPicker>>[number];
 
 export type PatchUserInput = {

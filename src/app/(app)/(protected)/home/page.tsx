@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import { SpringboardLink } from '@/components/Navigation';
 import { Page } from '@/components/PageLayout';
 import { Pay } from '@/components/Pay';
@@ -7,10 +6,11 @@ import { AutoVerifyDialog } from '@/components/Verify/AutoVerifyDialog';
 import { UserInfo } from '@/components/UserInfo';
 import { Verify } from '@/components/Verify';
 import { ViewPermissions } from '@/components/ViewPermissions';
+import { getCachedSession } from '@/lib/auth/get-session';
 import { Marble, TopBar } from '@worldcoin/mini-apps-ui-kit-react';
 
 export default async function Home() {
-  const session = await auth();
+  const session = await getCachedSession();
 
   return (
     <>

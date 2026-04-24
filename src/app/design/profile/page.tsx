@@ -80,7 +80,8 @@ function ListingCard({
 }
 
 export default function ProfilePage() {
-  const { viewer, allViewers, setViewerId } = useDesignViewer();
+  const { viewer, allViewers, allViewersLoading, ensureAllViewersLoaded, setViewerId } =
+    useDesignViewer();
   const orbGate = { viewerOrbVerified: viewer?.orbVerified === true };
   const [sessionViewer, setSessionViewer] = useState<{
     id: string;
@@ -130,6 +131,14 @@ export default function ProfilePage() {
   }, [allListings.length, activeTab]);
 
   useEffect(() => {
+    void ensureAllViewersLoaded();
+  }, [ensureAllViewersLoaded]);
+
+  useEffect(() => {
+    if (viewer?.orbVerified) {
+      setSessionViewer(null);
+      return;
+    }
     let cancelled = false;
 
     void (async () => {
@@ -159,7 +168,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [viewer?.orbVerified]);
 
   const persistStatusChange = useCallback(async (listingId: string, status: ListingStatus) => {
     const r = await fetch(`/api/design/listings/${listingId}`, {
@@ -243,7 +252,7 @@ export default function ProfilePage() {
         <p className="px-4 py-2 text-center text-xs text-rose-600">{error}</p>
       ) : null}
 
-      {allViewers.length > 0 && (
+      {(allViewersLoading || allViewers.length > 0) && (
         <div className="border-b border-border px-4 pb-3">
           <label
             htmlFor="design-viewer-select"
@@ -256,6 +265,7 @@ export default function ProfilePage() {
             className="mt-1.5 flex h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
             value={viewer.id}
             onChange={(e) => void setViewerId(e.target.value)}
+            disabled={allViewersLoading && allViewers.length === 0}
           >
             {allViewers.map((v) => (
               <option key={v.id} value={v.id}>

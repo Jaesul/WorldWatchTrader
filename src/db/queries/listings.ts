@@ -273,11 +273,21 @@ export async function listActiveListingsWithSellerAndPhotos(
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.listing.id);
-  const photoRows = await db
-    .select()
-    .from(listingPhotos)
-    .where(inArray(listingPhotos.listingId, ids))
-    .orderBy(asc(listingPhotos.sortOrder), asc(listingPhotos.createdAt));
+  const [photoRows, likeAgg] = await Promise.all([
+    db
+      .select()
+      .from(listingPhotos)
+      .where(inArray(listingPhotos.listingId, ids))
+      .orderBy(asc(listingPhotos.sortOrder), asc(listingPhotos.createdAt)),
+    db
+      .select({
+        listingId: listingLikes.listingId,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(listingLikes)
+      .where(inArray(listingLikes.listingId, ids))
+      .groupBy(listingLikes.listingId),
+  ]);
 
   const photosByListing = new Map<string, string[]>();
   for (const p of photoRows) {
@@ -286,14 +296,6 @@ export async function listActiveListingsWithSellerAndPhotos(
     photosByListing.set(p.listingId, list);
   }
 
-  const likeAgg = await db
-    .select({
-      listingId: listingLikes.listingId,
-      n: sql<number>`count(*)::int`,
-    })
-    .from(listingLikes)
-    .where(inArray(listingLikes.listingId, ids))
-    .groupBy(listingLikes.listingId);
   const likeCountByListing = new Map<string, number>();
   for (const r of likeAgg) {
     likeCountByListing.set(r.listingId, r.n);

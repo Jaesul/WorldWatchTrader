@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -31,10 +31,15 @@ function SavedListingSkeleton() {
 }
 
 export default function SavedPage() {
-  const { savedListings, loading } = useDesignListingSaves();
+  const { savedListings, loading, savedListingsLoaded, ensureSavedListingsLoaded } =
+    useDesignListingSaves();
   const [drawerListing, setDrawerListing] = useState<DesignFeedListing | null>(
     null,
   );
+
+  useEffect(() => {
+    void ensureSavedListingsLoaded();
+  }, [ensureSavedListingsLoaded]);
 
   const sorted = useMemo(
     () =>
@@ -57,7 +62,7 @@ export default function SavedPage() {
         </p>
       </div>
 
-      {loading ? (
+      {loading || !savedListingsLoaded ? (
         <div className="space-y-3 p-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <SavedListingSkeleton key={i} />

@@ -36,7 +36,13 @@ function DesignDmStartPageInner() {
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(j.error === 'cannot_message_self' ? 'You cannot message yourself on your own listing.' : 'Could not open chat.');
+        const msg =
+          j.error === 'cannot_message_self'
+            ? 'You cannot message yourself on your own listing.'
+            : j.error === 'listing_not_found'
+              ? 'That listing could not be found.'
+              : 'Could not open chat.';
+        setError(msg);
         ran.current = false;
         return;
       }

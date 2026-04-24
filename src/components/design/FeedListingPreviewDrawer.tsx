@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { ListingDetailDrawer } from "@/components/design/ListingDetailDrawer";
@@ -42,12 +42,13 @@ export function FeedListingPreviewDrawer({
   const {
     likedListingIds,
     likedCommentIds,
+    ensureLoaded: ensureEngagementLoaded,
     displayListingLikes,
     displayCommentLikes,
     toggleListingLike,
     toggleCommentLike,
   } = useDesignEngagement();
-  const { savedIds, toggleSave } = useDesignListingSaves();
+  const { savedIds, ensureSavedIdsLoaded, toggleSave } = useDesignListingSaves();
   const [commentsByListing, setCommentsByListing] = useState<
     Record<string, FakeComment[]>
   >(() => createInitialComments(LISTINGS));
@@ -57,6 +58,12 @@ export function FeedListingPreviewDrawer({
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>(
     {},
   );
+
+  useEffect(() => {
+    if (!open || !listing) return;
+    void ensureEngagementLoaded();
+    void ensureSavedIdsLoaded();
+  }, [ensureEngagementLoaded, ensureSavedIdsLoaded, listing, open]);
 
   const listingIsLive = Boolean(listing && isUuid(listing.id));
 

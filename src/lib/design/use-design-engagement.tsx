@@ -32,6 +32,7 @@ async function fetchCommentLikes(): Promise<CommentLikesResponse> {
 type DesignEngagementContextValue = {
   likedListingIds: Set<string>;
   likedCommentIds: Set<string>;
+  ensureLoaded: () => Promise<void>;
   displayListingLikes: (listingId: string, baseCount: number) => number;
   displayCommentLikes: (commentId: string, baseCount: number) => number;
   toggleListingLike: (listingId: string) => Promise<void>;
@@ -54,6 +55,7 @@ export function DesignEngagementProvider({ children }: { children: ReactNode }) 
 
   const [listingLikeDelta, setListingLikeDelta] = useState<Record<string, number>>({});
   const [commentLikeDelta, setCommentLikeDelta] = useState<Record<string, number>>({});
+  const [loaded, setLoaded] = useState(false);
 
   const loadEngagement = useCallback(async () => {
     try {
@@ -63,21 +65,27 @@ export function DesignEngagementProvider({ children }: { children: ReactNode }) 
       ]);
       setLikedListingIds(new Set(listingData.listingIds));
       setLikedCommentIds(new Set(commentData.commentIds));
+      setLoaded(true);
     } catch {
       toast.error('Could not load likes');
       setLikedListingIds(new Set());
       setLikedCommentIds(new Set());
+      setLoaded(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadEngagement();
-  }, [loadEngagement, viewerId]);
-
-  useEffect(() => {
+    setLoaded(false);
+    setLikedListingIds(new Set());
+    setLikedCommentIds(new Set());
     setListingLikeDelta({});
     setCommentLikeDelta({});
   }, [viewerId]);
+
+  const ensureLoaded = useCallback(async () => {
+    if (loaded) return;
+    await loadEngagement();
+  }, [loadEngagement, loaded]);
 
   const displayListingLikes = useCallback(
     (listingId: string, baseCount: number) => baseCount + (listingLikeDelta[listingId] ?? 0),
@@ -189,6 +197,7 @@ export function DesignEngagementProvider({ children }: { children: ReactNode }) 
     () => ({
       likedListingIds,
       likedCommentIds,
+      ensureLoaded,
       displayListingLikes,
       displayCommentLikes,
       toggleListingLike,
@@ -198,6 +207,7 @@ export function DesignEngagementProvider({ children }: { children: ReactNode }) 
     [
       likedListingIds,
       likedCommentIds,
+      ensureLoaded,
       displayListingLikes,
       displayCommentLikes,
       toggleListingLike,

@@ -16,6 +16,8 @@ import type { AppViewer } from '@/lib/viewer/types';
 type DesignViewerContextValue = {
   viewer: AppViewer | null;
   allViewers: AppViewer[];
+  allViewersLoading: boolean;
+  ensureAllViewersLoaded: () => Promise<void>;
   setViewerId: (userId: string) => Promise<void>;
   clearViewer: () => Promise<void>;
 };
@@ -34,28 +36,26 @@ export function DesignViewerProvider({
 }) {
   const router = useRouter();
   const [allViewers, setAllViewers] = useState<AppViewer[]>(initialViewers);
+  const [allViewersLoading, setAllViewersLoading] = useState(false);
 
   useEffect(() => {
     if (initialViewers.length > 0) setAllViewers(initialViewers);
   }, [initialViewers]);
 
-  useEffect(() => {
-    if (initialViewers.length > 0) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch('/api/design/users-for-picker');
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as AppViewer[];
-        if (!cancelled) setAllViewers(data);
-      } catch {
-        /* ignore */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [initialViewers.length]);
+  const ensureAllViewersLoaded = useCallback(async () => {
+    if (initialViewers.length > 0 || allViewers.length > 0 || allViewersLoading) return;
+    setAllViewersLoading(true);
+    try {
+      const res = await fetch('/api/design/users-for-picker');
+      if (!res.ok) return;
+      const data = (await res.json()) as AppViewer[];
+      setAllViewers(data);
+    } catch {
+      /* ignore */
+    } finally {
+      setAllViewersLoading(false);
+    }
+  }, [allViewers.length, allViewersLoading, initialViewers.length]);
 
   const setViewerId = useCallback(async (userId: string) => {
     const res = await fetch('/api/design/viewer', {
@@ -79,10 +79,19 @@ export function DesignViewerProvider({
     () => ({
       viewer: initialViewer,
       allViewers,
+      allViewersLoading,
+      ensureAllViewersLoaded,
       setViewerId,
       clearViewer,
     }),
-    [initialViewer, allViewers, setViewerId, clearViewer],
+    [
+      initialViewer,
+      allViewers,
+      allViewersLoading,
+      ensureAllViewersLoaded,
+      setViewerId,
+      clearViewer,
+    ],
   );
 
   return <DesignViewerContext.Provider value={value}>{children}</DesignViewerContext.Provider>;

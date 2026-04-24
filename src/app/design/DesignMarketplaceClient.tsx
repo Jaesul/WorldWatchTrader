@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Bookmark,
@@ -371,10 +371,8 @@ function PhotoCarousel({ photos, alt }: { photos: string[]; alt: string }) {
 
 export function DesignMarketplaceClient({
   initialListings,
-  initialCommentsByListingId,
 }: {
   initialListings: DesignFeedListing[];
-  initialCommentsByListingId: Record<string, FakeComment[]>;
 }) {
   const { viewer } = useDesignViewer();
   const { setToolbar } = useDesignToolbar();
@@ -423,24 +421,21 @@ export function DesignMarketplaceClient({
   const {
     likedListingIds,
     likedCommentIds,
+    ensureLoaded: ensureEngagementLoaded,
     displayListingLikes,
     displayCommentLikes,
     toggleListingLike,
     toggleCommentLike,
     refreshEngagement,
   } = useDesignEngagement();
-  const { savedIds, toggleSave: toggleSaveListing } = useDesignListingSaves();
+  const {
+    savedIds,
+    ensureSavedIdsLoaded,
+    toggleSave: toggleSaveListing,
+  } = useDesignListingSaves();
   const [commentsByListing, setCommentsByListing] = useState<
     Record<string, FakeComment[]>
-  >(() => {
-    const byId: Record<string, FakeComment[]> = {
-      ...initialCommentsByListingId,
-    };
-    for (const l of initialListings) {
-      if (!byId[l.id]) byId[l.id] = [];
-    }
-    return byId;
-  });
+  >({});
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>(
     {},
   );
@@ -450,6 +445,12 @@ export function DesignMarketplaceClient({
   const [expandedCommentsIds, setExpandedCommentsIds] = useState<Set<string>>(
     new Set(),
   );
+  const [loadingCommentIds, setLoadingCommentIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    void ensureEngagementLoaded();
+    void ensureSavedIdsLoaded();
+  }, [ensureEngagementLoaded, ensureSavedIdsLoaded]);
 
   const drawerSuggestedSearches = useMemo(
     () =>
@@ -605,6 +606,38 @@ export function DesignMarketplaceClient({
     event.stopPropagation();
     void toggleListingLike(id);
   }
+
+  const ensureCommentsLoaded = useCallback(
+    async (listingId: string) => {
+      if (commentsByListing[listingId] !== undefined || loadingCommentIds.has(listingId)) return;
+      setLoadingCommentIds((prev) => new Set(prev).add(listingId));
+      try {
+        const res = await fetch(`/api/design/listings/${listingId}/comments`, {
+          credentials: "same-origin",
+        });
+        if (!res.ok) throw new Error("request failed");
+        const data = (await res.json()) as { comments?: FakeComment[] };
+        setCommentsByListing((prev) => ({
+          ...prev,
+          [listingId]: data.comments ?? [],
+        }));
+      } catch {
+        toast.error("Could not load comments");
+      } finally {
+        setLoadingCommentIds((prev) => {
+          const next = new Set(prev);
+          next.delete(listingId);
+          return next;
+        });
+      }
+    },
+    [commentsByListing, loadingCommentIds],
+  );
+
+  useEffect(() => {
+    if (!drawerListing) return;
+    void ensureCommentsLoaded(drawerListing.id);
+  }, [drawerListing, ensureCommentsLoaded]);
 
   async function addComment(listingId: string) {
     const body = (commentDrafts[listingId] ?? "").trim();
@@ -1239,6 +1272,7 @@ export function DesignMarketplaceClient({
                     <Collapsible
                       open={expandedCommentsIds.has(listing.id)}
                       onOpenChange={(open) => {
+                        if (open) void ensureCommentsLoaded(listing.id);
                         setExpandedCommentsIds((prev) => {
                           const next = new Set(prev);
                           if (open) next.add(listing.id);
@@ -1561,6 +1595,7 @@ export function DesignMarketplaceClient({
           open={drawerListing !== null}
           onOpenChange={(open) => {
             if (!open) setDrawerListing(null);
+            else void ensureCommentsLoaded(drawerListing.id);
           }}
           liked={likedListingIds.has(drawerListing.id)}
           likeCount={displayListingLikes(drawerListing.id, drawerListing.likes)}

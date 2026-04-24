@@ -3,11 +3,25 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 
 import { getDb } from '@/db';
-import { createComment } from '@/db/queries/comments';
+import { countCommentLikesByCommentIds } from '@/db/queries/comment-likes';
+import { createComment, listCommentsForListing } from '@/db/queries/comments';
 import { getUserById } from '@/db/queries/users';
 import { listings } from '@/db/schema';
 import { mapDbCommentRowToFake } from '@/lib/design/map-db-comments-to-fake';
 import { DESIGN_VIEWER_COOKIE } from '@/lib/viewer/constants';
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ listingId: string }> },
+) {
+  const { listingId } = await params;
+  const rows = await listCommentsForListing(listingId);
+  const likeCounts = await countCommentLikesByCommentIds(rows.map((row) => row.comment.id));
+  const comments = rows.map((row) =>
+    mapDbCommentRowToFake(row, likeCounts[row.comment.id] ?? 0),
+  );
+  return NextResponse.json({ comments });
+}
 
 export async function POST(
   request: Request,

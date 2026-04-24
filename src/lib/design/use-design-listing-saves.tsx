@@ -20,13 +20,18 @@ type ListingSavesResponse = {
   listings: DesignFeedListing[];
 };
 
-async function fetchListingSaves(): Promise<ListingSavesResponse> {
+async function fetchListingSaves(includeListings = false): Promise<ListingSavesResponse> {
   const controller = new AbortController();
   const t = window.setTimeout(() => controller.abort(), 15_000);
   try {
-    const res = await fetch('/api/design/listing-saves', {
+    const res = await fetch(
+      includeListings
+        ? '/api/design/listing-saves?includeListings=1'
+        : '/api/design/listing-saves',
+      {
       signal: controller.signal,
-    });
+      },
+    );
     if (!res.ok) throw new Error('fetch failed');
     return (await res.json()) as ListingSavesResponse;
   } finally {
@@ -38,6 +43,9 @@ type DesignListingSavesContextValue = {
   savedIds: Set<string>;
   savedListings: DesignFeedListing[];
   loading: boolean;
+  savedListingsLoaded: boolean;
+  ensureSavedIdsLoaded: () => Promise<void>;
+  ensureSavedListingsLoaded: () => Promise<void>;
   refresh: () => void;
   toggleSave: (listingId: string) => Promise<void>;
 };
@@ -52,26 +60,50 @@ export function DesignListingSavesProvider({ children }: { children: ReactNode }
   const savedIdsRef = useRef(savedIds);
   savedIdsRef.current = savedIds;
   const [savedListings, setSavedListings] = useState<DesignFeedListing[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [savedIdsLoaded, setSavedIdsLoaded] = useState(false);
+  const [savedListingsLoaded, setSavedListingsLoaded] = useState(false);
 
-  const loadSaves = useCallback(async (showLoading: boolean) => {
+  const loadSaves = useCallback(async (showLoading: boolean, includeListings: boolean) => {
     if (showLoading) setLoading(true);
     try {
-      const data = await fetchListingSaves();
+      const data = await fetchListingSaves(includeListings);
       setSavedIds(new Set(data.listingIds));
-      setSavedListings(data.listings);
+      if (includeListings) {
+        setSavedListings(data.listings);
+        setSavedListingsLoaded(true);
+      }
+      setSavedIdsLoaded(true);
     } catch {
       toast.error('Could not load saved listings');
       setSavedIds(new Set());
-      setSavedListings([]);
+      if (includeListings) {
+        setSavedListings([]);
+        setSavedListingsLoaded(false);
+      }
+      setSavedIdsLoaded(false);
     } finally {
       if (showLoading) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadSaves(true);
-  }, [loadSaves, viewer?.id]);
+    setSavedIds(new Set());
+    setSavedListings([]);
+    setSavedIdsLoaded(false);
+    setSavedListingsLoaded(false);
+    setLoading(false);
+  }, [viewerId]);
+
+  const ensureSavedIdsLoaded = useCallback(async () => {
+    if (savedIdsLoaded) return;
+    await loadSaves(false, false);
+  }, [loadSaves, savedIdsLoaded]);
+
+  const ensureSavedListingsLoaded = useCallback(async () => {
+    if (savedListingsLoaded) return;
+    await loadSaves(true, true);
+  }, [loadSaves, savedListingsLoaded]);
 
   const toggleSave = useCallback(
     async (listingId: string) => {
@@ -98,7 +130,7 @@ export function DesignListingSavesProvider({ children }: { children: ReactNode }
               body: JSON.stringify({ listingId }),
             });
         if (!res.ok) throw new Error('request failed');
-        await loadSaves(false);
+        await loadSaves(false, savedListingsLoaded);
       } catch {
         setSavedIds((prev) => {
           const next = new Set(prev);
@@ -109,22 +141,34 @@ export function DesignListingSavesProvider({ children }: { children: ReactNode }
         toast.error(wasSaved ? 'Could not remove save' : 'Could not save listing');
       }
     },
-    [viewerId, loadSaves],
+    [viewerId, loadSaves, savedListingsLoaded],
   );
 
   const refresh = useCallback(() => {
-    void loadSaves(false);
-  }, [loadSaves]);
+    void loadSaves(false, savedListingsLoaded);
+  }, [loadSaves, savedListingsLoaded]);
 
   const value = useMemo(
     () => ({
       savedIds,
       savedListings,
       loading,
+      savedListingsLoaded,
+      ensureSavedIdsLoaded,
+      ensureSavedListingsLoaded,
       refresh,
       toggleSave,
     }),
-    [savedIds, savedListings, loading, refresh, toggleSave],
+    [
+      savedIds,
+      savedListings,
+      loading,
+      savedListingsLoaded,
+      ensureSavedIdsLoaded,
+      ensureSavedListingsLoaded,
+      refresh,
+      toggleSave,
+    ],
   );
 
   return (

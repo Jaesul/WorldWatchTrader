@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 
-import { getDefaultDesignViewerUserId, getUserById } from '@/db/queries/users';
+import { getDefaultDesignViewer, getDefaultDesignViewerUserId, getUserById } from '@/db/queries/users';
 import { DESIGN_VIEWER_COOKIE } from '@/lib/viewer/constants';
 
 /**
@@ -16,4 +16,14 @@ export async function resolveDesignViewerUserId(): Promise<string | null> {
     if (user) return user.id;
   }
   return getDefaultDesignViewerUserId();
+}
+
+export async function resolveDesignViewer() {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get(DESIGN_VIEWER_COOKIE)?.value?.trim() ?? '';
+  if (raw) {
+    const user = await getUserById(raw);
+    if (user) return user;
+  }
+  return getDefaultDesignViewer();
 }

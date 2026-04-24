@@ -14,24 +14,10 @@ export type WorldUserInfoPayload = {
 };
 
 export function isOrbVerifiedFromUserInfo(info: unknown): boolean {
-  console.log(
-    '[world-user-info] raw input',
-    JSON.stringify(info, null, 2),
-  );
-
   if (!info || typeof info !== 'object') {
-    console.log('[world-user-info] input is not an object');
     return false;
   }
 
-  console.log(
-    '[world-user-info] top-level keys',
-    Object.keys(info as Record<string, unknown>),
-  );
-
   const v = (info as WorldUserInfoPayload).verificationStatus;
-  console.log('[world-user-info] verificationStatus field', v);
-  console.log('[world-user-info] isOrbVerified field', v?.isOrbVerified);
-
   return Boolean(v?.isOrbVerified);
 }

@@ -2,23 +2,16 @@ import { NextResponse } from 'next/server';
 
 import { listSellerDashboardListingsPageWithHero } from '@/db/queries/listings';
 import type { ListingStatus } from '@/db/schema';
-import { getUserById } from '@/db/queries/users';
 import type { ViewerDashboardResponse } from '@/lib/viewer/dashboard';
 import { dbUserRowToAppViewer } from '@/lib/viewer/from-db-user';
 import { decodeSellerListingCursor, sellerCursorToJson } from '@/lib/viewer/dashboard-cursor';
-import { resolveDesignViewerUserId } from '@/lib/server/resolve-design-viewer-user-id';
+import { resolveDesignViewer } from '@/lib/server/resolve-design-viewer-user-id';
 
 const empty: ViewerDashboardResponse = { viewer: null, listings: [], nextCursor: null };
 
 export async function GET(req: Request) {
-  const userId = await resolveDesignViewerUserId();
-
-  if (!userId) {
-    return NextResponse.json(empty);
-  }
-
-  const row = await getUserById(userId);
-  if (!row) {
+  const viewerRow = await resolveDesignViewer();
+  if (!viewerRow) {
     return NextResponse.json(empty);
   }
 
@@ -29,8 +22,12 @@ export async function GET(req: Request) {
     : 15;
   const cursor = decodeSellerListingCursor(searchParams.get('cursor'));
 
-  const viewer = dbUserRowToAppViewer(row);
-  const { rows, nextCursor } = await listSellerDashboardListingsPageWithHero(userId, limit, cursor);
+  const viewer = dbUserRowToAppViewer(viewerRow);
+  const { rows, nextCursor } = await listSellerDashboardListingsPageWithHero(
+    viewerRow.id,
+    limit,
+    cursor,
+  );
 
   const listings = rows.map(({ listing, heroUrl }) => ({
     id: listing.id,

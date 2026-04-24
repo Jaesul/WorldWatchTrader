@@ -39,6 +39,27 @@ export async function buildListingSnapshot(listingId: string): Promise<DmListing
   };
 }
 
+/**
+ * Finds a DM row for two users. Rows are usually stored with lex-low → `buyer_id`,
+ * lex-high → `seller_id`, but older rows may use the reverse; we accept either.
+ */
+async function selectThreadForParticipantPair(low: string, high: string) {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(dmThreads)
+    .where(
+      or(
+        and(eq(dmThreads.buyerId, low), eq(dmThreads.sellerId, high)),
+        and(eq(dmThreads.buyerId, high), eq(dmThreads.sellerId, low)),
+      ),
+    );
+
+  return (
+    rows.find((t) => t.buyerId === low && t.sellerId === high) ?? rows[0] ?? null
+  );
+}
+
 /** Opens or returns the single thread between the viewer and the listing's seller. */
 export async function getOrCreateThread(initiatorId: string, listingId: string) {
   const db = getDb();
@@ -49,6 +70,9 @@ export async function getOrCreateThread(initiatorId: string, listingId: string) 
   }
   const [low, high] = canonicalParticipantIds(initiatorId, listing.sellerId);
   const now = new Date();
+
+  const existing = await selectThreadForParticipantPair(low, high);
+  if (existing) return { ok: true as const, thread: existing };
 
   await db
     .insert(dmThreads)
@@ -64,12 +88,7 @@ export async function getOrCreateThread(initiatorId: string, listingId: string) 
       target: [dmThreads.buyerId, dmThreads.sellerId],
     });
 
-  const [thread] = await db
-    .select()
-    .from(dmThreads)
-    .where(and(eq(dmThreads.buyerId, low), eq(dmThreads.sellerId, high)))
-    .limit(1);
-
+  const thread = await selectThreadForParticipantPair(low, high);
   if (!thread) return { ok: false as const, error: 'thread_not_found' satisfies DmThreadError };
   return { ok: true as const, thread };
 }

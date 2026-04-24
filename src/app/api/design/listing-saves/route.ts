@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getListingById } from '@/db/queries/listings';
 import {
+  listSavedListingIds,
   listSavedListingsWithSellerAndPhotos,
   saveListing,
   unsaveListing,
@@ -18,17 +19,22 @@ function parseListingId(raw: unknown): string | null {
   return UUID_RE.test(id) ? id : null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await resolveDesignViewerUserId();
   if (!userId) {
     return NextResponse.json({ listingIds: [], listings: [] });
   }
 
-  const rows = await listSavedListingsWithSellerAndPhotos(userId, 100);
-  const listings = mapDbFeedToDesignListings(rows);
-  const listingIds = listings.map((l) => l.id);
+  const { searchParams } = new URL(request.url);
+  if (searchParams.get('includeListings') === '1') {
+    const rows = await listSavedListingsWithSellerAndPhotos(userId, 100);
+    const listings = mapDbFeedToDesignListings(rows);
+    const listingIds = listings.map((l) => l.id);
+    return NextResponse.json({ listingIds, listings });
+  }
 
-  return NextResponse.json({ listingIds, listings });
+  const listingIds = await listSavedListingIds(userId);
+  return NextResponse.json({ listingIds, listings: [] });
 }
 
 export async function POST(request: Request) {
@@ -77,3 +83,4 @@ export async function DELETE(request: Request) {
   await unsaveListing(userId, listingId);
   return NextResponse.json({ ok: true });
 }
+

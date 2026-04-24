@@ -37,10 +37,6 @@ function displayName(c: ApiThread['counterpart']): string {
   return w.length > 14 ? `${w.slice(0, 6)}…${w.slice(-4)}` : w;
 }
 
-function formatPriceUsd(n: number): string {
-  return `$${n.toLocaleString('en-US')}`;
-}
-
 function formatTime(iso: string): string {
   return new Intl.DateTimeFormat(undefined, {
     month: 'short',
@@ -71,13 +67,6 @@ function ThreadRow({ thread }: { thread: ApiThread }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-foreground">{displayName(c)}</p>
-        {thread.listing ? (
-          <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
-            <span className="shrink-0 text-sm">⌚</span>
-            <span className="truncate text-[11px] text-muted-foreground">{thread.listing.title}</span>
-            <span className="shrink-0 text-[10px] text-muted-foreground/80">{formatPriceUsd(thread.listing.priceUsd)}</span>
-          </div>
-        ) : null}
         <p className="mt-0.5 truncate text-xs text-muted-foreground">
           {thread.lastMessagePreview?.trim() ? thread.lastMessagePreview : 'No messages yet'}
         </p>
@@ -241,7 +230,7 @@ export default function DesignMessagesPage() {
                       {displayName(t.counterpart)}
                     </span>
                     <span className="block truncate text-[11px] text-muted-foreground">
-                      {t.listing?.title ?? (t.lastMessagePreview?.trim() || 'Open conversation')}
+                      {t.lastMessagePreview?.trim() || 'Open conversation'}
                     </span>
                   </div>
                   {t.counterpart.orbVerified && (
