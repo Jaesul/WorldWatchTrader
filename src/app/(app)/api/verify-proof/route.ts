@@ -1,3 +1,5 @@
+import { auth } from '@/auth';
+import { getUserById, updateUserProfile } from '@/db/queries/users';
 import type { IDKitResult } from '@worldcoin/idkit';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -6,6 +8,11 @@ import { NextRequest, NextResponse } from 'next/server';
  * @see https://docs.world.org/world-id/idkit/integrate#step-5-verify-the-proof-in-your-backend
  */
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const expectedRpId = process.env.RP_ID;
   if (!expectedRpId) {
     return NextResponse.json(
@@ -47,5 +54,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({ success: true });
+  const existing = await getUserById(session.user.id);
+  const verifiedAt = existing?.verifiedAt ?? new Date();
+  await updateUserProfile(session.user.id, {
+    orbVerified: true,
+    verifiedAt,
+  });
+
+  return NextResponse.json({ success: true, orbVerified: true });
 }

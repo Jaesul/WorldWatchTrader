@@ -1,6 +1,7 @@
 'use client';
 import { IDKit, orbLegacy, type RpContext } from '@worldcoin/idkit';
 import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 /**
@@ -9,10 +10,19 @@ import { useState } from 'react';
  * It's critical you verify the proof on the server side.
  * Read More: https://docs.world.org/mini-apps/commands/verify#verifying-the-proof
  */
-export const Verify = ({ action }: { action: string }) => {
+export const Verify = ({
+  action,
+  showHeading = true,
+  onVerified,
+}: {
+  action: string;
+  showHeading?: boolean;
+  onVerified?: () => void;
+}) => {
   const [buttonState, setButtonState] = useState<
     'pending' | 'success' | 'failed' | undefined
   >(undefined);
+  const router = useRouter();
 
   const onClickVerify = async () => {
     setButtonState('pending');
@@ -66,6 +76,8 @@ export const Verify = ({ action }: { action: string }) => {
       const data = await response.json();
       if (data.success) {
         setButtonState('success');
+        onVerified?.();
+        router.refresh();
       } else {
         setButtonState('failed');
         setTimeout(() => setButtonState(undefined), 2000);
@@ -78,7 +90,7 @@ export const Verify = ({ action }: { action: string }) => {
 
   return (
     <div className="grid w-full gap-4">
-      <p className="text-lg font-semibold">Verify</p>
+      {showHeading ? <p className="text-lg font-semibold">Verify</p> : null}
       <LiveFeedback
         label={{
           failed: 'Failed to verify',

@@ -71,9 +71,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const walletAddress = userInfo.walletAddress ?? finalPayload.address;
         const orbVerified = isOrbVerifiedFromUserInfo(userInfo);
         const existing = await getUserById(finalPayload.address);
-        const verifiedAt = orbVerified
-          ? (existing?.verifiedAt ?? new Date())
-          : (existing?.verifiedAt ?? null);
+        const dbOrbVerified = existing?.orbVerified ?? false;
+        const verifiedAt = existing?.verifiedAt ?? null;
 
         console.log('[auth] World App login debug', {
           address: finalPayload.address,
@@ -83,6 +82,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               ? userInfo.verificationStatus
               : undefined,
           derivedOrbVerified: orbVerified,
+          preservedDbOrbVerified: dbOrbVerified,
           existingUser: existing
             ? {
                 id: existing.id,
@@ -102,7 +102,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           walletAddress,
           username: userInfo.username ?? '',
           profilePictureUrl: userInfo.profilePictureUrl,
-          orbVerified,
+          orbVerified: dbOrbVerified,
           verifiedAt,
         });
 
@@ -111,14 +111,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           walletAddress,
           username: userInfo.username ?? '',
           profilePictureUrl: userInfo.profilePictureUrl,
-          orbVerified,
+          orbVerified: dbOrbVerified,
           verifiedAt,
         });
 
         return {
           id: finalPayload.address,
           ...userInfo,
-          orbVerified,
+          orbVerified: dbOrbVerified,
         };
       },
     }),
@@ -131,7 +131,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.username = user.username;
         token.profilePictureUrl = user.profilePictureUrl;
         token.orbVerified = user.orbVerified;
-      } else if (token.userId && token.orbVerified === undefined) {
+      }
+      if (token.userId) {
         const row = await getUserById(token.userId as string);
         if (row) token.orbVerified = row.orbVerified;
       }

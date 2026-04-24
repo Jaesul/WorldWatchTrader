@@ -3,6 +3,7 @@ import { SpringboardLink } from '@/components/Navigation';
 import { Page } from '@/components/PageLayout';
 import { Pay } from '@/components/Pay';
 import { Transaction } from '@/components/Transaction';
+import { AutoVerifyDialog } from '@/components/Verify/AutoVerifyDialog';
 import { UserInfo } from '@/components/UserInfo';
 import { Verify } from '@/components/Verify';
 import { ViewPermissions } from '@/components/ViewPermissions';
@@ -27,13 +28,17 @@ export default async function Home() {
         />
       </Page.Header>
       <Page.Main className="mb-16 flex flex-col items-center justify-start gap-4">
+        <AutoVerifyDialog
+          initiallyVerified={Boolean(session?.user.orbVerified)}
+          action="test-action"
+        />
         <p className="w-full max-w-lg text-center text-sm text-neutral-600">
           Marketplace listings, messages, and related flows live in the{' '}
           <SpringboardLink href="/design">design prototype</SpringboardLink> for now.
         </p>
 
         <UserInfo />
-        <Verify action="test-action" />
+        {!session?.user.orbVerified ? <Verify action="test-action" /> : null}
         <Pay />
         <Transaction />
         <ViewPermissions />
