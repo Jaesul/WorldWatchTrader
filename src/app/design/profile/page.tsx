@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListingEditDrawer } from "@/components/design/ListingEditDrawer";
 import { MarkSoldSheet } from "@/components/design/MarkSoldSheet";
+import { ProfileEditDrawer } from "@/components/design/ProfileEditDrawer";
 import { Verify } from "@/components/Verify";
 import { WorldOrbIcon } from "@/components/icons/world-orb";
 import { type MyListing, type ListingStatus } from "@/lib/design/listing-store";
@@ -14,6 +15,8 @@ import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { useViewerDashboardListingsInfinite } from "@/lib/design/use-viewer-dashboard-listings-infinite";
 import { STATUS_CONFIG } from "@/lib/design/listing-status-config";
 import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-interaction-gate";
+import { updateDesignProfile } from "@/lib/design/profile-store";
+import { useDesignProfile } from "@/lib/design/use-design-profile";
 
 type ProfileTab = "active" | "pending" | "history";
 
@@ -87,6 +90,8 @@ export default function ProfilePage() {
     id: string;
     orbVerified: boolean;
   } | null>(null);
+  const designProfile = useDesignProfile();
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("active");
   const [selectedListing, setSelectedListing] = useState<MyListing | null>(null);
   const [soldSheetListing, setSoldSheetListing] = useState<MyListing | null>(null);
@@ -280,7 +285,7 @@ export default function ProfilePage() {
       <div className="relative px-4 pb-4 pt-0">
         <div className="flex items-start gap-4">
           <img
-            src={avatarUrl}
+            src={designProfile.avatarUrl || avatarUrl}
             alt={viewer.username}
             className="size-16 shrink-0 rounded-full object-cover bg-foreground"
           />
@@ -317,15 +322,26 @@ export default function ProfilePage() {
             size="sm"
             className="shrink-0 text-xs"
             type="button"
-            disabled
-            title="Profile is DB-backed in the sandbox; editing comes with NextAuth wiring."
+            onClick={() => setProfileEditOpen(true)}
           >
             Edit
           </Button>
         </div>
 
+        {designProfile.bio ? (
+          <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/80">
+            {designProfile.bio}
+          </p>
+        ) : null}
         <p className="mt-3 break-all text-xs text-muted-foreground">{viewer.walletAddress}</p>
       </div>
+
+      <ProfileEditDrawer
+        open={profileEditOpen}
+        onOpenChange={setProfileEditOpen}
+        profile={designProfile}
+        onSave={(next) => updateDesignProfile(next)}
+      />
 
       {canVerifySignedInUser && (
         <div className="mx-4 mb-4 rounded-xl border border-world-verified/35 bg-world-verified/10 p-4">
