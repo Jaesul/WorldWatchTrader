@@ -77,7 +77,7 @@ function formatPrice(price: number, currency: string) {
 
 function ListingCardSkeleton() {
   return (
-    <div className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3">
+    <div className="flex w-full items-center gap-3 rounded-xl bg-card">
       <Skeleton className="size-12 shrink-0 rounded-lg" />
       <div className="min-w-0 flex-1 space-y-2">
         <Skeleton className="h-4 w-[55%] max-w-[200px]" />
@@ -106,10 +106,10 @@ function ListingCard({
   // - Purchase (bought by viewer): plain white/card background.
   // - Everything else: default card styling.
   const containerCls = isSale
-    ? "flex w-full items-center gap-3 rounded-xl border border-[#ffc85c] bg-[#ffc85c] p-3 text-left text-white shadow-sm transition-colors hover:bg-[#ffc85c]/90"
+    ? "flex w-full items-center gap-3 rounded-xl bg-[#ffc85c] text-left text-white shadow-sm transition-colors hover:bg-[#ffc85c]/90"
     : isPurchase
-      ? "flex w-full items-center gap-3 rounded-xl border border-border bg-white p-3 text-left text-foreground transition-colors hover:bg-white/90 dark:bg-card dark:text-foreground dark:hover:bg-card/80"
-      : "flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:bg-card/80";
+      ? "flex w-full items-center gap-3 rounded-xl bg-white text-left text-foreground transition-colors hover:bg-white/90 dark:bg-card dark:text-foreground dark:hover:bg-card/80"
+      : "flex w-full items-center gap-3 rounded-xl bg-card text-left transition-colors hover:bg-card/80";
 
   const titleCls = isSale
     ? "truncate text-sm font-semibold text-white"

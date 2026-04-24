@@ -13,9 +13,9 @@ import { FeedListingPreviewDrawer } from "@/components/design/FeedListingPreview
 
 function SavedListingSkeleton() {
   return (
-    <Card className="overflow-hidden py-0 shadow-sm">
+    <Card className="overflow-hidden py-0 shadow-none ring-0">
       <CardContent className="p-0">
-        <div className="flex w-full gap-3 p-3">
+        <div className="flex w-full gap-3">
           <Skeleton className="aspect-[4/3] w-28 shrink-0 rounded-lg" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-5 w-24" />
@@ -51,7 +51,7 @@ export default function SavedPage() {
 
   return (
     <div className="flex flex-col">
-      <div className="border-b border-border px-4 pb-3">
+      <div className="px-4 pb-3">
         <h1 className="text-xl font-semibold text-foreground">Saved</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {loading
@@ -86,12 +86,12 @@ export default function SavedPage() {
         <ul className="flex flex-col gap-3 p-3">
           {sorted.map((listing) => (
             <li key={listing.id}>
-              <Card className="overflow-hidden py-0 shadow-sm">
+              <Card className="overflow-hidden py-0 shadow-none ring-0">
                 <CardContent className="p-0">
                   <button
                     type="button"
                     onClick={() => setDrawerListing(listing)}
-                    className="flex w-full gap-3 p-3 text-left transition-colors hover:bg-muted/30"
+                    className="flex w-full gap-3 text-left transition-colors hover:bg-muted/30"
                   >
                     <div className="relative aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-lg bg-muted">
                       <Image
