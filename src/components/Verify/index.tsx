@@ -1,5 +1,5 @@
 'use client';
-import { IDKit, orbLegacy, type RpContext } from '@worldcoin/idkit';
+import { IDKit, IDKitErrorCodes, orbLegacy, type RpContext } from '@worldcoin/idkit';
 import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -23,6 +23,11 @@ export const Verify = ({
     'pending' | 'success' | 'failed' | undefined
   >(undefined);
   const router = useRouter();
+  const resetToIdle = () => setButtonState(undefined);
+  const setFailedTemporarily = () => {
+    setButtonState('failed');
+    setTimeout(() => setButtonState(undefined), 2000);
+  };
 
   const onClickVerify = async () => {
     setButtonState('pending');
@@ -55,11 +60,20 @@ export const Verify = ({
         allow_legacy_proofs: true,
       }).preset(orbLegacy({ signal: '' }));
 
-      const completion = await request.pollUntilCompletion();
+      const completion = await request.pollUntilCompletion({
+        pollInterval: 2_000,
+        timeout: 120_000,
+      });
 
       if (!completion.success) {
-        setButtonState('failed');
-        setTimeout(() => setButtonState(undefined), 2000);
+        if (
+          completion.error === IDKitErrorCodes.Cancelled ||
+          completion.error === IDKitErrorCodes.Timeout
+        ) {
+          resetToIdle();
+          return;
+        }
+        setFailedTemporarily();
         return;
       }
 
@@ -79,12 +93,20 @@ export const Verify = ({
         onVerified?.();
         router.refresh();
       } else {
-        setButtonState('failed');
-        setTimeout(() => setButtonState(undefined), 2000);
+        setFailedTemporarily();
       }
-    } catch {
-      setButtonState('failed');
-      setTimeout(() => setButtonState(undefined), 2000);
+    } catch (error) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        (error.code === IDKitErrorCodes.Cancelled ||
+          error.code === IDKitErrorCodes.Timeout)
+      ) {
+        resetToIdle();
+        return;
+      }
+      setFailedTemporarily();
     }
   };
 
@@ -105,7 +127,7 @@ export const Verify = ({
           disabled={buttonState === 'pending'}
           size="lg"
           variant="primary"
-          className="w-full"
+          className="w-full bg-[#ffc85c] text-foreground hover:bg-[#ffc85c]/90"
         >
           Verify with World ID
         </Button>
