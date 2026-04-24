@@ -5,10 +5,30 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatPrice } from "@/lib/design/data";
 import { useDesignListingSaves } from "@/lib/design/use-design-listing-saves";
 import type { DesignFeedListing } from "@/lib/design/map-db-feed-to-listing";
 import { FeedListingPreviewDrawer } from "@/components/design/FeedListingPreviewDrawer";
+
+function SavedListingSkeleton() {
+  return (
+    <Card className="overflow-hidden py-0 shadow-sm">
+      <CardContent className="p-0">
+        <div className="flex w-full gap-3 p-3">
+          <Skeleton className="aspect-[4/3] w-28 shrink-0 rounded-lg" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-4 w-full max-w-[220px]" />
+            <Skeleton className="h-4 w-4/5 max-w-[180px]" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <Skeleton className="mt-1 size-4 shrink-0 self-center rounded-full" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SavedPage() {
   const { savedListings, loading } = useDesignListingSaves();
@@ -38,8 +58,10 @@ export default function SavedPage() {
       </div>
 
       {loading ? (
-        <div className="px-4 py-16 text-center text-sm text-muted-foreground">
-          Loading saved listings…
+        <div className="space-y-3 p-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <SavedListingSkeleton key={i} />
+          ))}
         </div>
       ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-6 py-24 text-center">
