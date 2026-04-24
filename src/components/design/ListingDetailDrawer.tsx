@@ -237,7 +237,7 @@ export function ListingDetailDrawer({
           {soldHistory ? (
             <div className="mx-4 mt-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-3 py-2.5 text-center">
               <p className="text-xs font-semibold text-emerald-900 dark:text-emerald-100">
-                Settled on-chain via app escrow
+                Settled on-chain through the app
               </p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
                 Sold {soldHistory.soldAtLabel}

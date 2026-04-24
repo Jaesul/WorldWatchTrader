@@ -1,7 +1,9 @@
 /**
- * Design sandbox: mock on-chain settlement metadata for “sold via app escrow” rows.
+ * Design sandbox: mock on-chain settlement metadata for sold listings.
  * Replace with indexer / receipt payload when wiring production.
  */
+
+import type { ViewerDashboardDealSnapshot } from '@/lib/viewer/dashboard';
 
 export type OnChainSettlement = {
   txHash: string;
@@ -16,6 +18,17 @@ export type PublicProfileSoldRow = {
   listingId: string;
   soldAtLabel: string;
   settlement: OnChainSettlement;
+  /**
+   * Full deal snapshot used when opening the row's receipt drawer. Optional so
+   * legacy mock callers without a real deal can still pass minimal rows; in
+   * that case the drawer falls back to derived placeholder values.
+   */
+  deal?: ViewerDashboardDealSnapshot;
+  /**
+   * Whether this row represents a sale by the profile owner (`'sale'`) or a
+   * purchase made by them (`'purchase'`). Defaults to `'sale'`.
+   */
+  perspective?: 'sale' | 'purchase';
 };
 
 function djb2(s: string) {

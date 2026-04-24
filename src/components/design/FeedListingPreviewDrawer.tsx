@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { ListingDetailDrawer } from "@/components/design/ListingDetailDrawer";
+import { useDrawerResident } from "@/hooks/use-drawer-resident";
 import { LISTINGS, type Listing } from "@/lib/design/data";
 import {
   createInitialComments,
@@ -65,11 +66,13 @@ export function FeedListingPreviewDrawer({
     void ensureSavedIdsLoaded();
   }, [ensureEngagementLoaded, ensureSavedIdsLoaded, listing, open]);
 
-  const listingIsLive = Boolean(listing && isUuid(listing.id));
+  const residentListing = useDrawerResident(listing);
+
+  const listingIsLive = Boolean(residentListing && isUuid(residentListing.id));
 
   const comments: RichComment[] = useMemo(() => {
-    if (!listing) return [];
-    const raw = commentsByListing[listing.id] ?? [];
+    if (!residentListing) return [];
+    const raw = commentsByListing[residentListing.id] ?? [];
     return raw
       .map((c) => ({
         ...c,
@@ -79,19 +82,19 @@ export function FeedListingPreviewDrawer({
       }))
       .sort((a, b) => b.effectiveLikes - a.effectiveLikes);
   }, [
-    listing,
+    residentListing,
     commentsByListing,
     catalogCommentLikedIds,
     displayCommentLikes,
   ]);
 
   const addComment = useCallback(() => {
-    if (!listing) return;
-    const body = (commentDrafts[listing.id] ?? "").trim();
+    if (!residentListing) return;
+    const body = (commentDrafts[residentListing.id] ?? "").trim();
     if (!body) return;
     setCommentsByListing((prev) => {
       const next: FakeComment = {
-        id: `${listing.id}-comment-${Date.now()}`,
+        id: `${residentListing.id}-comment-${Date.now()}`,
         author: VIEWER_COMMENT_AUTHOR,
         avatar: viewerCommentAvatar,
         body,
@@ -99,10 +102,13 @@ export function FeedListingPreviewDrawer({
         likes: 0,
         authorUserId: viewer?.id,
       };
-      return { ...prev, [listing.id]: [...(prev[listing.id] ?? []), next] };
+      return {
+        ...prev,
+        [residentListing.id]: [...(prev[residentListing.id] ?? []), next],
+      };
     });
-    setCommentDrafts((prev) => ({ ...prev, [listing.id]: "" }));
-  }, [listing, commentDrafts, viewer?.id, viewerCommentAvatar]);
+    setCommentDrafts((prev) => ({ ...prev, [residentListing.id]: "" }));
+  }, [residentListing, commentDrafts, viewer?.id, viewerCommentAvatar]);
 
   const onToggleCommentLike = useCallback(
     (commentId: string) => {
@@ -132,38 +138,41 @@ export function FeedListingPreviewDrawer({
     toast.success("Comment deleted");
   }, []);
 
-  if (!listing) return null;
+  if (!residentListing) return null;
 
   const likedListing = listingIsLive
-    ? likedListingIds.has(listing.id)
-    : catalogLikedIds.has(listing.id);
+    ? likedListingIds.has(residentListing.id)
+    : catalogLikedIds.has(residentListing.id);
   const likeCount = listingIsLive
-    ? displayListingLikes(listing.id, listing.likes)
-    : listing.likes + (catalogLikedIds.has(listing.id) ? 1 : 0);
+    ? displayListingLikes(residentListing.id, residentListing.likes)
+    : residentListing.likes +
+      (catalogLikedIds.has(residentListing.id) ? 1 : 0);
 
   const commentLikedSet = listingIsLive ? likedCommentIds : catalogCommentLikedIds;
 
   return (
     <ListingDetailDrawer
-      listing={listing}
+      listing={residentListing}
       open={open}
       onOpenChange={onOpenChange}
       liked={likedListing}
       likeCount={likeCount}
       onToggleLike={() =>
         listingIsLive
-          ? void toggleListingLike(listing.id)
-          : toggleCatalogLike(listing.id)
+          ? void toggleListingLike(residentListing.id)
+          : toggleCatalogLike(residentListing.id)
       }
-      saved={savedIds.has(listing.id)}
-      onToggleSave={() => void toggleSave(listing.id)}
+      saved={savedIds.has(residentListing.id)}
+      onToggleSave={() => void toggleSave(residentListing.id)}
       comments={comments}
       commentLikedIds={commentLikedSet}
       onToggleCommentLike={onToggleCommentLike}
-      onDeleteComment={(commentId) => deleteComment(listing.id, commentId)}
-      commentDraft={commentDrafts[listing.id] ?? ""}
+      onDeleteComment={(commentId) =>
+        deleteComment(residentListing.id, commentId)
+      }
+      commentDraft={commentDrafts[residentListing.id] ?? ""}
       onCommentDraftChange={(val) =>
-        setCommentDrafts((prev) => ({ ...prev, [listing.id]: val }))
+        setCommentDrafts((prev) => ({ ...prev, [residentListing.id]: val }))
       }
       onAddComment={addComment}
       soldHistory={soldHistory}

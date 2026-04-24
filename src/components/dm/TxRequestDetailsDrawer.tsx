@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/drawer';
 import { Textarea } from '@/components/ui/textarea';
 import type { DmTxRequestSnapshotPayload } from '@/hooks/useDmThreadStream';
+import { useDrawerResident } from '@/hooks/use-drawer-resident';
 
 type Props = {
   open: boolean;
@@ -53,20 +54,22 @@ export function TxRequestDetailsDrawer({
     }
   }, [open]);
 
-  if (!request) return null;
+  const residentRequest = useDrawerResident(request);
+
+  if (!residentRequest) return null;
 
   const viewerIsRecipient =
-    !!viewerId && viewerId === request.recipientId;
-  const canResolve = viewerIsRecipient && request.status === 'pending';
+    !!viewerId && viewerId === residentRequest.recipientId;
+  const canResolve = viewerIsRecipient && residentRequest.status === 'pending';
 
   async function patchRequest(
     action: 'accept' | 'decline',
     body?: { reason?: string },
   ) {
-    if (!request) return;
+    if (!residentRequest) return;
     setSubmitting(action);
     try {
-      const res = await fetch(`/api/design/dm/transaction-requests/${request.requestId}`, {
+      const res = await fetch(`/api/design/dm/transaction-requests/${residentRequest.requestId}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -97,11 +100,11 @@ export function TxRequestDetailsDrawer({
           <div className="flex items-center justify-between gap-2">
             <DrawerTitle>Transaction request</DrawerTitle>
             <span
-              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusBadge(request.status)}`}
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusBadge(residentRequest.status)}`}
             >
-              {request.status === 'pending'
+              {residentRequest.status === 'pending'
                 ? 'Pending'
-                : request.status === 'accepted'
+                : residentRequest.status === 'accepted'
                   ? 'Accepted'
                   : 'Declined'}
             </span>
@@ -113,10 +116,10 @@ export function TxRequestDetailsDrawer({
 
         <div className="flex gap-3 rounded-xl border border-border bg-muted/40 p-3">
           <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-muted">
-            {request.listing.imageUrl ? (
+            {residentRequest.listing.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={request.listing.imageUrl}
+                src={residentRequest.listing.imageUrl}
                 alt=""
                 className="size-full object-cover"
               />
@@ -128,35 +131,35 @@ export function TxRequestDetailsDrawer({
           </div>
           <div className="min-w-0 flex-1">
             <p className="line-clamp-2 text-sm font-semibold text-foreground">
-              {request.listing.title}
+              {residentRequest.listing.title}
             </p>
             <p className="mt-1 text-base font-bold text-foreground">
-              ${request.priceUsd.toLocaleString('en-US')}
+              ${residentRequest.priceUsd.toLocaleString('en-US')}
             </p>
             <p className="mt-0.5 text-[10px] text-muted-foreground capitalize">
-              {request.listing.status}
+              {residentRequest.listing.status}
             </p>
           </div>
         </div>
 
-        {request.description.trim() ? (
+        {residentRequest.description.trim() ? (
           <div className="mt-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Description
             </p>
             <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/85">
-              {request.description}
+              {residentRequest.description}
             </p>
           </div>
         ) : null}
 
-        {request.status === 'declined' && request.declineReason ? (
+        {residentRequest.status === 'declined' && residentRequest.declineReason ? (
           <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">
               Decline reason
             </p>
             <p className="mt-1 whitespace-pre-wrap text-sm text-rose-900/90">
-              {request.declineReason}
+              {residentRequest.declineReason}
             </p>
           </div>
         ) : null}
@@ -228,13 +231,13 @@ export function TxRequestDetailsDrawer({
           </div>
         ) : null}
 
-        {!canResolve && request.status !== 'pending' ? (
+        {!canResolve && residentRequest.status !== 'pending' ? (
           <div className="mt-5 text-center text-xs text-muted-foreground">
-            This request is {request.status}.
+            This request is {residentRequest.status}.
           </div>
         ) : null}
 
-        {!canResolve && request.status === 'pending' ? (
+        {!canResolve && residentRequest.status === 'pending' ? (
           <div className="mt-5 text-center text-xs text-muted-foreground">
             Waiting on the buyer to respond.
           </div>

@@ -15,6 +15,7 @@ import {
 import { addMessage } from '@/lib/design/thread-store';
 import { DESIGN_SHARE_RECIPIENTS } from '@/lib/design/share-recipients';
 import { formatPrice, type Listing } from '@/lib/design/data';
+import { useDrawerResident } from '@/hooks/use-drawer-resident';
 import { cn } from '@/lib/utils';
 
 function buildListingUrl(listingId: string) {
@@ -46,10 +47,11 @@ export function ListingShareSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  if (!listing) return null;
+  const residentListing = useDrawerResident(listing);
+  if (!residentListing) return null;
 
   /** Captured for async handlers — props may be typed as nullable at call time. */
-  const activeListing = listing;
+  const activeListing = residentListing;
   const url = buildListingUrl(activeListing.id);
   const summary = buildListingSummary(activeListing);
 

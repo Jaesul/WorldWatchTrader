@@ -67,6 +67,7 @@ import { useDesignEngagement } from "@/lib/design/use-design-engagement";
 import { useDesignListingSaves } from "@/lib/design/use-design-listing-saves";
 import { designDmReplyHref } from "@/lib/design/dm-reply";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
+import { useDrawerResident } from "@/hooks/use-drawer-resident";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -392,6 +393,11 @@ export function DesignMarketplaceClient({
   ]);
   const [viewMode, setViewMode] = useState<ViewMode>("feed");
   const [drawerListing, setDrawerListing] = useState<DesignFeedListing | null>(null);
+  /**
+   * Keeps the listing mounted during the drawer's close animation so the
+   * exit transition can play after `setDrawerListing(null)`.
+   */
+  const drawerResident = useDrawerResident(drawerListing);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
@@ -736,8 +742,8 @@ export function DesignMarketplaceClient({
   );
 
   // Drawer helpers
-  const drawerComments: RichComment[] = drawerListing
-    ? (commentsByListing[drawerListing.id] ?? [])
+  const drawerComments: RichComment[] = drawerResident
+    ? (commentsByListing[drawerResident.id] ?? [])
         .map((c) => ({
           ...c,
           effectiveLikes: displayCommentLikes(c.id, c.likes),
@@ -1574,32 +1580,32 @@ export function DesignMarketplaceClient({
       )}
 
       {/* ── Listing detail drawer (grid mode) ── */}
-      {drawerListing && (
+      {drawerResident ? (
         <ListingDetailDrawer
-          listing={drawerListing}
+          listing={drawerResident}
           open={drawerListing !== null}
           onOpenChange={(open) => {
             if (!open) setDrawerListing(null);
-            else void ensureCommentsLoaded(drawerListing.id);
+            else void ensureCommentsLoaded(drawerResident.id);
           }}
-          liked={likedListingIds.has(drawerListing.id)}
-          likeCount={displayListingLikes(drawerListing.id, drawerListing.likes)}
-          onToggleLike={() => void toggleListingLike(drawerListing.id)}
-          saved={savedIds.has(drawerListing.id)}
-          onToggleSave={() => void toggleSaveListing(drawerListing.id)}
+          liked={likedListingIds.has(drawerResident.id)}
+          likeCount={displayListingLikes(drawerResident.id, drawerResident.likes)}
+          onToggleLike={() => void toggleListingLike(drawerResident.id)}
+          saved={savedIds.has(drawerResident.id)}
+          onToggleSave={() => void toggleSaveListing(drawerResident.id)}
           comments={drawerComments}
           commentLikedIds={likedCommentIds}
           onToggleCommentLike={(id) => void toggleCommentLike(id)}
           onDeleteComment={(commentId) =>
-            void deleteComment(drawerListing.id, commentId)
+            void deleteComment(drawerResident.id, commentId)
           }
-          commentDraft={commentDrafts[drawerListing.id] ?? ""}
+          commentDraft={commentDrafts[drawerResident.id] ?? ""}
           onCommentDraftChange={(val) =>
-            setCommentDrafts((prev) => ({ ...prev, [drawerListing.id]: val }))
+            setCommentDrafts((prev) => ({ ...prev, [drawerResident.id]: val }))
           }
-          onAddComment={() => void addComment(drawerListing.id)}
+          onAddComment={() => void addComment(drawerResident.id)}
         />
-      )}
+      ) : null}
     </div>
   );
 }

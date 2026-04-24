@@ -10,6 +10,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { useDrawerResident } from "@/hooks/use-drawer-resident";
 import { WorldOrbIcon } from "@/components/icons/world-orb";
 import { OnChainSettlementDetails } from "@/components/design/OnChainSettlementDetails";
 import type { MyListing } from "@/lib/design/listing-store";
@@ -110,13 +111,14 @@ export function SoldListingReceiptDrawer({
   onOpenChange,
   listing,
 }: Props) {
-  if (!listing) return null;
+  const residentListing = useDrawerResident(listing);
+  if (!residentListing) return null;
 
-  const deal = listing.deal;
-  const isPurchase = listing.perspective === "purchase";
-  const settlement = buildSettlement(listing);
+  const deal = residentListing.deal;
+  const isPurchase = residentListing.perspective === "purchase";
+  const settlement = buildSettlement(residentListing);
   const chainId = deal?.chainId;
-  const salePrice = deal?.priceUsd ?? listing.price;
+  const salePrice = deal?.priceUsd ?? residentListing.price;
 
   const title = isPurchase ? "Purchase receipt" : "Sale receipt";
   const description = isPurchase
@@ -149,17 +151,17 @@ export function SoldListingReceiptDrawer({
             <div className="flex gap-3">
               <div className="relative size-20 shrink-0 overflow-hidden rounded-xl bg-muted">
                 <img
-                  src={listing.photo}
-                  alt={listing.model}
+                  src={residentListing.photo}
+                  alt={residentListing.model}
                   className="size-full object-cover"
                 />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 text-sm font-semibold text-foreground">
-                  {listing.model}
+                  {residentListing.model}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {listing.condition || "—"}
+                  {residentListing.condition || "—"}
                 </p>
                 <p className="mt-1.5 text-lg font-bold text-foreground">
                   {formatUsd(salePrice)}

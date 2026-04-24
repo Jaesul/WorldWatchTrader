@@ -14,6 +14,7 @@ import {
   listPurchasesForUser,
   type PurchaseRow,
 } from '@/db/queries/dm-transactions';
+import { getShipmentFlagsForDealIds } from '@/db/queries/dm-shipments';
 import { getUserByPublicProfileSlug } from '@/db/queries/users';
 import type { Badge, Listing } from '@/lib/design/data';
 import {
@@ -35,6 +36,11 @@ import {
   profileDisplayName,
   publicProfileSalesAndPositivePercent,
 } from '@/lib/design/public-profile-stats';
+import type {
+  ViewerDashboardDealParty,
+  ViewerDashboardDealSnapshot,
+  ViewerDashboardShipmentFlag,
+} from '@/lib/viewer/dashboard';
 
 export const revalidate = 60;
 
@@ -123,6 +129,19 @@ export default async function PublicProfilePage({
   const soldListingIds = soldRowsDb.map(({ listing }) => listing.id);
   const confirmedDeals = await getConfirmedDealsForListings(soldListingIds);
 
+  const dealIdsForShipments: string[] = [];
+  for (const deal of confirmedDeals.values()) dealIdsForShipments.push(deal.id);
+  for (const { deal } of purchaseRowsDb) dealIdsForShipments.push(deal.id);
+  const shipmentFlagsByDealId = await getShipmentFlagsForDealIds(dealIdsForShipments);
+
+  const profileOwnerParty: ViewerDashboardDealParty = {
+    id: user.id,
+    username: user.username,
+    handle: user.handle,
+    walletAddress: user.walletAddress,
+    profilePictureUrl: user.profilePictureUrl,
+  };
+
   const soldListings: PublicProfileSoldRow[] = soldRowsDb.map(({ listing }) => {
     const fallback = buildMockPublicProfileSoldParts({
       listingId: listing.id,
@@ -135,6 +154,7 @@ export default async function PublicProfilePage({
         listingId: listing.id,
         soldAtLabel: fallback.soldAtLabel,
         settlement: fallback.settlement,
+        perspective: 'sale' as const,
       };
     }
     const confirmedDate = deal.confirmedAt ?? listing.updatedAt;
@@ -157,37 +177,103 @@ export default async function PublicProfilePage({
       amount: deal.amountRaw ?? fallback.settlement.amount,
       confirmedAtLabel,
     };
-    return { listingId: listing.id, soldAtLabel, settlement };
+    const buyerParty: ViewerDashboardDealParty = {
+      id: deal.buyer.id,
+      username: deal.buyer.username,
+      handle: deal.buyer.handle,
+      walletAddress: deal.buyer.walletAddress,
+      profilePictureUrl: deal.buyer.profilePictureUrl,
+    };
+    const shipmentRow = shipmentFlagsByDealId.get(deal.id) ?? null;
+    const shipment: ViewerDashboardShipmentFlag | null = shipmentRow
+      ? { carrierName: shipmentRow.carrierName, shippedAt: shipmentRow.shippedAt }
+      : null;
+    const dealSnapshot: ViewerDashboardDealSnapshot = {
+      dealId: deal.id,
+      priceUsd: deal.priceUsd,
+      chainId: deal.chainId,
+      chainName: deal.chainName,
+      txHash: deal.transactionHash,
+      userOpHash: deal.userOpHash,
+      blockNumber: deal.blockNumber,
+      tokenSymbol: deal.tokenSymbol,
+      amountRaw: deal.amountRaw,
+      confirmedAt: deal.confirmedAt ? deal.confirmedAt.toISOString() : null,
+      buyer: buyerParty,
+      seller: null,
+      shipment,
+    };
+    return {
+      listingId: listing.id,
+      soldAtLabel,
+      settlement,
+      perspective: 'sale' as const,
+      deal: dealSnapshot,
+    };
   });
 
-  const purchasedListings: PublicProfileSoldRow[] = purchaseRowsDb.map(({ listing, deal }) => {
-    const fallback = buildMockPublicProfileSoldParts({
-      listingId: listing.id,
-      updatedAt: listing.updatedAt,
-      priceUsd: listing.priceUsd,
-    });
-    const confirmedDate = deal.confirmedAt ?? listing.updatedAt;
-    const soldAtLabel = new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      year: 'numeric',
-    }).format(confirmedDate);
-    const confirmedAtLabel = new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(confirmedDate);
-    const settlement: OnChainSettlement = {
-      txHash: deal.transactionHash ?? fallback.settlement.txHash,
-      blockNumber: deal.blockNumber ?? fallback.settlement.blockNumber,
-      chainName: deal.chainName ?? fallback.settlement.chainName,
-      token: deal.tokenSymbol ?? fallback.settlement.token,
-      amount: deal.amountRaw ?? fallback.settlement.amount,
-      confirmedAtLabel,
-    };
-    return { listingId: listing.id, soldAtLabel, settlement };
-  });
+  const purchasedListings: PublicProfileSoldRow[] = purchaseRowsDb.map(
+    ({ listing, deal, seller }) => {
+      const fallback = buildMockPublicProfileSoldParts({
+        listingId: listing.id,
+        updatedAt: listing.updatedAt,
+        priceUsd: listing.priceUsd,
+      });
+      const confirmedDate = deal.confirmedAt ?? listing.updatedAt;
+      const soldAtLabel = new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        year: 'numeric',
+      }).format(confirmedDate);
+      const confirmedAtLabel = new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(confirmedDate);
+      const settlement: OnChainSettlement = {
+        txHash: deal.transactionHash ?? fallback.settlement.txHash,
+        blockNumber: deal.blockNumber ?? fallback.settlement.blockNumber,
+        chainName: deal.chainName ?? fallback.settlement.chainName,
+        token: deal.tokenSymbol ?? fallback.settlement.token,
+        amount: deal.amountRaw ?? fallback.settlement.amount,
+        confirmedAtLabel,
+      };
+      const sellerParty: ViewerDashboardDealParty = {
+        id: seller.id,
+        username: seller.username,
+        handle: seller.handle,
+        walletAddress: seller.walletAddress,
+        profilePictureUrl: seller.profilePictureUrl,
+      };
+      const shipmentRow = shipmentFlagsByDealId.get(deal.id) ?? null;
+      const shipment: ViewerDashboardShipmentFlag | null = shipmentRow
+        ? { carrierName: shipmentRow.carrierName, shippedAt: shipmentRow.shippedAt }
+        : null;
+      const dealSnapshot: ViewerDashboardDealSnapshot = {
+        dealId: deal.id,
+        priceUsd: deal.priceUsd,
+        chainId: deal.chainId,
+        chainName: deal.chainName,
+        txHash: deal.transactionHash,
+        userOpHash: deal.userOpHash,
+        blockNumber: deal.blockNumber,
+        tokenSymbol: deal.tokenSymbol,
+        amountRaw: deal.amountRaw,
+        confirmedAt: deal.confirmedAt ? deal.confirmedAt.toISOString() : null,
+        buyer: profileOwnerParty,
+        seller: sellerParty,
+        shipment,
+      };
+      return {
+        listingId: listing.id,
+        soldAtLabel,
+        settlement,
+        perspective: 'purchase' as const,
+        deal: dealSnapshot,
+      };
+    },
+  );
 
   const name = profileDisplayName(user);
   const memberSince = memberSinceLabel(user.createdAt);
@@ -277,7 +363,7 @@ export default async function PublicProfilePage({
         </dl>
 
         <div className="mt-4">
-          <Button className="w-full" asChild>
+          <Button className="w-full text-white" asChild>
             <Link href="/design/messages">Message seller</Link>
           </Button>
         </div>

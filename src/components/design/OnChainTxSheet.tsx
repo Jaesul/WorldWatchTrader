@@ -8,6 +8,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useDrawerResident } from "@/hooks/use-drawer-resident";
 
 import { OnChainSettlementDetails } from "./OnChainSettlementDetails";
 
@@ -20,9 +21,8 @@ export function OnChainTxSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  if (!settlement) return null;
-
-  const tx = settlement;
+  const tx = useDrawerResident(settlement);
+  if (!tx) return null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -36,8 +36,7 @@ export function OnChainTxSheet({
         <SheetHeader className="px-4 pb-2 text-left">
           <SheetTitle className="text-base">On-chain settlement</SheetTitle>
           <SheetDescription>
-            This sale was finalized through in-app escrow and recorded on{" "}
-            {tx.chainName}.
+            This sale was settled in-app and recorded on {tx.chainName}.
           </SheetDescription>
         </SheetHeader>
 

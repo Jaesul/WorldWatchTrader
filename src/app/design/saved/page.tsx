@@ -86,7 +86,7 @@ export default function SavedPage() {
         <ul className="flex flex-col gap-3 p-3">
           {sorted.map((listing) => (
             <li key={listing.id}>
-              <Card className="overflow-hidden py-0 shadow-none ring-0">
+              <Card className="overflow-hidden border-0 py-0 shadow-none ring-0">
                 <CardContent className="p-0">
                   <button
                     type="button"

@@ -357,12 +357,6 @@ export default function NewListingPage() {
           </div>
         )}
 
-        <div className="rounded-xl border border-world-verified/35 bg-world-verified/10 p-3">
-          <p className="text-xs text-foreground/70">
-            Link World ID from Profile to earn the World Verified badge on your listings.
-          </p>
-        </div>
-
         <Button className="w-full" disabled={!canSubmit || busy} onClick={() => void handlePost()}>
           {isUploading ? "Uploading photos…" : submitting ? "Publishing…" : "Post listing"}
         </Button>

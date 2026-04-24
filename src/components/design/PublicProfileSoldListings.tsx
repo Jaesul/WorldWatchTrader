@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { Link2 } from "lucide-react";
 
-import { FeedListingPreviewDrawer } from "@/components/design/FeedListingPreviewDrawer";
 import { OnChainTxSheet } from "@/components/design/OnChainTxSheet";
+import { SoldListingReceiptDrawer } from "@/components/design/SoldListingReceiptDrawer";
 import { getListingById, type Listing } from "@/lib/design/data";
 import type { OnChainSettlement, PublicProfileSoldRow } from "@/lib/design/on-chain-sale-mock";
 import { getListingChipThumbnailById } from "@/lib/design/listing-attachment-thumb";
+import { type MyListing } from "@/lib/design/listing-store";
 import { useViewerDashboardListings } from "@/lib/design/use-viewer-dashboard-listings";
 
 export function PublicProfileSoldListings({
@@ -27,10 +28,7 @@ export function PublicProfileSoldListings({
   const verbPast = isSale ? 'Sold' : 'Purchased';
   const chipLabel = isSale ? 'Sale' : 'Purchase';
   const myListings = useViewerDashboardListings();
-  const [listingDrawer, setListingDrawer] = useState<{
-    listing: Listing;
-    soldAtLabel: string;
-  } | null>(null);
+  const [receiptListing, setReceiptListing] = useState<MyListing | null>(null);
   const [txSheet, setTxSheet] = useState<OnChainSettlement | null>(null);
 
   const containerCls = isSale
@@ -63,8 +61,8 @@ export function PublicProfileSoldListings({
             </h2>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               {isSale
-                ? 'Escrow completed on-chain through the app.'
-                : 'Purchases completed on-chain through the app.'}
+                ? 'Sales settled on-chain through the app.'
+                : 'Purchases settled on-chain through the app.'}
             </p>
           </div>
         )}
@@ -82,7 +80,8 @@ export function PublicProfileSoldListings({
                   type="button"
                   onClick={() => {
                     const full = listingsById?.[row.listingId] ?? getListingById(row.listingId);
-                    if (full) setListingDrawer({ listing: full, soldAtLabel: row.soldAtLabel });
+                    if (!full) return;
+                    setReceiptListing(toReceiptListing(full, row, thumb));
                   }}
                   className={containerCls}
                 >
@@ -133,17 +132,12 @@ export function PublicProfileSoldListings({
         </div>
       </div>
 
-      <FeedListingPreviewDrawer
-        listing={listingDrawer?.listing ?? null}
-        open={listingDrawer !== null}
+      <SoldListingReceiptDrawer
+        open={receiptListing !== null}
         onOpenChange={(open) => {
-          if (!open) setListingDrawer(null);
+          if (!open) setReceiptListing(null);
         }}
-        soldHistory={
-          listingDrawer
-            ? { soldAtLabel: listingDrawer.soldAtLabel }
-            : undefined
-        }
+        listing={receiptListing}
       />
 
       <OnChainTxSheet
@@ -155,4 +149,33 @@ export function PublicProfileSoldListings({
       />
     </>
   );
+}
+
+/**
+ * Adapts a public-profile sold/purchased row + catalog listing into the
+ * `MyListing` shape consumed by {@link SoldListingReceiptDrawer}. Falls back to
+ * the row's listing photos / settlement when the row didn't ship with a full
+ * deal snapshot (legacy mock fixtures).
+ */
+function toReceiptListing(
+  listing: Listing,
+  row: PublicProfileSoldRow,
+  thumb: string | null,
+): MyListing {
+  const heroPhoto = thumb ?? listing.photos[0] ?? '';
+  return {
+    id: listing.id,
+    model: listing.model,
+    price: listing.price,
+    currency: 'USD',
+    description: listing.description,
+    condition: listing.condition,
+    boxPapers: listing.boxPapers,
+    photoCount: listing.photos.length,
+    photo: heroPhoto,
+    status: 'sold',
+    postedAt: listing.postedAt,
+    deal: row.deal ?? null,
+    perspective: row.perspective ?? 'sale',
+  };
 }

@@ -92,7 +92,7 @@ export function PublicProfileListingsTabs({
           <div>
             <div className="px-4 pt-3">
               <p className="text-[11px] text-muted-foreground">
-                Escrow completed on-chain through the app.
+                Sales settled on-chain through the app.
               </p>
             </div>
             <PublicProfileSoldListings

@@ -17,6 +17,7 @@ import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { useViewerDashboardListingsInfinite } from "@/lib/design/use-viewer-dashboard-listings-infinite";
 import { useViewerPurchases } from "@/lib/design/use-viewer-purchases";
 import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-interaction-gate";
+import { useDrawerResident } from "@/hooks/use-drawer-resident";
 type ProfileTab = "active" | "pending" | "history";
 
 function shortAddress(addr: string): string {
@@ -87,6 +88,37 @@ function ListingCardSkeleton() {
   );
 }
 
+const STATUS_CHIP: Record<
+  ListingStatus,
+  { label: string; className: string }
+> = {
+  draft: {
+    label: "Draft",
+    className:
+      "border-foreground/20 bg-foreground/5 text-foreground",
+  },
+  active: {
+    label: "Active",
+    className:
+      "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  },
+  pending: {
+    label: "Pending",
+    className:
+      "border-amber-500/40 bg-amber-500/15 text-amber-800 dark:text-amber-200",
+  },
+  sold: {
+    label: "Sold",
+    className:
+      "border-foreground/20 bg-foreground/5 text-foreground",
+  },
+  archived: {
+    label: "Archived",
+    className:
+      "border-muted-foreground/30 bg-muted text-muted-foreground",
+  },
+};
+
 function ListingCard({
   listing,
   onOpen,
@@ -97,26 +129,41 @@ function ListingCard({
   const isSale =
     listing.perspective !== "purchase" && listing.status === "sold";
   const isPurchase = listing.perspective === "purchase";
+  const isHistory = isSale || isPurchase;
 
   // Colour scheme:
-  // - Sale (sold by viewer): gold background + white text.
-  // - Purchase (bought by viewer): plain white/card background.
+  // - Sale (sold by viewer) + Purchase (bought by viewer): gold background
+  //   with white text, so history rows read as completed transactions.
   // - Everything else: default card styling.
-  const containerCls = isSale
-    ? "flex w-full items-center gap-3 rounded-xl bg-[#ffc85c] text-left text-white shadow-sm transition-colors hover:bg-[#ffc85c]/90"
-    : isPurchase
-      ? "flex w-full items-center gap-3 rounded-xl bg-white text-left text-foreground transition-colors hover:bg-white/90 dark:bg-card dark:text-foreground dark:hover:bg-card/80"
-      : "flex w-full items-center gap-3 rounded-xl bg-card text-left transition-colors hover:bg-card/80";
+  const containerCls = isHistory
+    ? "flex w-full items-center gap-3 rounded-xl bg-[#ffc85c] p-3 text-left text-white shadow-sm transition-colors hover:bg-[#ffc85c]/90"
+    : "flex w-full items-center gap-3 rounded-xl bg-card p-3 text-left transition-colors hover:bg-card/80";
 
-  const titleCls = isSale
+  const titleCls = isHistory
     ? "truncate text-base font-semibold text-white"
     : "truncate text-base font-semibold text-foreground";
-  const subCls = isSale
+  const subCls = isHistory
     ? "text-sm text-white/80"
     : "text-sm text-muted-foreground";
-  const tsCls = isSale
+  const tsCls = isHistory
     ? "mt-0.5 text-xs text-white/70"
     : "mt-0.5 text-xs text-muted-foreground/60";
+
+  const statusCfg = STATUS_CHIP[listing.status];
+  const chipLabel = isSale ? "Sale" : isPurchase ? "Purchase" : statusCfg.label;
+  const chipCls = isHistory
+    ? "shrink-0 rounded-full border border-foreground/15 bg-foreground px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-background"
+    : `shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusCfg.className}`;
+
+  const shipment = listing.deal?.shipment ?? null;
+  const shippedChipCls = isHistory
+    ? "shrink-0 rounded-full border border-foreground/15 bg-background px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground"
+    : "shrink-0 rounded-full border border-sky-500/30 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300";
+  const shippedLabel = shipment
+    ? shipment.carrierName
+      ? `Shipped · ${shipment.carrierName}`
+      : "Shipped"
+    : null;
 
   return (
     <button type="button" onClick={onOpen} className={containerCls}>
@@ -132,6 +179,12 @@ function ListingCard({
           {listing.condition ? ` · ${listing.condition}` : ""}
         </p>
         <p className={tsCls}>{listing.postedAt}</p>
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <span className={chipCls}>{chipLabel}</span>
+        {shippedLabel ? (
+          <span className={shippedChipCls}>{shippedLabel}</span>
+        ) : null}
       </div>
     </button>
   );
@@ -150,6 +203,9 @@ export default function ProfilePage() {
   const [selectedListing, setSelectedListing] = useState<MyListing | null>(null);
   const [soldSheetListing, setSoldSheetListing] = useState<MyListing | null>(null);
   const [receiptListing, setReceiptListing] = useState<MyListing | null>(null);
+  /** Cached values that survive past close so drawer exit animations can play. */
+  const selectedListingResident = useDrawerResident(selectedListing);
+  const soldSheetListingResident = useDrawerResident(soldSheetListing);
 
   const {
     listings: allListings,
@@ -607,25 +663,25 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {selectedListing ? (
+      {selectedListingResident ? (
         <ListingEditDrawer
-          key={selectedListing.id}
-          listing={selectedListing}
-          open={!!selectedListing}
+          key={selectedListingResident.id}
+          listing={selectedListingResident}
+          open={selectedListing !== null}
           onClose={() => setSelectedListing(null)}
           onRequestSold={(l) => setSoldSheetListing(l)}
           onAfterMutate={() => refresh()}
         />
       ) : null}
 
-      {soldSheetListing ? (
+      {soldSheetListingResident ? (
         <MarkSoldSheet
-          open={!!soldSheetListing}
+          open={soldSheetListing !== null}
           onOpenChange={(open) => {
             if (!open) setSoldSheetListing(null);
           }}
-          listing={soldSheetListing}
-          previousStatus={soldSheetListing.status}
+          listing={soldSheetListingResident}
+          previousStatus={soldSheetListingResident.status}
           persistStatusChange={persistStatusChange}
           onSold={() => setSoldSheetListing(null)}
         />
