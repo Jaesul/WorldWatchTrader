@@ -1,34 +1,63 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ArrowLeftRight, Watch } from "lucide-react";
+import Link from "next/link";
+import { User } from "lucide-react";
 
 import { DesignNav } from "@/components/design/DesignNav";
-import { WorldOrbIcon } from "@/components/icons/world-orb";
 import { SoldLuxuryCelebrationLayer } from "@/components/design/SoldLuxuryCelebrationLayer";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
 import { Toaster } from "@/components/ui/sonner";
+import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 
 /**
  * Design route shell: compact brand row, scroll root for page content,
  * bottom nav and toasts.
  */
 export function DesignAppShell({ children }: { children: ReactNode }) {
+  const { viewer } = useDesignViewer();
+  const avatarUrl = viewer?.profilePictureUrl?.trim() || undefined;
+  const avatarLabel = viewer?.username ?? "Profile";
+  const avatarInitial =
+    viewer?.username?.trim().charAt(0).toUpperCase() ?? "";
+
   return (
     <div data-design-app className="flex h-dvh flex-col bg-background">
       <div className="flex min-w-0 shrink-0 items-center gap-3 bg-background px-3 py-4">
         <header className="flex min-w-0 shrink-0 items-center gap-2">
-          <span
-            className="flex shrink-0 items-center gap-1.5 text-foreground/75"
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.svg"
+            alt=""
             aria-hidden
-          >
-            <WorldOrbIcon className="size-5" />
-            <Watch className="size-5" strokeWidth={2} />
-            <ArrowLeftRight className="size-5" strokeWidth={2} />
-          </span>
+            className="size-8 shrink-0"
+          />
           <h1 className="shrink-0 whitespace-nowrap text-2xl font-semibold tracking-tight text-foreground">
             World Watch Trader
           </h1>
         </header>
+        <Link
+          href="/design/profile"
+          aria-label="Profile"
+          className="ml-auto shrink-0 rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <Avatar className="size-8">
+            {avatarUrl ? (
+              <AvatarImage src={avatarUrl} alt={avatarLabel} />
+            ) : null}
+            <AvatarFallback>
+              {avatarInitial ? (
+                avatarInitial
+              ) : (
+                <User strokeWidth={1.8} className="size-5" />
+              )}
+            </AvatarFallback>
+          </Avatar>
+        </Link>
       </div>
       <div
         className="min-h-0 flex-1 overflow-y-auto"
