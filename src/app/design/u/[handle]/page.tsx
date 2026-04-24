@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { PublicProfileActiveListings } from '@/components/design/PublicProfileActiveListings';
 import type { PublicProfileListingRow } from '@/components/design/PublicProfileActiveListings';
 import { PublicProfileSoldListings } from '@/components/design/PublicProfileSoldListings';
+import { WorldOrbIcon } from '@/components/icons/world-orb';
 import { Button } from '@/components/ui/button';
 import {
   countSellerListingsByStatus,
@@ -101,9 +102,7 @@ export default async function PublicProfilePage({
               <h1 className="text-lg font-semibold text-foreground">{name}</h1>
               {verified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-world-verified/15 px-2 py-0.5 text-[10px] font-semibold text-world-verified">
-                  <svg viewBox="0 0 12 12" fill="currentColor" className="size-3">
-                    <path d="M6 0a6 6 0 1 0 0 12A6 6 0 0 0 6 0zm2.78 4.47a.5.5 0 0 0-.7-.7L5.5 6.29 4.42 5.22a.5.5 0 0 0-.7.7l1.6 1.6a.5.5 0 0 0 .7 0l3-3z" />
-                  </svg>
+                  <WorldOrbIcon className="size-3 shrink-0" />
                   World Verified
                 </span>
               )}

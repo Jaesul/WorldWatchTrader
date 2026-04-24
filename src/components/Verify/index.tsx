@@ -4,6 +4,8 @@ import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { WorldOrbIcon } from '@/components/icons/world-orb';
+
 /**
  * This component is an example of how to use World ID verification via IDKit.
  * Verification now goes through IDKit end-to-end (both native World App and web).
@@ -127,8 +129,9 @@ export const Verify = ({
           disabled={buttonState === 'pending'}
           size="lg"
           variant="primary"
-          className="w-full bg-[#ffc85c] text-foreground hover:bg-[#ffc85c]/90"
+          className="w-full gap-2 bg-[#ffc85c] text-foreground hover:bg-[#ffc85c]/90"
         >
+          <WorldOrbIcon className="size-5 shrink-0 text-foreground" />
           Verify with World ID
         </Button>
       </LiveFeedback>

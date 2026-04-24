@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ListingEditDrawer } from "@/components/design/ListingEditDrawer";
 import { MarkSoldSheet } from "@/components/design/MarkSoldSheet";
 import { Verify } from "@/components/Verify";
+import { WorldOrbIcon } from "@/components/icons/world-orb";
 import { type MyListing, type ListingStatus } from "@/lib/design/listing-store";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { useViewerDashboardListingsInfinite } from "@/lib/design/use-viewer-dashboard-listings-infinite";
@@ -281,9 +282,7 @@ export default function ProfilePage() {
               ) : null}
               {viewer.orbVerified ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-world-verified/15 px-2 py-0.5 text-[10px] font-semibold text-world-verified">
-                  <svg viewBox="0 0 12 12" fill="currentColor" className="size-3">
-                    <path d="M6 0a6 6 0 1 0 0 12A6 6 0 0 0 6 0zm2.78 4.47a.5.5 0 0 0-.7-.7L5.5 6.29 4.42 5.22a.5.5 0 0 0-.7.7l1.6 1.6a.5.5 0 0 0 .7 0l3-3z" />
-                  </svg>
+                  <WorldOrbIcon className="size-3 shrink-0" />
                   World Verified
                 </span>
               ) : null}
@@ -355,13 +354,7 @@ export default function ProfilePage() {
       {viewer.orbVerified && (
         <div className="mx-4 mb-4 flex items-center gap-3 rounded-xl border border-world-verified/30 bg-world-verified/10 p-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-world-verified text-world-verified-foreground">
-            <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.78-9.47a.75.75 0 10-1.06-1.06L9.25 10.94 7.28 8.97a.75.75 0 10-1.06 1.06l2.5 2.5a.75.75 0 001.06 0l3.99-3.99z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <WorldOrbIcon className="size-5" />
           </div>
           <div>
             <p className="text-sm font-semibold text-world-verified">World ID verified</p>
