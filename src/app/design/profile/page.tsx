@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListingEditDrawer } from "@/components/design/ListingEditDrawer";
 import { MarkSoldSheet } from "@/components/design/MarkSoldSheet";
+import { Verify } from "@/components/Verify";
 import { type MyListing, type ListingStatus } from "@/lib/design/listing-store";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { useViewerDashboardListingsInfinite } from "@/lib/design/use-viewer-dashboard-listings-infinite";
@@ -80,6 +81,10 @@ function ListingCard({
 export default function ProfilePage() {
   const { viewer, allViewers, setViewerId } = useDesignViewer();
   const orbGate = { viewerOrbVerified: viewer?.orbVerified === true };
+  const [sessionViewer, setSessionViewer] = useState<{
+    id: string;
+    orbVerified: boolean;
+  } | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>("active");
   const [selectedListing, setSelectedListing] = useState<MyListing | null>(null);
   const [soldSheetListing, setSoldSheetListing] = useState<MyListing | null>(null);
@@ -122,6 +127,38 @@ export default function ProfilePage() {
     io.observe(el);
     return () => io.disconnect();
   }, [allListings.length, activeTab]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/auth/session", {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        const data = (await res.json().catch(() => null)) as
+          | { user?: { id?: string; orbVerified?: boolean } }
+          | null;
+        if (!cancelled) {
+          setSessionViewer(
+            typeof data?.user?.id === "string"
+              ? {
+                  id: data.user.id,
+                  orbVerified: Boolean(data.user.orbVerified),
+                }
+              : null,
+          );
+        }
+      } catch {
+        if (!cancelled) setSessionViewer(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const persistStatusChange = useCallback(async (listingId: string, status: ListingStatus) => {
     const r = await fetch(`/api/design/listings/${listingId}`, {
@@ -185,6 +222,9 @@ export default function ProfilePage() {
   const avatarUrl =
     viewer?.profilePictureUrl ??
     "https://i.pravatar.cc/150?u=design-profile";
+  const canVerifySignedInUser = !!sessionViewer && !sessionViewer.orbVerified;
+  const isViewingSignedInUser =
+    !!viewer && !!sessionViewer && viewer.id === sessionViewer.id;
 
   if (!viewer) {
     return (
@@ -278,12 +318,37 @@ export default function ProfilePage() {
         <p className="mt-3 break-all text-xs text-muted-foreground">{viewer.walletAddress}</p>
       </div>
 
-      {!viewer.orbVerified && (
+      {canVerifySignedInUser && (
         <div className="mx-4 mb-4 rounded-xl border border-world-verified/35 bg-world-verified/10 p-4">
           <p className="text-sm font-semibold text-world-verified">Verify with World ID</p>
           <p className="mt-0.5 text-xs text-foreground/70">
-            Link your World ID to unlock the World Verified badge (production flow).
+            {isViewingSignedInUser
+              ? "If you became orb verified after logging in, verify here to refresh your badge on this account."
+              : "You're signed in with a different account. Verifying here will update your signed-in account, not the sandbox profile currently selected above."}
           </p>
+          {!isViewingSignedInUser && sessionViewer ? (
+            <div className="mt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void setViewerId(sessionViewer.id)}
+              >
+                Switch to your profile
+              </Button>
+            </div>
+          ) : null}
+          <div className="mt-3">
+            <Verify
+              action="test-action"
+              showHeading={false}
+              onVerified={() =>
+                setSessionViewer((current) =>
+                  current ? { ...current, orbVerified: true } : current,
+                )
+              }
+            />
+          </div>
         </div>
       )}
 
