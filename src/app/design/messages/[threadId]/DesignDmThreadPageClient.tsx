@@ -219,11 +219,10 @@ export function DesignDmThreadPageClient({
   const c = meta.counterpart;
   const profileSlug = sellerPublicProfileSlug(c);
   const canSend = draft.trim().length > 0 || showListingAttachment;
-  const listBottomPad = showListingAttachment ? 'pb-56' : 'pb-44';
   const dockBottomPad = showListingAttachment ? 'pb-4' : 'pb-3';
 
   return (
-    <div className="flex flex-col">
+    <div className="flex min-h-full flex-col">
       <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-background px-3 py-3 sm:px-4">
         <Link href="/design/messages" className="shrink-0 text-muted-foreground transition-colors hover:text-foreground" aria-label="Back to inbox">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-5">
@@ -247,7 +246,7 @@ export function DesignDmThreadPageClient({
         </Link>
       </div>
 
-      <div className={`flex flex-col gap-3 px-4 pt-4 ${listBottomPad}`}>
+      <div className="flex flex-1 flex-col gap-3 px-4 pt-4 pb-3">
         {loadMsgError ? <p className="text-center text-xs text-red-600">{loadMsgError}</p> : null}
         {rows.length === 0 && !loadMsgError ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -281,7 +280,7 @@ export function DesignDmThreadPageClient({
         <div ref={bottomRef} />
       </div>
 
-      <div className={`fixed bottom-[57px] left-0 right-0 z-20 border-t border-border bg-background px-4 pt-2 ${dockBottomPad}`}>
+      <div className={`sticky bottom-0 z-20 border-t border-border bg-background px-4 pt-2 ${dockBottomPad}`}>
         <div className="mx-auto max-w-lg">
           {sendError ? <p className="mb-1 text-xs text-red-600">{sendError}</p> : null}
           {showListingAttachment && composerSnapshot ? (

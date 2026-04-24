@@ -49,7 +49,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { useDesignToolbar } from "@/components/design/DesignAppShell";
 import { DesignListingCommentRow } from "@/components/design/DesignListingCommentRow";
 import { ListingDetailDrawer } from "@/components/design/ListingDetailDrawer";
 import { WorldOrbIcon } from "@/components/icons/world-orb";
@@ -375,7 +374,6 @@ export function DesignMarketplaceClient({
   initialListings: DesignFeedListing[];
 }) {
   const { viewer } = useDesignViewer();
-  const { setToolbar } = useDesignToolbar();
 
   const [search, setSearch] = useState("");
   const [searchDrawerOpen, setSearchDrawerOpen] = useState(false);
@@ -688,67 +686,54 @@ export function DesignMarketplaceClient({
     void toggleSaveListing(listingId);
   }
 
-  const toolbarNode = useMemo(
-    () => (
-      <>
-        <Button
-          variant="ghost"
-          size={search.trim() ? "sm" : "icon-sm"}
-          type="button"
-          onClick={() => setSearchDrawerOpen(true)}
-          className={cn(
-            "shrink-0 rounded-full",
-            !search.trim() && "size-9 p-2.5",
-            search.trim() &&
-              "min-w-0 max-w-[min(100%,11rem)] shrink gap-1.5 px-3 py-2",
-          )}
-          aria-label={
-            search.trim() ? `Search (${search.trim()})` : "Open search"
-          }
-        >
-          <Search className="size-5 shrink-0" strokeWidth={2.4} />
-          {search.trim() ? (
-            <span className="truncate text-xs font-normal">
-              {search.trim()}
-            </span>
-          ) : null}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          type="button"
-          onClick={() => {
-            setViewMode((v) => {
-              const next = v === "feed" ? "grid" : "feed";
-              persistViewMode(next);
-              return next;
-            });
-          }}
-          aria-label={
-            viewMode === "feed"
-              ? "Switch to grid view"
-              : "Switch to feed view"
-          }
-          className="size-9 shrink-0 rounded-full p-2.5"
-        >
-          {viewMode === "feed" ? (
-            <LayoutGrid className="size-5" strokeWidth={2.4} />
-          ) : (
-            <List className="size-5" strokeWidth={2.4} />
-          )}
-        </Button>
-      </>
-    ),
-    [search, viewMode],
+  const feedToolbar = (
+    <div className="flex shrink-0 items-center gap-1 text-foreground [&_button]:font-normal [&_button_svg]:text-current">
+      <Button
+        variant="ghost"
+        size={search.trim() ? "sm" : "icon-sm"}
+        type="button"
+        onClick={() => setSearchDrawerOpen(true)}
+        className={cn(
+          "shrink-0 rounded-full",
+          !search.trim() && "size-9 p-2.5",
+          search.trim() &&
+            "min-w-0 max-w-[min(100%,11rem)] shrink gap-1.5 px-3 py-2",
+        )}
+        aria-label={
+          search.trim() ? `Search (${search.trim()})` : "Open search"
+        }
+      >
+        <Search className="size-5 shrink-0" strokeWidth={2.4} />
+        {search.trim() ? (
+          <span className="truncate text-xs font-normal">
+            {search.trim()}
+          </span>
+        ) : null}
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        type="button"
+        onClick={() => {
+          setViewMode((v) => {
+            const next = v === "feed" ? "grid" : "feed";
+            persistViewMode(next);
+            return next;
+          });
+        }}
+        aria-label={
+          viewMode === "feed" ? "Switch to grid view" : "Switch to feed view"
+        }
+        className="size-9 shrink-0 rounded-full p-2.5"
+      >
+        {viewMode === "feed" ? (
+          <LayoutGrid className="size-5" strokeWidth={2.4} />
+        ) : (
+          <List className="size-5" strokeWidth={2.4} />
+        )}
+      </Button>
+    </div>
   );
-
-  useEffect(() => {
-    setToolbar(toolbarNode);
-  }, [setToolbar, toolbarNode]);
-
-  useEffect(() => {
-    return () => setToolbar(null);
-  }, [setToolbar]);
 
   // Drawer helpers
   const drawerComments: RichComment[] = drawerListing
@@ -763,9 +748,12 @@ export function DesignMarketplaceClient({
   return (
     <div className="bg-muted/30">
       <div className="shrink-0 bg-background px-3 py-0">
-        <p className="px-0 pb-2 pt-3 text-base font-medium text-foreground">
-          Your daily feed
-        </p>
+        <div className="flex items-center justify-between gap-2 pb-2 pt-3">
+          <p className="min-w-0 truncate text-base font-medium text-foreground">
+            Your daily feed
+          </p>
+          {feedToolbar}
+        </div>
         <div
           className="flex flex-nowrap items-center gap-2 overflow-x-auto py-1"
           style={{ scrollbarWidth: "none" }}
