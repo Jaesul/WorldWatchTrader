@@ -581,9 +581,9 @@ export default function FeedPage() {
     : [];
 
   return (
-    <div className="bg-muted/30">
+    <div className="bg-background">
       {/* ── Action bar ── */}
-      <div className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 pb-3 pt-4 backdrop-blur">
+      <div className="sticky top-0 z-10 border-b border-border/60 bg-background px-4 pb-2.5 pt-3">
         {/* Search row */}
         <div
           className="relative mb-3"
@@ -595,7 +595,7 @@ export default function FeedPage() {
             Icon must sit beside a transparent input — a full-width input background paints over
             absolutely positioned icons in the padding zone (looks like a hollow ring on iOS).
           */}
-          <div className="flex min-h-10 items-center gap-0 rounded-full border border-border/60 bg-muted/40 px-1 shadow-sm focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/35">
+          <div className="flex min-h-10 items-center gap-0 rounded-lg border border-border bg-muted/50 px-1 focus-within:border-foreground/20 focus-within:ring-1 focus-within:ring-foreground/10">
             <span
               className="pointer-events-none flex size-9 shrink-0 items-center justify-center text-muted-foreground"
               aria-hidden
@@ -615,7 +615,7 @@ export default function FeedPage() {
             />
           </div>
           {searchOpen && suggestedSearches.length > 0 ? (
-            <Card className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 gap-0 overflow-hidden border-border/70 py-0 shadow-lg">
+            <Card className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 gap-0 overflow-hidden py-0 shadow-sm">
               <CardHeader className="px-3 py-2.5">
                 <CardDescription className="text-xs uppercase tracking-[0.18em] text-muted-foreground/80">
                   Suggested searches
@@ -937,7 +937,7 @@ export default function FeedPage() {
         </div>
       ) : viewMode === "feed" ? (
         // ── Feed view ──────────────────────────────────────────────────────────
-        <div className="flex flex-col gap-3 p-3">
+        <div className="flex flex-col gap-2 px-3 pb-4 pt-1">
           {filtered.map((listing) => {
             const liked = likedIds.has(listing.id);
             const saved = savedIds.has(listing.id);
@@ -954,8 +954,8 @@ export default function FeedPage() {
             const commentDraft = commentDrafts[listing.id] ?? "";
 
             return (
-              <Card key={listing.id} className="gap-0 py-0 shadow-sm">
-                <CardHeader className="border-b px-4 py-3">
+              <Card key={listing.id} className="gap-0 border-border/50 py-0 shadow-none">
+                <CardHeader className="border-b border-border/50 px-4 py-2.5">
                   <div className="flex items-center gap-3">
                     <Link
                       href={`/design/u/${listing.seller.handle}`}
@@ -1203,7 +1203,7 @@ export default function FeedPage() {
         </div>
       ) : (
         // ── Grid view ──────────────────────────────────────────────────────────
-        <div className="grid grid-cols-2 gap-2 p-2">
+        <div className="grid grid-cols-2 gap-2 px-3 pb-4 pt-1">
           {filtered.map((listing) => {
             const liked = likedIds.has(listing.id);
             const saved = savedIds.has(listing.id);
@@ -1219,7 +1219,7 @@ export default function FeedPage() {
                   if (e.key === "Enter" || e.key === " ")
                     setDrawerListing(listing);
                 }}
-                className="flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-colors hover:bg-card/80 active:scale-[0.98]"
+                className="flex w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-border/60 bg-card text-left shadow-none transition-colors hover:bg-muted/30 active:scale-[0.99]"
               >
                 {/* Photo */}
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
