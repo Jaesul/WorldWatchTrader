@@ -769,6 +769,9 @@ export function DesignMarketplaceClient({
   return (
     <div className="bg-muted/30">
       <div className="shrink-0 bg-background px-3 py-0">
+        <p className="px-0 pb-2 pt-3 text-base font-medium text-foreground">
+          Your daily feed
+        </p>
         <div
           className="flex flex-nowrap items-center gap-2 overflow-x-auto py-1"
           style={{ scrollbarWidth: "none" }}

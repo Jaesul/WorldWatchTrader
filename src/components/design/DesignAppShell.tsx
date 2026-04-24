@@ -66,7 +66,7 @@ export function DesignAppShell({ children }: { children: ReactNode }) {
         className="flex h-dvh flex-col bg-background"
       >
         <div
-          className={`flex shrink-0 items-start justify-between gap-3 bg-background px-4 transition-[padding] duration-200 ${
+          className={`flex shrink-0 items-start justify-between gap-3 bg-background px-3 transition-[padding] duration-200 ${
             isCompact ? "py-3" : "py-5"
           }`}
         >
@@ -76,6 +76,7 @@ export function DesignAppShell({ children }: { children: ReactNode }) {
                 isCompact ? "gap-0.5 text-base" : "gap-1 text-xl"
               }`}
             >
+              <span>World Watch Trader</span>
               <span
                 className={`flex shrink-0 items-center text-foreground/80 transition-all duration-200 ${
                   isCompact ? "gap-1" : "gap-1.5"
@@ -91,7 +92,6 @@ export function DesignAppShell({ children }: { children: ReactNode }) {
                   strokeWidth={2.1}
                 />
               </span>
-              <span>World Watch Trader</span>
             </h1>
           </header>
           {toolbar ? (
