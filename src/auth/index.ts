@@ -69,9 +69,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Optionally, fetch the user info from your own database
         const userInfo = await MiniKit.getUserInfo(finalPayload.address);
         const walletAddress = userInfo.walletAddress ?? finalPayload.address;
-        const orbVerified = isOrbVerifiedFromUserInfo(userInfo);
+        const sessionOrbVerified = isOrbVerifiedFromUserInfo(userInfo);
         const existing = await getUserById(finalPayload.address);
         const dbOrbVerified = existing?.orbVerified ?? false;
+        const orbVerified = dbOrbVerified || sessionOrbVerified;
         const verifiedAt = existing?.verifiedAt ?? null;
 
         await upsertUserFromSession({
@@ -79,14 +80,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           walletAddress,
           username: userInfo.username ?? '',
           profilePictureUrl: userInfo.profilePictureUrl,
-          orbVerified: dbOrbVerified,
+          orbVerified,
           verifiedAt,
         });
 
         return {
           id: finalPayload.address,
           ...userInfo,
-          orbVerified: dbOrbVerified,
+          orbVerified,
         };
       },
     }),
