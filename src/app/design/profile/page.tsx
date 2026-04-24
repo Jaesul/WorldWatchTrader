@@ -16,7 +16,6 @@ import { type MyListing, type ListingStatus } from "@/lib/design/listing-store";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { useViewerDashboardListingsInfinite } from "@/lib/design/use-viewer-dashboard-listings-infinite";
 import { useViewerPurchases } from "@/lib/design/use-viewer-purchases";
-import { STATUS_CONFIG } from "@/lib/design/listing-status-config";
 import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-interaction-gate";
 type ProfileTab = "active" | "pending" | "history";
 
@@ -78,13 +77,12 @@ function formatPrice(price: number, currency: string) {
 function ListingCardSkeleton() {
   return (
     <div className="flex w-full items-center gap-3 rounded-xl bg-card">
-      <Skeleton className="size-12 shrink-0 rounded-lg" />
+      <Skeleton className="size-20 shrink-0 rounded-lg" />
       <div className="min-w-0 flex-1 space-y-2">
-        <Skeleton className="h-4 w-[55%] max-w-[200px]" />
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-2.5 w-16" />
+        <Skeleton className="h-5 w-[55%] max-w-[220px]" />
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-3 w-20" />
       </div>
-      <Skeleton className="h-5 w-14 shrink-0 rounded-full" />
     </div>
   );
 }
@@ -96,7 +94,6 @@ function ListingCard({
   listing: MyListing;
   onOpen: () => void;
 }) {
-  const cfg = STATUS_CONFIG[listing.status];
   const isSale =
     listing.perspective !== "purchase" && listing.status === "sold";
   const isPurchase = listing.perspective === "purchase";
@@ -112,38 +109,21 @@ function ListingCard({
       : "flex w-full items-center gap-3 rounded-xl bg-card text-left transition-colors hover:bg-card/80";
 
   const titleCls = isSale
-    ? "truncate text-sm font-semibold text-white"
-    : "truncate text-sm font-semibold text-foreground";
+    ? "truncate text-base font-semibold text-white"
+    : "truncate text-base font-semibold text-foreground";
   const subCls = isSale
-    ? "text-xs text-white/80"
-    : "text-xs text-muted-foreground";
+    ? "text-sm text-white/80"
+    : "text-sm text-muted-foreground";
   const tsCls = isSale
-    ? "mt-0.5 text-[10px] text-white/70"
-    : "mt-0.5 text-[10px] text-muted-foreground/60";
-
-  const chipCls = isSale
-    ? "shrink-0 rounded-full border border-white/40 bg-white/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
-    : isPurchase
-      ? "shrink-0 rounded-full border border-foreground/20 bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground"
-      : `shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cfg.color}`;
-  const chipLabel = isSale ? "Sale" : isPurchase ? "Purchase" : cfg.label;
-
-  const shipment = listing.deal?.shipment ?? null;
-  const shippedChipCls = isSale
-    ? "shrink-0 rounded-full border border-white/40 bg-white/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
-    : "shrink-0 rounded-full border border-sky-500/30 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700";
-  const shippedLabel = shipment
-    ? shipment.carrierName
-      ? `Shipped · ${shipment.carrierName}`
-      : "Shipped"
-    : null;
+    ? "mt-0.5 text-xs text-white/70"
+    : "mt-0.5 text-xs text-muted-foreground/60";
 
   return (
     <button type="button" onClick={onOpen} className={containerCls}>
       <img
         src={listing.photo}
         alt={listing.model}
-        className="size-12 shrink-0 rounded-lg object-cover bg-muted"
+        className="size-20 shrink-0 rounded-lg object-cover bg-muted"
       />
       <div className="min-w-0 flex-1">
         <p className={titleCls}>{listing.model}</p>
@@ -152,12 +132,6 @@ function ListingCard({
           {listing.condition ? ` · ${listing.condition}` : ""}
         </p>
         <p className={tsCls}>{listing.postedAt}</p>
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className={chipCls}>{chipLabel}</span>
-        {shippedLabel ? (
-          <span className={shippedChipCls}>{shippedLabel}</span>
-        ) : null}
       </div>
     </button>
   );
