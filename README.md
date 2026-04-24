@@ -21,7 +21,7 @@ This template is a way for you to quickly get started with authentication and ex
 9. Continue to developer.worldcoin.org and make sure your app is connected to the right ngrok url
 10. [Optional] For Verify and Send Transaction to work you need to do some more setup in the dev portal. The steps are outlined in the respective component files.
 
-**UX sandbox (browser only, no World):** Nico — [http://localhost:3000/design](http://localhost:3000/design) ([`NICO_WORK_PLAN.md`](./NICO_WORK_PLAN.md)). Jae — [http://localhost:3000/design/jae](http://localhost:3000/design/jae) ([`JAE_WORK_PLAN.md`](./JAE_WORK_PLAN.md)).
+**UX sandbox (browser only, no World):** Nico — [http://localhost:3000/design](http://localhost:3000/design) (`[NICO_WORK_PLAN.md](./NICO_WORK_PLAN.md)`). Jae — [http://localhost:3000/design/jae](http://localhost:3000/design/jae) (`[JAE_WORK_PLAN.md](./JAE_WORK_PLAN.md)`).
 
 ## Authentication
 
@@ -29,7 +29,7 @@ This starter kit uses [Minikit's](https://github.com/worldcoin/minikit-js) walle
 
 ## UI Library
 
-This starter kit uses [Mini Apps UI Kit](https://github.com/worldcoin/mini-apps-ui-kit) to style the app. We recommend using the UI kit to make sure you are compliant with [World App's design system](https://docs.world.org/mini-apps/design/app-guidelines). Product UI also uses [shadcn/ui](https://ui.shadcn.com/) — see [`HACKATHON_SPEC.md`](./HACKATHON_SPEC.md).
+This starter kit uses [Mini Apps UI Kit](https://github.com/worldcoin/mini-apps-ui-kit) to style the app. We recommend using the UI kit to make sure you are compliant with [World App's design system](https://docs.world.org/mini-apps/design/app-guidelines). Product UI also uses [shadcn/ui](https://ui.shadcn.com/) — see `[HACKATHON_SPEC.md](./HACKATHON_SPEC.md)`.
 
 ## Eruda
 
