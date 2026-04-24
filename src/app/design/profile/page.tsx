@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { ProfileEditDrawer } from "@/components/design/ProfileEditDrawer";
 import {
   Drawer,
   DrawerContent,
@@ -24,6 +25,8 @@ import {
   useDesignWorldIdVerified,
 } from "@/lib/design/world-id-interaction-gate";
 import { setWorldIdVerified } from "@/lib/design/world-id-prototype";
+import { updateDesignProfile } from "@/lib/design/profile-store";
+import { useDesignProfile } from "@/lib/design/use-design-profile";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -395,6 +398,8 @@ function ListingCard({
 
 export default function ProfilePage() {
   const worldIdVerified = useDesignWorldIdVerified();
+  const designProfile = useDesignProfile();
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("active");
   const [selectedListing, setSelectedListing] = useState<MyListing | null>(
     null,
@@ -447,7 +452,7 @@ export default function ProfilePage() {
       <div className="relative px-4 pb-4 pt-6">
         <div className="flex items-start gap-4">
           <img
-            src="https://i.pravatar.cc/150?u=me-user"
+            src={designProfile.avatarUrl}
             alt="Nico K."
             className="size-16 shrink-0 rounded-full object-cover bg-foreground"
           />
@@ -486,16 +491,28 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="shrink-0 text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0 text-xs"
+            type="button"
+            onClick={() => setProfileEditOpen(true)}
+          >
             Edit
           </Button>
         </div>
 
-        <p className="mt-3 text-sm text-foreground/80">
-          Collector focused on vintage Rolex and modern sports watches. Based in
-          NYC. Fast shipper.
+        <p className="mt-3 text-sm text-foreground/80 whitespace-pre-wrap">
+          {designProfile.bio}
         </p>
       </div>
+
+      <ProfileEditDrawer
+        open={profileEditOpen}
+        onOpenChange={setProfileEditOpen}
+        profile={designProfile}
+        onSave={(next) => updateDesignProfile(next)}
+      />
 
       {/* World ID banner */}
       {!worldIdVerified && (
