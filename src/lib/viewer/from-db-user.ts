@@ -12,6 +12,7 @@ export type DbUserLikeForViewer = Pick<
   | 'username'
   | 'handle'
   | 'profilePictureUrl'
+  | 'bio'
   | 'orbVerified'
   | 'powerSeller'
   | 'createdAt'
@@ -23,6 +24,7 @@ export function dbUserRowToAppViewer(row: DbUserLikeForViewer): AppViewer {
     walletAddress: row.walletAddress,
     username: row.username,
     profilePictureUrl: row.profilePictureUrl ?? null,
+    bio: row.bio ?? '',
     handle: row.handle ?? null,
     orbVerified: row.orbVerified,
     powerSeller: row.powerSeller,

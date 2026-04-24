@@ -2,7 +2,11 @@ import { and, eq, gt } from 'drizzle-orm';
 
 import { requireDesignViewer } from '@/app/api/design/dm/_viewer';
 import { isUuid } from '@/lib/design/is-uuid';
-import { assertThreadParticipant, getLatestMessageCreatedAt, messageToApi } from '@/db/queries/dm-threads';
+import {
+  assertThreadParticipant,
+  getLatestMessageCreatedAt,
+  messagesToApi,
+} from '@/db/queries/dm-threads';
 import { getDb } from '@/db';
 import { dmMessages } from '@/db/schema';
 
@@ -50,12 +54,11 @@ export async function GET(
             .where(and(eq(dmMessages.threadId, threadId), gt(dmMessages.createdAt, watermark)))
             .orderBy(dmMessages.createdAt);
 
-          for (const m of rows) {
-            send({
-              type: 'message',
-              message: messageToApi(m),
-            });
-            if (m.createdAt > watermark) watermark = m.createdAt;
+          const api = await messagesToApi(rows);
+          for (let i = 0; i < api.length; i++) {
+            send({ type: 'message', message: api[i] });
+            const m = rows[i];
+            if (m && m.createdAt > watermark) watermark = m.createdAt;
           }
         } catch {
           send({ type: 'error', message: 'poll_failed' });

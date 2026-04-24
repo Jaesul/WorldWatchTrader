@@ -91,7 +91,20 @@ export function buildMockPublicProfileSoldParts(input: {
   };
 }
 
-/** Placeholder explorer base (World Chain–style); link is illustrative only. */
-export function explorerTxUrl(txHash: string): string {
+export const WORLD_CHAIN_MAINNET_ID = 480;
+export const WORLD_CHAIN_SEPOLIA_ID = 4801;
+
+/**
+ * Placeholder explorer URL. Branches on chain id between World Chain Mainnet
+ * (worldscan.org) and Sepolia (worldchain-sepolia.explorer.alchemy.com). Links
+ * are illustrative — hashes are mocked and will resolve to 404s.
+ */
+export function explorerTxUrl(
+  txHash: string,
+  chainId: number = WORLD_CHAIN_MAINNET_ID,
+): string {
+  if (chainId === WORLD_CHAIN_SEPOLIA_ID) {
+    return `https://worldchain-sepolia.explorer.alchemy.com/tx/${txHash}`;
+  }
   return `https://worldscan.org/tx/${txHash}`;
 }

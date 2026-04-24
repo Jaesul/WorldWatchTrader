@@ -36,5 +36,7 @@ export function viewerDashboardRowToMyListing(row: ViewerDashboardListingJson): 
     photo: row.heroUrl ?? FALLBACK_PHOTO,
     status,
     postedAt: formatPublishedAtLabel(updated),
+    deal: row.deal ?? null,
+    perspective: row.perspective ?? 'sale',
   };
 }

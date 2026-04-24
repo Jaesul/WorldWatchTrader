@@ -34,6 +34,8 @@ export type ListingStatus =
   | "sold"
   | "archived";
 
+import type { ViewerDashboardDealSnapshot } from '@/lib/viewer/dashboard';
+
 export interface MyListing {
   id: string;
   model: string;
@@ -46,6 +48,10 @@ export interface MyListing {
   photo: string;
   status: ListingStatus;
   postedAt: string;
+  /** Present for `status === 'sold'` rows that came from a recorded deal. */
+  deal?: ViewerDashboardDealSnapshot | null;
+  /** Whether this row represents a sale by the viewer or a purchase by them. */
+  perspective?: 'sale' | 'purchase';
 }
 
 const SEED_LISTINGS: MyListing[] = [

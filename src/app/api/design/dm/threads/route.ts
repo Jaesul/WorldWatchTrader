@@ -32,6 +32,7 @@ export async function GET() {
         orbVerified: r.counterpart.orbVerified,
       },
       lastMessagePreview: r.lastMessageBody,
+      pendingTxIncoming: r.pendingTxIncoming,
     })),
   });
 }

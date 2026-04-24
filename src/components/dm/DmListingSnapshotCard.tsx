@@ -15,7 +15,7 @@ export function DmListingSnapshotCard({ snapshot, variant = 'inline', onRemove }
       className={
         isComposer
           ? 'relative flex gap-2.5 overflow-hidden rounded-xl border border-border bg-muted/50 p-2 pr-8 text-left'
-          : 'flex max-w-full gap-2 overflow-hidden rounded-lg border border-border/50 bg-background/40 p-1.5 text-left'
+          : 'flex max-w-full gap-2 overflow-hidden rounded-lg border border-white/25 bg-black/10 p-1.5 text-left'
       }
     >
       {onRemove ? (

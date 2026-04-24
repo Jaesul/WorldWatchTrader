@@ -103,6 +103,7 @@ export async function listUsersForPicker() {
       username: users.username,
       handle: users.handle,
       profilePictureUrl: users.profilePictureUrl,
+      bio: users.bio,
       orbVerified: users.orbVerified,
       powerSeller: users.powerSeller,
       createdAt: users.createdAt,
@@ -133,6 +134,7 @@ export type UserPickerRow = Awaited<ReturnType<typeof listUsersForPicker>>[numbe
 export type PatchUserInput = {
   username?: string;
   profilePictureUrl?: string | null;
+  bio?: string;
   handle?: string | null;
   orbVerified?: boolean;
   verifiedAt?: Date | null;

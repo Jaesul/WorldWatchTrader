@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -8,17 +9,59 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ListingEditDrawer } from "@/components/design/ListingEditDrawer";
 import { MarkSoldSheet } from "@/components/design/MarkSoldSheet";
 import { ProfileEditDrawer } from "@/components/design/ProfileEditDrawer";
+import { SoldListingReceiptDrawer } from "@/components/design/SoldListingReceiptDrawer";
 import { Verify } from "@/components/Verify";
 import { WorldOrbIcon } from "@/components/icons/world-orb";
 import { type MyListing, type ListingStatus } from "@/lib/design/listing-store";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { useViewerDashboardListingsInfinite } from "@/lib/design/use-viewer-dashboard-listings-infinite";
+import { useViewerPurchases } from "@/lib/design/use-viewer-purchases";
 import { STATUS_CONFIG } from "@/lib/design/listing-status-config";
 import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-interaction-gate";
-import { updateDesignProfile } from "@/lib/design/profile-store";
-import { useDesignProfile } from "@/lib/design/use-design-profile";
-
 type ProfileTab = "active" | "pending" | "history";
+
+function shortAddress(addr: string): string {
+  if (!addr) return "";
+  if (addr.length <= 9) return addr;
+  return `${addr.slice(0, 4)}…${addr.slice(-3)}`;
+}
+
+function CopyWalletButton({ address }: { address: string }) {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+  async function onCopy() {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      toast.success("Address copied");
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Couldn’t copy");
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      aria-label="Copy wallet address"
+      title={address}
+      className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+    >
+      <span>{shortAddress(address)}</span>
+      {copied ? (
+        <Check className="size-3 text-emerald-600" strokeWidth={2.5} />
+      ) : (
+        <Copy className="size-3" strokeWidth={2} />
+      )}
+    </button>
+  );
+}
 
 function formatPrice(price: number, currency: string) {
   const symbol =
@@ -54,30 +97,68 @@ function ListingCard({
   onOpen: () => void;
 }) {
   const cfg = STATUS_CONFIG[listing.status];
+  const isSale =
+    listing.perspective !== "purchase" && listing.status === "sold";
+  const isPurchase = listing.perspective === "purchase";
+
+  // Colour scheme:
+  // - Sale (sold by viewer): gold background + white text.
+  // - Purchase (bought by viewer): plain white/card background.
+  // - Everything else: default card styling.
+  const containerCls = isSale
+    ? "flex w-full items-center gap-3 rounded-xl border border-[#ffc85c] bg-[#ffc85c] p-3 text-left text-white shadow-sm transition-colors hover:bg-[#ffc85c]/90"
+    : isPurchase
+      ? "flex w-full items-center gap-3 rounded-xl border border-border bg-white p-3 text-left text-foreground transition-colors hover:bg-white/90 dark:bg-card dark:text-foreground dark:hover:bg-card/80"
+      : "flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:bg-card/80";
+
+  const titleCls = isSale
+    ? "truncate text-sm font-semibold text-white"
+    : "truncate text-sm font-semibold text-foreground";
+  const subCls = isSale
+    ? "text-xs text-white/80"
+    : "text-xs text-muted-foreground";
+  const tsCls = isSale
+    ? "mt-0.5 text-[10px] text-white/70"
+    : "mt-0.5 text-[10px] text-muted-foreground/60";
+
+  const chipCls = isSale
+    ? "shrink-0 rounded-full border border-white/40 bg-white/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
+    : isPurchase
+      ? "shrink-0 rounded-full border border-foreground/20 bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground"
+      : `shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cfg.color}`;
+  const chipLabel = isSale ? "Sale" : isPurchase ? "Purchase" : cfg.label;
+
+  const shipment = listing.deal?.shipment ?? null;
+  const shippedChipCls = isSale
+    ? "shrink-0 rounded-full border border-white/40 bg-white/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
+    : "shrink-0 rounded-full border border-sky-500/30 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700";
+  const shippedLabel = shipment
+    ? shipment.carrierName
+      ? `Shipped · ${shipment.carrierName}`
+      : "Shipped"
+    : null;
+
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:bg-card/80"
-    >
+    <button type="button" onClick={onOpen} className={containerCls}>
       <img
         src={listing.photo}
         alt={listing.model}
         className="size-12 shrink-0 rounded-lg object-cover bg-muted"
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">{listing.model}</p>
-        <p className="text-xs text-muted-foreground">
+        <p className={titleCls}>{listing.model}</p>
+        <p className={subCls}>
           {formatPrice(listing.price, listing.currency)}
           {listing.condition ? ` · ${listing.condition}` : ""}
         </p>
-        <p className="mt-0.5 text-[10px] text-muted-foreground/60">{listing.postedAt}</p>
+        <p className={tsCls}>{listing.postedAt}</p>
       </div>
-      <span
-        className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cfg.color}`}
-      >
-        {cfg.label}
-      </span>
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <span className={chipCls}>{chipLabel}</span>
+        {shippedLabel ? (
+          <span className={shippedChipCls}>{shippedLabel}</span>
+        ) : null}
+      </div>
     </button>
   );
 }
@@ -90,11 +171,11 @@ export default function ProfilePage() {
     id: string;
     orbVerified: boolean;
   } | null>(null);
-  const designProfile = useDesignProfile();
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("active");
   const [selectedListing, setSelectedListing] = useState<MyListing | null>(null);
   const [soldSheetListing, setSoldSheetListing] = useState<MyListing | null>(null);
+  const [receiptListing, setReceiptListing] = useState<MyListing | null>(null);
 
   const {
     listings: allListings,
@@ -105,6 +186,8 @@ export default function ProfilePage() {
     loadMore,
     refresh,
   } = useViewerDashboardListingsInfinite(15);
+
+  const { purchases, isLoading: purchasesLoading } = useViewerPurchases();
 
   const loadMoreRef = useRef(loadMore);
   loadMoreRef.current = loadMore;
@@ -194,9 +277,32 @@ export default function ProfilePage() {
     (l) => l.status === "active" || l.status === "draft",
   );
   const pendingListings = allListings.filter((l) => l.status === "pending");
-  const historyListings = allListings.filter(
+  const soldOrArchived = allListings.filter(
     (l) => l.status === "sold" || l.status === "archived",
   );
+  const salesCount = allListings.filter((l) => l.status === "sold").length;
+  const purchasesCount = purchases.length;
+  const historyListings = useMemo(() => {
+    const withSalePerspective: MyListing[] = soldOrArchived.map((l) => ({
+      ...l,
+      perspective: l.perspective ?? "sale",
+    }));
+    const merged = [...withSalePerspective, ...purchases];
+    // Sort by most recent activity (confirmed deal for purchases, updatedAt
+    // for sales — which maps to `postedAt` labels already carried on the row).
+    merged.sort((a, b) => {
+      const aTs = a.deal?.confirmedAt
+        ? new Date(a.deal.confirmedAt).getTime()
+        : 0;
+      const bTs = b.deal?.confirmedAt
+        ? new Date(b.deal.confirmedAt).getTime()
+        : 0;
+      if (aTs !== bTs) return bTs - aTs;
+      // Fallback tie-breakers so the order is stable.
+      return a.id.localeCompare(b.id);
+    });
+    return merged;
+  }, [soldOrArchived, purchases]);
 
   const tabs: { id: ProfileTab; label: string; count: number }[] = [
     { id: "active", label: "Active", count: activeListings.length },
@@ -282,65 +388,103 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div className="relative px-4 pb-4 pt-0">
-        <div className="flex items-start gap-4">
+      <div className="relative px-4 pb-4 pt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="absolute right-4 top-2 shrink-0 text-xs"
+          type="button"
+          onClick={() => setProfileEditOpen(true)}
+        >
+          Edit
+        </Button>
+
+        <div className="flex items-center gap-4">
           <img
-            src={designProfile.avatarUrl || avatarUrl}
+            src={avatarUrl}
             alt={viewer.username}
-            className="size-16 shrink-0 rounded-full object-cover bg-foreground"
+            className="size-20 shrink-0 rounded-full object-cover bg-muted ring-1 ring-border"
           />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-lg font-semibold text-foreground">{viewer.username}</h1>
-              {viewer.handle ? (
-                <span className="text-xs text-muted-foreground">@{viewer.handle}</span>
+          <div className="min-w-0 flex-1 pr-14">
+            <h1 className="truncate text-lg font-semibold leading-tight text-foreground">
+              {viewer.username}
+            </h1>
+            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+              {viewer.handle && viewer.handle !== viewer.username ? (
+                <>
+                  <span className="truncate">@{viewer.handle}</span>
+                  <span aria-hidden>·</span>
+                </>
               ) : null}
-              {viewer.orbVerified ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-world-verified/15 px-2 py-0.5 text-[10px] font-semibold text-world-verified">
-                  <WorldOrbIcon className="size-3 shrink-0" />
-                  World Verified
-                </span>
-              ) : null}
-              {viewer.powerSeller ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                  Power Seller
-                </span>
-              ) : null}
+              <CopyWalletButton address={viewer.walletAddress} />
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Member since {memberSinceLabel}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">{activeListings.length}</span>{" "}
-                active
+            {viewer.orbVerified || viewer.powerSeller ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {viewer.orbVerified ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-world-verified/15 px-2 py-0.5 text-[10px] font-semibold text-world-verified">
+                    <WorldOrbIcon className="size-3 shrink-0" />
+                    World Verified
+                  </span>
+                ) : null}
+                {viewer.powerSeller ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    Power Seller
+                  </span>
+                ) : null}
               </div>
-            </div>
+            ) : null}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0 text-xs"
-            type="button"
-            onClick={() => setProfileEditOpen(true)}
-          >
-            Edit
-          </Button>
         </div>
 
-        {designProfile.bio ? (
-          <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/80">
-            {designProfile.bio}
+        {viewer.bio ? (
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/85">
+            {viewer.bio}
           </p>
         ) : null}
-        <p className="mt-3 break-all text-xs text-muted-foreground">{viewer.walletAddress}</p>
+
+        <dl className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <div className="flex items-baseline gap-1">
+            <dt className="sr-only">Active listings</dt>
+            <dd className="text-sm font-semibold text-foreground">
+              {activeListings.length}
+            </dd>
+            <span>active</span>
+          </div>
+          <span aria-hidden className="text-muted-foreground/40">
+            •
+          </span>
+          <div className="flex items-baseline gap-1">
+            <dt className="sr-only">Sales</dt>
+            <dd className="text-sm font-semibold text-foreground">
+              {salesCount}
+            </dd>
+            <span>{salesCount === 1 ? "sale" : "sales"}</span>
+          </div>
+          <span aria-hidden className="text-muted-foreground/40">
+            •
+          </span>
+          <div className="flex items-baseline gap-1">
+            <dt className="sr-only">Purchases</dt>
+            <dd className="text-sm font-semibold text-foreground">
+              {purchasesCount}
+            </dd>
+            <span>{purchasesCount === 1 ? "purchase" : "purchases"}</span>
+          </div>
+          <span aria-hidden className="text-muted-foreground/40">
+            •
+          </span>
+          <div className="flex items-baseline gap-1">
+            <dt className="sr-only">Member since</dt>
+            <dd>Joined {memberSinceLabel}</dd>
+          </div>
+        </dl>
       </div>
 
       <ProfileEditDrawer
         open={profileEditOpen}
         onOpenChange={setProfileEditOpen}
-        profile={designProfile}
-        onSave={(next) => updateDesignProfile(next)}
+        viewer={viewer}
+        fallbackAvatarUrl={avatarUrl}
       />
 
       {canVerifySignedInUser && (
@@ -422,7 +566,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="px-4 pt-4">
-        {isLoading ? (
+        {isLoading || (activeTab === "history" && purchasesLoading) ? (
           <div className="space-y-2.5">
             {Array.from({ length: 6 }).map((_, i) => (
               <ListingCardSkeleton key={i} />
@@ -453,6 +597,13 @@ export default function ProfilePage() {
                 listing={listing}
                 onOpen={() => {
                   if (blockDesignInteractionWithoutWorldId(orbGate)) return;
+                  if (
+                    listing.perspective === "purchase" ||
+                    listing.status === "sold"
+                  ) {
+                    setReceiptListing(listing);
+                    return;
+                  }
                   setSelectedListing(listing);
                 }}
               />
@@ -505,6 +656,14 @@ export default function ProfilePage() {
           onSold={() => setSoldSheetListing(null)}
         />
       ) : null}
+
+      <SoldListingReceiptDrawer
+        open={!!receiptListing}
+        onOpenChange={(open) => {
+          if (!open) setReceiptListing(null);
+        }}
+        listing={receiptListing}
+      />
     </div>
   );
 }

@@ -1,7 +1,10 @@
 "use client";
 
+import { Camera, ImagePlus, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Camera, ImagePlus } from "lucide-react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -13,87 +16,131 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Textarea } from "@/components/ui/textarea";
-import type { DesignProfile } from "@/lib/design/profile-store";
+import { useUploadThing } from "@/lib/uploadthing";
+import type { AppViewer } from "@/lib/viewer/types";
 
 const MAX_BIO_LENGTH = 500;
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 export function ProfileEditDrawer({
   open,
   onOpenChange,
-  profile,
-  onSave,
+  viewer,
+  fallbackAvatarUrl,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  profile: DesignProfile;
-  onSave: (next: DesignProfile) => void;
+  viewer: AppViewer;
+  fallbackAvatarUrl: string;
 }) {
+  const router = useRouter();
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const [bio, setBio] = useState(profile.bio);
-  const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl);
+  const [bio, setBio] = useState(viewer.bio);
+  const [avatarUrl, setAvatarUrl] = useState(
+    viewer.profilePictureUrl ?? fallbackAvatarUrl,
+  );
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const previewUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (open) {
-      setBio(profile.bio);
-      setAvatarUrl(profile.avatarUrl);
+      setBio(viewer.bio);
+      setAvatarUrl(viewer.profilePictureUrl ?? fallbackAvatarUrl);
+      setPendingFile(null);
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = null;
+      }
     }
-  }, [open, profile.bio, profile.avatarUrl]);
+  }, [open, viewer.bio, viewer.profilePictureUrl, fallbackAvatarUrl]);
 
-  async function applyImageFile(file: File | undefined) {
+  const { startUpload } = useUploadThing("profileAvatar", {
+    onUploadError: (e) => {
+      toast.error(e.message || "Upload failed");
+    },
+  });
+
+  function applyImageFile(file: File | undefined) {
     if (!file || !file.type.startsWith("image/")) return;
-    try {
-      setAvatarUrl(await readFileAsDataUrl(file));
-    } catch {
-      /* ignore */
-    }
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const url = URL.createObjectURL(file);
+    previewUrlRef.current = url;
+    setAvatarUrl(url);
+    setPendingFile(file);
   }
 
-  function handleSave() {
-    onSave({
-      bio: bio.trim() || profile.bio,
-      avatarUrl: avatarUrl.trim() || profile.avatarUrl,
-    });
-    onOpenChange(false);
+  async function handleSave() {
+    if (saving) return;
+    const trimmedBio = bio.slice(0, MAX_BIO_LENGTH);
+
+    setSaving(true);
+    try {
+      let nextPictureUrl: string | null | undefined;
+      if (pendingFile) {
+        const uploaded = await startUpload([pendingFile]);
+        const url = uploaded?.[0]?.ufsUrl;
+        if (!url) {
+          toast.error("Couldn’t upload photo");
+          return;
+        }
+        nextPictureUrl = url;
+      }
+
+      const patch: Record<string, unknown> = { bio: trimmedBio };
+      if (nextPictureUrl !== undefined) patch.profilePictureUrl = nextPictureUrl;
+
+      const res = await fetch("/api/design/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(j.error || "Could not save profile");
+        return;
+      }
+
+      toast.success("Profile updated");
+      onOpenChange(false);
+      router.refresh();
+    } catch (e) {
+      console.error("profile save failed", e);
+      toast.error("Could not save profile");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={(next) => (!saving ? onOpenChange(next) : null)}>
       <DrawerContent className="mx-auto max-h-[92vh] max-w-lg">
         <DrawerHeader className="text-left">
           <DrawerTitle>Edit profile</DrawerTitle>
           <DrawerDescription className="sr-only">
-            Update your profile photo and bio. Changes are saved in this browser
-            only.
+            Update your profile photo and bio. Changes are saved to your account.
           </DrawerDescription>
         </DrawerHeader>
 
         <div className="space-y-6 overflow-y-auto px-4 pb-2">
           <section>
-            <p className="mb-2 text-sm font-semibold text-foreground">
-              Profile photo
-            </p>
+            <p className="mb-2 text-sm font-semibold text-foreground">Profile photo</p>
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
               <div className="relative size-28 shrink-0 overflow-hidden rounded-full border-2 border-border bg-muted ring-2 ring-ring/20">
-                <img
-                  src={avatarUrl}
-                  alt=""
-                  className="size-full object-cover"
-                />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={avatarUrl} alt="" className="size-full object-cover" />
               </div>
               <div className="flex w-full flex-1 flex-col gap-2">
                 <p className="text-xs text-muted-foreground">
-                  Take a new photo or choose one from your library. Images stay in
-                  this browser only (design sandbox).
+                  Take a new photo or choose one from your library. Saved to your
+                  account when you tap Save.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -101,6 +148,7 @@ export function ProfileEditDrawer({
                     variant="outline"
                     size="sm"
                     className="gap-1.5"
+                    disabled={saving}
                     onClick={() => cameraInputRef.current?.click()}
                   >
                     <Camera className="size-4" />
@@ -111,6 +159,7 @@ export function ProfileEditDrawer({
                     variant="outline"
                     size="sm"
                     className="gap-1.5"
+                    disabled={saving}
                     onClick={() => libraryInputRef.current?.click()}
                   >
                     <ImagePlus className="size-4" />
@@ -124,7 +173,7 @@ export function ProfileEditDrawer({
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    void applyImageFile(f);
+                    applyImageFile(f);
                     e.target.value = "";
                   }}
                 />
@@ -136,7 +185,7 @@ export function ProfileEditDrawer({
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    void applyImageFile(f);
+                    applyImageFile(f);
                     e.target.value = "";
                   }}
                 />
@@ -154,12 +203,11 @@ export function ProfileEditDrawer({
             <Textarea
               id="profile-edit-bio"
               value={bio}
-              onChange={(e) =>
-                setBio(e.target.value.slice(0, MAX_BIO_LENGTH))
-              }
+              onChange={(e) => setBio(e.target.value.slice(0, MAX_BIO_LENGTH))}
               rows={5}
               placeholder="Tell buyers about your collecting style, shipping, and authenticity practices."
               className="resize-none text-sm"
+              disabled={saving}
             />
             <p className="mt-1 text-right text-[11px] text-muted-foreground tabular-nums">
               {bio.length}/{MAX_BIO_LENGTH}
@@ -168,11 +216,28 @@ export function ProfileEditDrawer({
         </div>
 
         <DrawerFooter className="border-t border-border pt-2">
-          <Button type="button" className="w-full rounded-xl" onClick={handleSave}>
-            Save changes
+          <Button
+            type="button"
+            className="w-full rounded-xl"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="size-4 animate-spin" />
+                Saving…
+              </span>
+            ) : (
+              "Save changes"
+            )}
           </Button>
           <DrawerClose asChild>
-            <Button type="button" variant="outline" className="w-full rounded-xl">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-xl"
+              disabled={saving}
+            >
               Cancel
             </Button>
           </DrawerClose>

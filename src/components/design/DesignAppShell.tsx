@@ -15,7 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
 export function DesignAppShell({ children }: { children: ReactNode }) {
   return (
     <div data-design-app className="flex h-dvh flex-col bg-background">
-      <div className="flex min-w-0 shrink-0 items-center gap-3 bg-background px-3 py-5">
+      <div className="flex min-w-0 shrink-0 items-center gap-3 bg-background px-3 py-4">
         <header className="flex min-w-0 shrink-0 items-center gap-2">
           <span
             className="flex shrink-0 items-center gap-1.5 text-foreground/75"

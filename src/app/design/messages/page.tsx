@@ -24,6 +24,7 @@ type ApiThread = {
     orbVerified: boolean;
   };
   lastMessagePreview: string | null;
+  pendingTxIncoming: boolean;
 };
 
 function avatarUrl(c: ApiThread['counterpart']): string {
@@ -66,7 +67,20 @@ function ThreadRow({ thread }: { thread: ApiThread }) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-foreground">{displayName(c)}</p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p className="truncate text-sm font-semibold text-foreground">
+            {displayName(c)}
+          </p>
+          {thread.pendingTxIncoming ? (
+            <span
+              aria-label="Pending transaction request"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-rose-700"
+            >
+              <span className="size-1.5 rounded-full bg-rose-500" />
+              Request
+            </span>
+          ) : null}
+        </div>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">
           {thread.lastMessagePreview?.trim() ? thread.lastMessagePreview : 'No messages yet'}
         </p>

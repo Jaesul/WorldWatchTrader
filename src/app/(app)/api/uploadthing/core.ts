@@ -48,6 +48,58 @@ async function sessionUserIdFromRequest(req: NextRequest): Promise<string | null
   }
 }
 
+async function resolveUploaderUserId(req: NextRequest): Promise<string> {
+  try {
+    const sessionUserId = await sessionUserIdFromRequest(req);
+    if (sessionUserId) {
+      utLog('middleware resolved userId from session JWT');
+      return sessionUserId;
+    }
+
+    const raw = req.cookies.get(DESIGN_VIEWER_COOKIE)?.value?.trim() ?? '';
+    utLog('design viewer cookie', {
+      name: DESIGN_VIEWER_COOKIE,
+      present: Boolean(raw),
+      length: raw.length,
+    });
+    if (raw) {
+      try {
+        const user = await getUserById(raw);
+        if (user) {
+          utLog('middleware resolved userId from design cookie');
+          return user.id;
+        }
+        utLog('design cookie value did not match a user row');
+      } catch (e) {
+        utErr('getUserById(design cookie) threw', e);
+        throw e;
+      }
+    }
+
+    let fallbackId: string | null = null;
+    try {
+      fallbackId = await getDefaultDesignViewerUserId();
+    } catch (e) {
+      utErr('getDefaultDesignViewerUserId threw', e);
+      throw e;
+    }
+    if (fallbackId) {
+      utLog('middleware resolved userId from DB default viewer');
+      return fallbackId;
+    }
+
+    utErr('middleware: no session, invalid design cookie, and no default user — Unauthorized');
+    throw new UploadThingError('Unauthorized');
+  } catch (e) {
+    if (e instanceof UploadThingError) {
+      utErr('middleware exiting with UploadThingError', e.message, (e as Error).cause);
+      throw e;
+    }
+    utErr('middleware FAILED (unexpected)', e);
+    throw e;
+  }
+}
+
 export const ourFileRouter = {
   listingImages: f({
     image: {
@@ -56,64 +108,45 @@ export const ourFileRouter = {
     },
   })
     .middleware(async ({ req }) => {
-      utLog('middleware enter', {
+      utLog('middleware enter (listingImages)', {
         pathname: req.nextUrl?.pathname,
         search: req.nextUrl?.search,
         hasUploadthingToken: Boolean(process.env.UPLOADTHING_TOKEN),
         hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
       });
-      try {
-        const sessionUserId = await sessionUserIdFromRequest(req);
-        if (sessionUserId) {
-          utLog('middleware resolved userId from session JWT');
-          return { userId: sessionUserId };
-        }
-
-        const raw = req.cookies.get(DESIGN_VIEWER_COOKIE)?.value?.trim() ?? '';
-        utLog('design viewer cookie', {
-          name: DESIGN_VIEWER_COOKIE,
-          present: Boolean(raw),
-          length: raw.length,
-        });
-        if (raw) {
-          try {
-            const user = await getUserById(raw);
-            if (user) {
-              utLog('middleware resolved userId from design cookie');
-              return { userId: user.id };
-            }
-            utLog('design cookie value did not match a user row');
-          } catch (e) {
-            utErr('getUserById(design cookie) threw', e);
-            throw e;
-          }
-        }
-
-        let fallbackId: string | null = null;
-        try {
-          fallbackId = await getDefaultDesignViewerUserId();
-        } catch (e) {
-          utErr('getDefaultDesignViewerUserId threw', e);
-          throw e;
-        }
-        if (fallbackId) {
-          utLog('middleware resolved userId from DB default viewer');
-          return { userId: fallbackId };
-        }
-
-        utErr('middleware: no session, invalid design cookie, and no default user — Unauthorized');
-        throw new UploadThingError('Unauthorized');
-      } catch (e) {
-        if (e instanceof UploadThingError) {
-          utErr('middleware exiting with UploadThingError', e.message, (e as Error).cause);
-          throw e;
-        }
-        utErr('middleware FAILED (unexpected)', e);
-        throw e;
-      }
+      const userId = await resolveUploaderUserId(req);
+      return { userId };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      utLog('onUploadComplete', { userId: metadata.userId, ufsUrlHost: safeHost(file.ufsUrl) });
+      utLog('onUploadComplete (listingImages)', {
+        userId: metadata.userId,
+        ufsUrlHost: safeHost(file.ufsUrl),
+      });
+      return { uploadedBy: metadata.userId, ufsUrl: file.ufsUrl };
+    }),
+  /**
+   * Single avatar upload for the profile edit flow. The CRUD write to
+   * `users.profile_picture_url` happens via `/api/design/profile` after the
+   * client receives the URL, so this route only needs to return `ufsUrl`.
+   */
+  profileAvatar: f({
+    image: {
+      maxFileSize: '8MB',
+      maxFileCount: 1,
+    },
+  })
+    .middleware(async ({ req }) => {
+      utLog('middleware enter (profileAvatar)', {
+        pathname: req.nextUrl?.pathname,
+      });
+      const userId = await resolveUploaderUserId(req);
+      return { userId };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      utLog('onUploadComplete (profileAvatar)', {
+        userId: metadata.userId,
+        ufsUrlHost: safeHost(file.ufsUrl),
+      });
       return { uploadedBy: metadata.userId, ufsUrl: file.ufsUrl };
     }),
 } satisfies FileRouter;

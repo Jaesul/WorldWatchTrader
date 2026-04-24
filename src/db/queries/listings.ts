@@ -6,7 +6,7 @@ import type * as schema from '@/db/schema';
 
 import { getDb } from '@/db';
 import type { ListingStatus } from '@/db/schema';
-import { listingComments, listingLikes, listingPhotos, listings, users } from '@/db/schema';
+import { listingComments, listingLikes, listingPhotos, listingSaves, listings, users } from '@/db/schema';
 
 type Schema = typeof schema;
 type Db = PostgresJsDatabase<Schema>;
@@ -597,6 +597,9 @@ export async function archiveListing(sellerId: string, listingId: string) {
       .set({ status: 'archived', updatedAt: now })
       .where(eq(listings.id, listingId))
       .returning();
+    await tx
+      .delete(listingSaves)
+      .where(eq(listingSaves.listingId, listingId));
     return row ?? null;
   });
 }

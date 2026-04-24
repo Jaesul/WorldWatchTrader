@@ -10,12 +10,52 @@ export type DmListingSnapshotPayload = {
   imageUrl: string | null;
 };
 
+export type DmTxRequestSnapshotPayload = {
+  requestId: string;
+  threadId: string;
+  senderId: string;
+  recipientId: string;
+  listing: DmListingSnapshotPayload;
+  priceUsd: number;
+  description: string;
+  status: 'pending' | 'accepted' | 'declined';
+  declineReason: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DmShipmentLinkedDealPayload = {
+  dealId: string;
+  listingId: string;
+  listingTitle: string;
+  listingImageUrl: string | null;
+  priceUsd: number;
+  confirmedAt: string | null;
+};
+
+export type DmShipmentSnapshotPayload = {
+  shipmentId: string;
+  threadId: string;
+  senderId: string;
+  recipientId: string;
+  carrierCode: 'ups' | 'fedex' | 'usps' | 'dhl' | 'other';
+  carrierName: string;
+  trackingNumber: string | null;
+  trackingUrl: string;
+  linkedDeal: DmShipmentLinkedDealPayload | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type DmStreamMessage = {
   id: string;
   senderId: string;
   body: string;
   createdAt: string;
   listingSnapshot?: DmListingSnapshotPayload | null;
+  txRequest?: DmTxRequestSnapshotPayload | null;
+  shipment?: DmShipmentSnapshotPayload | null;
 };
 
 /**

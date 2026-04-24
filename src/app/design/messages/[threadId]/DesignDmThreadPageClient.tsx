@@ -3,13 +3,24 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Forward } from 'lucide-react';
+import { Forward, MoreVertical } from 'lucide-react';
 
 import { DesignDmThreadSkeleton } from '@/app/design/messages/DesignDmThreadSkeleton';
 import { WorldOrbIcon } from '@/components/icons/world-orb';
 import { DmListingSnapshotCard } from '@/components/dm/DmListingSnapshotCard';
+import { DmShipmentCard } from '@/components/dm/DmShipmentCard';
+import { DmThreadMenuDrawer } from '@/components/dm/DmThreadMenuDrawer';
+import { DmTxRequestCard } from '@/components/dm/DmTxRequestCard';
+import { SendShippingSheet } from '@/components/dm/SendShippingSheet';
+import { SendTransactionSheet } from '@/components/dm/SendTransactionSheet';
+import { TxRequestDetailsDrawer } from '@/components/dm/TxRequestDetailsDrawer';
+import { TxRequestsListDrawer } from '@/components/dm/TxRequestsListDrawer';
 import { Button } from '@/components/ui/button';
-import { useDmThreadStream, type DmStreamMessage } from '@/hooks/useDmThreadStream';
+import {
+  useDmThreadStream,
+  type DmStreamMessage,
+  type DmTxRequestSnapshotPayload,
+} from '@/hooks/useDmThreadStream';
 import type { DmListingSnapshot } from '@/db/queries/dm-threads';
 import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
 import { sellerPublicProfileSlug } from '@/lib/design/map-db-feed-to-listing';
@@ -70,6 +81,17 @@ export function DesignDmThreadPageClient({
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [showListingAttachment, setShowListingAttachment] = useState(initialCompose);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [sendTxOpen, setSendTxOpen] = useState(false);
+  const [shippingOpen, setShippingOpen] = useState(false);
+  const [txListOpen, setTxListOpen] = useState(false);
+  const [txDetailsRequest, setTxDetailsRequest] =
+    useState<DmTxRequestSnapshotPayload | null>(null);
+  const [summary, setSummary] = useState<{
+    totalPending: number;
+    pendingByThread: Record<string, number>;
+  }>({ totalPending: 0, pendingByThread: {} });
+  const [txListRefreshKey, setTxListRefreshKey] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const seenIds = useRef(new Set<string>());
 
@@ -99,9 +121,55 @@ export function DesignDmThreadPageClient({
         next.push(m);
       }
       next.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      return next;
+
+      // Propagate latest tx-request snapshots to any earlier rows sharing the
+      // same request id. The server always returns the current status on every
+      // message fetch, so the most recent message in `next` wins.
+      const latestByReqId = new Map<string, DmTxRequestSnapshotPayload>();
+      for (const row of next) {
+        const snap = row.txRequest;
+        if (snap && (!latestByReqId.has(snap.requestId)
+          || new Date(snap.updatedAt).getTime() >
+            new Date(latestByReqId.get(snap.requestId)!.updatedAt).getTime())
+        ) {
+          latestByReqId.set(snap.requestId, snap);
+        }
+      }
+      if (latestByReqId.size === 0) return next;
+      return next.map((row) => {
+        if (!row.txRequest) return row;
+        const latest = latestByReqId.get(row.txRequest.requestId);
+        return latest && latest !== row.txRequest ? { ...row, txRequest: latest } : row;
+      });
     });
   }, []);
+
+  const applyTxUpdate = useCallback((updated: DmTxRequestSnapshotPayload) => {
+    setRows((prev) =>
+      prev.map((row) =>
+        row.txRequest && row.txRequest.requestId === updated.requestId
+          ? { ...row, txRequest: updated }
+          : row,
+      ),
+    );
+  }, []);
+
+  const loadSummary = useCallback(async () => {
+    if (!viewerId) return;
+    try {
+      const res = await fetch('/api/design/dm/transaction-requests/summary', {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        totalPending: number;
+        pendingByThread: Record<string, number>;
+      };
+      setSummary(data);
+    } catch {
+      /* swallow */
+    }
+  }, [viewerId]);
 
   useEffect(() => {
     if (!viewerId || !threadId) return;
@@ -148,6 +216,13 @@ export function DesignDmThreadPageClient({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [rows.length]);
+
+  useEffect(() => {
+    if (!viewerId) return;
+    void loadSummary();
+    const iv = window.setInterval(() => void loadSummary(), 15000);
+    return () => window.clearInterval(iv);
+  }, [viewerId, loadSummary]);
 
   const composerSnapshot: DmListingSnapshot | null =
     meta?.listing != null
@@ -220,6 +295,8 @@ export function DesignDmThreadPageClient({
   const profileSlug = sellerPublicProfileSlug(c);
   const canSend = draft.trim().length > 0 || showListingAttachment;
   const dockBottomPad = showListingAttachment ? 'pb-4' : 'pb-3';
+  const threadHasPending = (summary.pendingByThread[threadId] ?? 0) > 0;
+  const hasGlobalPending = summary.totalPending > 0;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -244,6 +321,20 @@ export function DesignDmThreadPageClient({
             <p className="mt-0.5 text-[11px] text-muted-foreground">View profile →</p>
           </div>
         </Link>
+        <button
+          type="button"
+          onClick={() => setMenuOpen(true)}
+          className="relative flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          aria-label="Thread actions"
+        >
+          <MoreVertical className="size-5" />
+          {threadHasPending ? (
+            <span
+              aria-hidden
+              className="absolute right-1.5 top-1.5 size-2 rounded-full bg-rose-500 ring-2 ring-background"
+            />
+          ) : null}
+        </button>
       </div>
 
       <div className="flex flex-1 flex-col gap-3 px-4 pt-4 pb-3">
@@ -256,13 +347,57 @@ export function DesignDmThreadPageClient({
         ) : (
           rows.map((m) => {
             const mine = m.senderId === viewerId;
-            const hasCard = m.listingSnapshot != null;
+            const hasShipment = m.shipment != null;
+            const hasTxRequest = !hasShipment && m.txRequest != null;
+            const hasCard = !hasTxRequest && !hasShipment && m.listingSnapshot != null;
             const hasText = m.body.trim().length > 0;
+            if (hasShipment && m.shipment) {
+              return (
+                <div
+                  key={m.id}
+                  className={`flex flex-col gap-0.5 ${mine ? 'items-end' : 'items-start'}`}
+                >
+                  <div
+                    className={`rounded-2xl p-1 ${
+                      mine ? 'rounded-br-sm bg-[#ffc85c]' : 'rounded-bl-sm bg-muted'
+                    }`}
+                  >
+                    <DmShipmentCard shipment={m.shipment} mine={mine} />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatBubbleTime(m.createdAt)}
+                  </span>
+                </div>
+              );
+            }
+            if (hasTxRequest && m.txRequest) {
+              return (
+                <div
+                  key={m.id}
+                  className={`flex flex-col gap-0.5 ${mine ? 'items-end' : 'items-start'}`}
+                >
+                  <div
+                    className={`rounded-2xl p-1 ${
+                      mine ? 'rounded-br-sm bg-[#ffc85c]' : 'rounded-bl-sm bg-muted'
+                    }`}
+                  >
+                    <DmTxRequestCard
+                      request={m.txRequest}
+                      mine={mine}
+                      onOpen={() => setTxDetailsRequest(m.txRequest ?? null)}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatBubbleTime(m.createdAt)}
+                  </span>
+                </div>
+              );
+            }
             return (
               <div key={m.id} className={`flex flex-col gap-0.5 ${mine ? 'items-end' : 'items-start'}`}>
                 <div
                   className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
-                    mine ? 'rounded-br-sm bg-foreground text-background' : 'rounded-bl-sm bg-muted text-foreground'
+                    mine ? 'rounded-br-sm bg-[#ffc85c] text-white' : 'rounded-bl-sm bg-muted text-foreground'
                   }`}
                 >
                   {hasCard && m.listingSnapshot ? (
@@ -319,6 +454,52 @@ export function DesignDmThreadPageClient({
           </div>
         </div>
       </div>
+
+      <DmThreadMenuDrawer
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        onSelectSend={() => setSendTxOpen(true)}
+        onSelectShipping={() => setShippingOpen(true)}
+        onSelectList={() => setTxListOpen(true)}
+        hasGlobalPending={hasGlobalPending}
+      />
+
+      <SendTransactionSheet
+        open={sendTxOpen}
+        onOpenChange={setSendTxOpen}
+        threadId={threadId}
+        onSent={() => {
+          void loadSummary();
+        }}
+      />
+
+      <SendShippingSheet
+        open={shippingOpen}
+        onOpenChange={setShippingOpen}
+        threadId={threadId}
+        onSent={(msg) => append([msg])}
+      />
+
+      <TxRequestsListDrawer
+        open={txListOpen}
+        onOpenChange={setTxListOpen}
+        onSelectRequest={(req) => setTxDetailsRequest(req)}
+        refreshKey={txListRefreshKey}
+      />
+
+      <TxRequestDetailsDrawer
+        open={txDetailsRequest != null}
+        onOpenChange={(next) => {
+          if (!next) setTxDetailsRequest(null);
+        }}
+        request={txDetailsRequest}
+        viewerId={viewerId}
+        onResolved={(updated) => {
+          applyTxUpdate(updated);
+          setTxListRefreshKey((k) => k + 1);
+          void loadSummary();
+        }}
+      />
     </div>
   );
 }

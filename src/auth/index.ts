@@ -74,12 +74,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const dbOrbVerified = existing?.orbVerified ?? false;
         const orbVerified = dbOrbVerified || sessionOrbVerified;
         const verifiedAt = existing?.verifiedAt ?? null;
+        // Only seed `profile_picture_url` from World App on first sign-in (or if
+        // the user cleared it). Preserve custom avatars uploaded via the app.
+        const existingPicture = existing?.profilePictureUrl?.trim() || null;
+        const preservedProfilePictureUrl =
+          existingPicture ?? userInfo.profilePictureUrl ?? null;
 
         await upsertUserFromSession({
           id: finalPayload.address,
           walletAddress,
           username: userInfo.username ?? '',
-          profilePictureUrl: userInfo.profilePictureUrl,
+          profilePictureUrl: preservedProfilePictureUrl,
           orbVerified,
           verifiedAt,
         });
@@ -87,6 +92,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return {
           id: finalPayload.address,
           ...userInfo,
+          profilePictureUrl: preservedProfilePictureUrl ?? userInfo.profilePictureUrl,
           orbVerified,
         };
       },

@@ -9,6 +9,7 @@ import {
   insertMessage,
   listMessages,
   messageToApi,
+  messagesToApi,
 } from '@/db/queries/dm-threads';
 import { getDb } from '@/db';
 import { listings } from '@/db/schema';
@@ -31,8 +32,9 @@ export async function GET(
   }
 
   const messages = await listMessages(threadId, { limit: 200 });
+  const apiMessages = await messagesToApi(messages);
   return NextResponse.json({
-    messages: messages.map(messageToApi),
+    messages: apiMessages,
   });
 }
 
@@ -125,7 +127,8 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to send' }, { status: 500 });
   }
 
+  const [apiMsg] = await messagesToApi([msg]);
   return NextResponse.json({
-    message: messageToApi(msg),
+    message: apiMsg ?? messageToApi(msg),
   });
 }

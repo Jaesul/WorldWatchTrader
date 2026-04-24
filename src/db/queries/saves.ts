@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 
 import { getDb } from '@/db';
 import type { HomeListingWithPhotosRow } from '@/db/queries/listings';
@@ -34,7 +34,8 @@ export async function listSavedListingIds(userId: string) {
   const rows = await db
     .select({ listingId: listingSaves.listingId })
     .from(listingSaves)
-    .where(eq(listingSaves.userId, userId))
+    .innerJoin(listings, eq(listingSaves.listingId, listings.id))
+    .where(and(eq(listingSaves.userId, userId), ne(listings.status, 'archived')))
     .orderBy(desc(listingSaves.createdAt));
   return rows.map((r) => r.listingId);
 }
@@ -69,7 +70,7 @@ export async function listSavedListingsWithSellerAndPhotos(
     .from(listingSaves)
     .innerJoin(listings, eq(listingSaves.listingId, listings.id))
     .innerJoin(users, eq(listings.sellerId, users.id))
-    .where(eq(listingSaves.userId, userId))
+    .where(and(eq(listingSaves.userId, userId), ne(listings.status, 'archived')))
     .orderBy(desc(listingSaves.createdAt))
     .limit(cap);
 

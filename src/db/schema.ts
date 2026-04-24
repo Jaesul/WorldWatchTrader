@@ -18,6 +18,7 @@ export const users = pgTable('users', {
   walletAddress: text('wallet_address').notNull().unique(),
   username: text('username').notNull().default(''),
   profilePictureUrl: text('profile_picture_url'),
+  bio: text('bio').notNull().default(''),
   handle: text('handle').unique(),
   orbVerified: boolean('orb_verified').notNull().default(false),
   powerSeller: boolean('power_seller').notNull().default(false),
@@ -195,6 +196,82 @@ export const dmThreads = pgTable(
   ],
 );
 
+/**
+ * Seller-initiated transaction request between two users within a DM thread.
+ * Status transitions: pending -> accepted | declined. On accept, a matching
+ * `listing_deals` row is inserted (mocked values) and the listing is marked sold.
+ */
+export const dmTransactionRequests = pgTable(
+  'dm_transaction_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    threadId: uuid('thread_id')
+      .notNull()
+      .references(() => dmThreads.id, { onDelete: 'cascade' }),
+    listingId: uuid('listing_id')
+      .notNull()
+      .references(() => listings.id, { onDelete: 'restrict' }),
+    senderId: text('sender_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    recipientId: text('recipient_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    priceUsd: integer('price_usd').notNull(),
+    description: text('description').notNull().default(''),
+    status: text('status').notNull().default('pending'),
+    declineReason: text('decline_reason'),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('dm_transaction_requests_recipient_status_idx').on(
+      t.recipientId,
+      t.status,
+      t.createdAt,
+    ),
+    index('dm_transaction_requests_thread_created_idx').on(t.threadId, t.createdAt),
+    index('dm_transaction_requests_sender_idx').on(t.senderId),
+    index('dm_transaction_requests_listing_idx').on(t.listingId),
+  ],
+);
+
+/**
+ * Shipping update sent by a participant within a DM thread. Informational only
+ * (no accept/decline). May optionally be linked to a confirmed `listing_deals`
+ * row so the profile History surface can show a "Shipped" indicator.
+ */
+export const dmShipments = pgTable(
+  'dm_shipments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    threadId: uuid('thread_id')
+      .notNull()
+      .references(() => dmThreads.id, { onDelete: 'cascade' }),
+    senderId: text('sender_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    recipientId: text('recipient_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    listingDealId: uuid('listing_deal_id').references(() => listingDeals.id, {
+      onDelete: 'set null',
+    }),
+    carrierCode: text('carrier_code').notNull(),
+    carrierName: text('carrier_name').notNull(),
+    trackingNumber: text('tracking_number'),
+    trackingUrl: text('tracking_url').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('dm_shipments_thread_created_idx').on(t.threadId, t.createdAt),
+    index('dm_shipments_listing_deal_idx').on(t.listingDealId),
+    index('dm_shipments_sender_idx').on(t.senderId),
+  ],
+);
+
 export const dmMessages = pgTable(
   'dm_messages',
   {
@@ -208,9 +285,21 @@ export const dmMessages = pgTable(
     body: text('body').notNull(),
     /** Immutable listing card payload when this message includes a listing attachment. */
     listingSnapshot: jsonb('listing_snapshot').$type<Record<string, unknown> | null>(),
+    /** Links the message to a transaction request so clients can render the tx card. */
+    txRequestId: uuid('tx_request_id').references(() => dmTransactionRequests.id, {
+      onDelete: 'set null',
+    }),
+    /** Links the message to a shipping update so clients can render the shipment card. */
+    shipmentId: uuid('shipment_id').references(() => dmShipments.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [index('dm_messages_thread_created_idx').on(t.threadId, t.createdAt)],
+  (t) => [
+    index('dm_messages_thread_created_idx').on(t.threadId, t.createdAt),
+    index('dm_messages_tx_request_id_idx').on(t.txRequestId),
+    index('dm_messages_shipment_id_idx').on(t.shipmentId),
+  ],
 );
 
 export const listingCommentLikes = pgTable(
@@ -312,8 +401,58 @@ export const dmThreadsRelations = relations(dmThreads, ({ one, many }) => ({
 export const dmMessagesRelations = relations(dmMessages, ({ one }) => ({
   thread: one(dmThreads, { fields: [dmMessages.threadId], references: [dmThreads.id] }),
   sender: one(users, { fields: [dmMessages.senderId], references: [users.id] }),
+  txRequest: one(dmTransactionRequests, {
+    fields: [dmMessages.txRequestId],
+    references: [dmTransactionRequests.id],
+  }),
+  shipment: one(dmShipments, {
+    fields: [dmMessages.shipmentId],
+    references: [dmShipments.id],
+  }),
+}));
+
+export const dmTransactionRequestsRelations = relations(dmTransactionRequests, ({ one, many }) => ({
+  thread: one(dmThreads, { fields: [dmTransactionRequests.threadId], references: [dmThreads.id] }),
+  listing: one(listings, {
+    fields: [dmTransactionRequests.listingId],
+    references: [listings.id],
+  }),
+  sender: one(users, {
+    fields: [dmTransactionRequests.senderId],
+    references: [users.id],
+    relationName: 'dmTxRequestSender',
+  }),
+  recipient: one(users, {
+    fields: [dmTransactionRequests.recipientId],
+    references: [users.id],
+    relationName: 'dmTxRequestRecipient',
+  }),
+  messages: many(dmMessages),
+}));
+
+export const dmShipmentsRelations = relations(dmShipments, ({ one, many }) => ({
+  thread: one(dmThreads, { fields: [dmShipments.threadId], references: [dmThreads.id] }),
+  sender: one(users, {
+    fields: [dmShipments.senderId],
+    references: [users.id],
+    relationName: 'dmShipmentSender',
+  }),
+  recipient: one(users, {
+    fields: [dmShipments.recipientId],
+    references: [users.id],
+    relationName: 'dmShipmentRecipient',
+  }),
+  deal: one(listingDeals, {
+    fields: [dmShipments.listingDealId],
+    references: [listingDeals.id],
+  }),
+  messages: many(dmMessages),
 }));
 
 export type ListingStatus = 'draft' | 'active' | 'pending' | 'sold' | 'archived';
 
 export type ListingDealStatus = 'pending' | 'submitted' | 'confirmed' | 'failed';
+
+export type DmTransactionRequestStatus = 'pending' | 'accepted' | 'declined';
+
+export type DmShipmentCarrierCode = 'ups' | 'fedex' | 'usps' | 'dhl' | 'other';

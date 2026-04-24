@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 
+import { getConfirmedDealsForListings } from '@/db/queries/dm-transactions';
+import { getShipmentFlagsForDealIds } from '@/db/queries/dm-shipments';
 import { listSellerDashboardListingsPageWithHero } from '@/db/queries/listings';
 import type { ListingStatus } from '@/db/schema';
-import type { ViewerDashboardResponse } from '@/lib/viewer/dashboard';
+import type {
+  ViewerDashboardDealSnapshot,
+  ViewerDashboardResponse,
+} from '@/lib/viewer/dashboard';
 import { dbUserRowToAppViewer } from '@/lib/viewer/from-db-user';
 import { decodeSellerListingCursor, sellerCursorToJson } from '@/lib/viewer/dashboard-cursor';
 import { resolveDesignViewer } from '@/lib/server/resolve-design-viewer-user-id';
@@ -29,17 +34,53 @@ export async function GET(req: Request) {
     cursor,
   );
 
-  const listings = rows.map(({ listing, heroUrl }) => ({
-    id: listing.id,
-    title: listing.title,
-    priceUsd: listing.priceUsd,
-    status: listing.status as ListingStatus,
-    heroUrl,
-    updatedAt: listing.updatedAt.toISOString(),
-    teaser: listing.teaser,
-    details: listing.details ?? '',
-    condition: listing.condition,
-  }));
+  const soldIds = rows
+    .filter(({ listing }) => listing.status === 'sold')
+    .map(({ listing }) => listing.id);
+  const dealByListing = await getConfirmedDealsForListings(soldIds);
+  const dealIds = Array.from(dealByListing.values()).map((d) => d.id);
+  const shipmentByDeal = await getShipmentFlagsForDealIds(dealIds);
+
+  const listings = rows.map(({ listing, heroUrl }) => {
+    const deal = dealByListing.get(listing.id) ?? null;
+    const shipmentFlag = deal ? shipmentByDeal.get(deal.id) ?? null : null;
+    const dealSnapshot: ViewerDashboardDealSnapshot | null = deal
+      ? {
+          dealId: deal.id,
+          priceUsd: deal.priceUsd,
+          chainId: deal.chainId,
+          chainName: deal.chainName,
+          txHash: deal.transactionHash,
+          userOpHash: deal.userOpHash,
+          blockNumber: deal.blockNumber ?? null,
+          tokenSymbol: deal.tokenSymbol,
+          amountRaw: deal.amountRaw,
+          confirmedAt: deal.confirmedAt ? deal.confirmedAt.toISOString() : null,
+          buyer: {
+            id: deal.buyer.id,
+            username: deal.buyer.username,
+            handle: deal.buyer.handle,
+            walletAddress: deal.buyer.walletAddress,
+            profilePictureUrl: deal.buyer.profilePictureUrl,
+          },
+          seller: null,
+          shipment: shipmentFlag,
+        }
+      : null;
+    return {
+      id: listing.id,
+      title: listing.title,
+      priceUsd: listing.priceUsd,
+      status: listing.status as ListingStatus,
+      heroUrl,
+      updatedAt: listing.updatedAt.toISOString(),
+      teaser: listing.teaser,
+      details: listing.details ?? '',
+      condition: listing.condition,
+      deal: dealSnapshot,
+      perspective: 'sale' as const,
+    };
+  });
 
   return NextResponse.json({
     viewer,

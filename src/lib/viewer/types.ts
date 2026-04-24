@@ -7,6 +7,7 @@ export type AppViewer = {
   walletAddress: string;
   username: string;
   profilePictureUrl: string | null;
+  bio: string;
   handle: string | null;
   orbVerified: boolean;
   powerSeller: boolean;

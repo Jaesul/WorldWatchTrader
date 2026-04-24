@@ -3,6 +3,15 @@ import type { InferSelectModel } from 'drizzle-orm';
 
 import { getDb } from '@/db';
 import { dmMessages, dmThreads, listingPhotos, listings, users } from '@/db/schema';
+import {
+  countPendingIncomingByThread,
+  mapTxRequestsForMessages,
+  type DmTxRequestSnapshot,
+} from '@/db/queries/dm-transactions';
+import {
+  mapShipmentsForMessages,
+  type DmShipmentSnapshot,
+} from '@/db/queries/dm-shipments';
 
 export type DmThreadError = 'listing_not_found' | 'cannot_message_self' | 'thread_not_found' | 'forbidden';
 
@@ -183,6 +192,7 @@ export type InboxRow = {
   counterpart: typeof users.$inferSelect;
   lastMessageBody: string | null;
   lastMessageSenderId: string | null;
+  pendingTxIncoming: boolean;
 };
 
 export async function listThreadsForUser(userId: string): Promise<InboxRow[]> {
@@ -204,29 +214,43 @@ export async function listThreadsForUser(userId: string): Promise<InboxRow[]> {
 
   const threadIds = threadRows.map((r) => r.thread.id);
   const lastByThread = new Map<string, { preview: string | null; senderId: string | null }>();
-  if (threadIds.length > 0) {
-    const lastPerThread = await Promise.all(
-      threadIds.map(async (tid) => {
-        const [m] = await db
-          .select({
-            body: dmMessages.body,
-            listingSnapshot: dmMessages.listingSnapshot,
-            senderId: dmMessages.senderId,
-          })
-          .from(dmMessages)
-          .where(eq(dmMessages.threadId, tid))
-          .orderBy(desc(dmMessages.createdAt))
-          .limit(1);
-        const text = m?.body?.trim() ?? '';
-        const preview =
-          text.length > 0 ? text : m?.listingSnapshot != null ? 'Listing' : null;
-        return { tid, preview, senderId: m?.senderId ?? null };
-      }),
-    );
-    for (const { tid, preview, senderId } of lastPerThread) {
-      lastByThread.set(tid, { preview, senderId });
-    }
-  }
+  const [pendingTxByThread] = await Promise.all([
+    countPendingIncomingByThread(userId),
+    (async () => {
+      if (threadIds.length === 0) return;
+      const lastPerThread = await Promise.all(
+        threadIds.map(async (tid) => {
+          const [m] = await db
+            .select({
+              body: dmMessages.body,
+              listingSnapshot: dmMessages.listingSnapshot,
+              txRequestId: dmMessages.txRequestId,
+              shipmentId: dmMessages.shipmentId,
+              senderId: dmMessages.senderId,
+            })
+            .from(dmMessages)
+            .where(eq(dmMessages.threadId, tid))
+            .orderBy(desc(dmMessages.createdAt))
+            .limit(1);
+          const text = m?.body?.trim() ?? '';
+          const preview =
+            text.length > 0
+              ? text
+              : m?.shipmentId != null
+                ? 'Shipping update'
+                : m?.txRequestId != null
+                  ? 'Transaction request'
+                  : m?.listingSnapshot != null
+                    ? 'Listing'
+                    : null;
+          return { tid, preview, senderId: m?.senderId ?? null };
+        }),
+      );
+      for (const { tid, preview, senderId } of lastPerThread) {
+        lastByThread.set(tid, { preview, senderId });
+      }
+    })(),
+  ]);
 
   return threadRows.map((r) => {
     const cid = r.thread.buyerId === userId ? r.thread.sellerId : r.thread.buyerId;
@@ -241,6 +265,7 @@ export async function listThreadsForUser(userId: string): Promise<InboxRow[]> {
       counterpart,
       lastMessageBody: last?.preview ?? null,
       lastMessageSenderId: last?.senderId ?? null,
+      pendingTxIncoming: (pendingTxByThread.get(r.thread.id) ?? 0) > 0,
     };
   });
 }
@@ -312,7 +337,21 @@ export async function insertMessage(input: {
 
 export type DmMessageRow = InferSelectModel<typeof dmMessages>;
 
-export function messageToApi(m: DmMessageRow) {
+export type DmMessageApi = {
+  id: string;
+  senderId: string;
+  body: string;
+  createdAt: string;
+  listingSnapshot: DmListingSnapshot | null;
+  txRequest: DmTxRequestSnapshot | null;
+  shipment: DmShipmentSnapshot | null;
+};
+
+export function messageToApi(
+  m: DmMessageRow,
+  txRequest: DmTxRequestSnapshot | null = null,
+  shipment: DmShipmentSnapshot | null = null,
+): DmMessageApi {
   const snap = m.listingSnapshot;
   const listingSnapshot: DmListingSnapshot | null =
     snap != null && typeof snap === 'object' && 'listingId' in snap
@@ -324,5 +363,26 @@ export function messageToApi(m: DmMessageRow) {
     body: m.body,
     createdAt: m.createdAt.toISOString(),
     listingSnapshot,
+    txRequest,
+    shipment,
   };
+}
+
+/**
+ * Maps a batch of DM rows to API shape, hydrating tx requests and shipment
+ * snapshots in parallel batched queries.
+ */
+export async function messagesToApi(rows: DmMessageRow[]): Promise<DmMessageApi[]> {
+  if (rows.length === 0) return [];
+  const [txMap, shipmentMap] = await Promise.all([
+    mapTxRequestsForMessages(rows),
+    mapShipmentsForMessages(rows),
+  ]);
+  return rows.map((m) =>
+    messageToApi(
+      m,
+      m.txRequestId ? txMap.get(m.txRequestId) ?? null : null,
+      m.shipmentId ? shipmentMap.get(m.shipmentId) ?? null : null,
+    ),
+  );
 }
