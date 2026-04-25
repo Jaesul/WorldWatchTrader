@@ -50,6 +50,24 @@ function formatConfirmed(iso: string | null | undefined): string {
   }).format(d);
 }
 
+function WatchRating({ rating }: { rating: number }) {
+  const safe = Math.max(0, Math.min(5, Math.round(rating)));
+  return (
+    <div className="inline-flex items-center gap-1" aria-label={`Rating ${safe} out of 5`}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <span
+          // eslint-disable-next-line react/no-array-index-key
+          key={i}
+          className={`text-sm leading-none ${i < safe ? "opacity-100" : "opacity-35"}`}
+          aria-hidden
+        >
+          ⌚
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Build an {@link OnChainSettlement} from persisted deal values when present,
  * falling back to the deterministic mock helper for legacy rows that predate
@@ -189,6 +207,32 @@ export function SoldListingReceiptDrawer({
             )}
           </section>
 
+          <section>
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Review
+            </p>
+            {deal?.review ? (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-sm text-foreground">
+                <div className="flex flex-wrap items-center gap-2">
+                  <WatchRating rating={deal.review.rating} />
+                </div>
+                <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-world-verified/35 bg-world-verified/10 px-2 py-0.5 text-[10px] font-semibold text-world-verified">
+                  <WorldOrbIcon className="size-3 shrink-0" />
+                  Verified signature
+                </span>
+                {deal.review.comment ? (
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    {deal.review.comment}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-muted/30 px-3 py-3 text-xs text-muted-foreground">
+                No review submitted yet.
+              </div>
+            )}
+          </section>
+
           {deal?.shipment ? (
             <section>
               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -209,28 +253,6 @@ export function SoldListingReceiptDrawer({
               </div>
             </section>
           ) : null}
-
-          <section>
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Review
-            </p>
-            {deal?.review ? (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-sm text-foreground">
-                <p className="font-medium">
-                  Buyer rating: {deal.review.rating}/5
-                </p>
-                {deal.review.comment ? (
-                  <p className="mt-1 text-[12px] text-muted-foreground">
-                    {deal.review.comment}
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-border bg-muted/30 px-3 py-3 text-xs text-muted-foreground">
-                No review submitted yet.
-              </div>
-            )}
-          </section>
 
           <section>
             <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">

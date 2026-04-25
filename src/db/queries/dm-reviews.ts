@@ -94,9 +94,11 @@ function mapSnapshot(input: {
   };
 }
 
-async function loadSnapshotByRequestId(requestId: string): Promise<DmReviewRequestSnapshot | null> {
-  const db = getDb();
-  const [row] = await db
+async function loadSnapshotByRequestIdFromExecutor(
+  executor: ReturnType<typeof getDb>,
+  requestId: string,
+): Promise<DmReviewRequestSnapshot | null> {
+  const [row] = await executor
     .select({
       request: dmReviewRequests,
       deal: listingDeals,
@@ -110,7 +112,7 @@ async function loadSnapshotByRequestId(requestId: string): Promise<DmReviewReque
     .where(eq(dmReviewRequests.id, requestId))
     .limit(1);
   if (!row) return null;
-  const [photo] = await db
+  const [photo] = await executor
     .select({ url: listingPhotos.url })
     .from(listingPhotos)
     .where(eq(listingPhotos.listingId, row.listing.id))
@@ -122,6 +124,11 @@ async function loadSnapshotByRequestId(requestId: string): Promise<DmReviewReque
     imageUrl: photo?.url ?? null,
     review: row.review,
   });
+}
+
+async function loadSnapshotByRequestId(requestId: string): Promise<DmReviewRequestSnapshot | null> {
+  const db = getDb();
+  return loadSnapshotByRequestIdFromExecutor(db, requestId);
 }
 
 export async function listLinkableCompletedDealsForThread(threadId: string, sellerId: string) {
@@ -238,7 +245,7 @@ export async function createReviewRequest(input: {
       .set({ lastMessageAt: now, updatedAt: now })
       .where(eq(dmThreads.id, input.threadId));
 
-    const snap = await loadSnapshotByRequestId(created.id);
+    const snap = await loadSnapshotByRequestIdFromExecutor(tx as ReturnType<typeof getDb>, created.id);
     if (!snap) throw new Error('Failed to hydrate review request');
     return { ok: true as const, request: snap, messageId: msg.id };
   });
@@ -332,7 +339,7 @@ export async function submitDealReview(input: {
       .set({ lastMessageAt: now, updatedAt: now })
       .where(eq(dmThreads.id, request.threadId));
 
-    const snap = await loadSnapshotByRequestId(updated.id);
+    const snap = await loadSnapshotByRequestIdFromExecutor(tx as ReturnType<typeof getDb>, updated.id);
     if (!snap) throw new Error('Failed to load review snapshot');
     return { ok: true as const, request: snap, messageId: msg.id };
   });
