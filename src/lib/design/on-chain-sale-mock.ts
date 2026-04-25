@@ -7,7 +7,6 @@ import type { ViewerDashboardDealSnapshot } from '@/lib/viewer/dashboard';
 
 export type OnChainSettlement = {
   txHash: string;
-  blockNumber: number;
   chainName: string;
   token: string;
   amount: string;
@@ -95,7 +94,6 @@ export function buildMockPublicProfileSoldParts(input: {
     soldAtLabel,
     settlement: {
       txHash: hexFromSeed(`tx:${seed}`),
-      blockNumber: 18_000_000 + (h % 900_000),
       chainName: 'World Chain',
       token,
       amount,

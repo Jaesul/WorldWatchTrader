@@ -1,6 +1,22 @@
 type VerifyOk = { ok: true; json: unknown };
 type VerifyFail = { ok: false; reason: 'missing_config' | 'http_error' | 'bad_response' };
 
+const EXPLORER_TX_RE = /^0x[0-9a-fA-F]{64}$/;
+
+/**
+ * Reads `transaction_hash` from GET /api/v2/minikit/transaction payment JSON when present and valid.
+ * @see https://docs.world.org/api-reference/developer-portal/get-transaction
+ */
+export function parsePaymentVerifyTransactionHash(json: unknown): string | null {
+  if (json == null || typeof json !== 'object') return null;
+  const o = json as Record<string, unknown>;
+  for (const key of ['transaction_hash', 'transactionHash'] as const) {
+    const v = o[key];
+    if (typeof v === 'string' && EXPLORER_TX_RE.test(v.trim())) return v.trim();
+  }
+  return null;
+}
+
 /**
  * Confirms a MiniKit payment with World Developer API (optional when `DEV_PORTAL_API_KEY` is unset).
  * @see https://docs.world.org/mini-apps/commands/pay#backend-verification

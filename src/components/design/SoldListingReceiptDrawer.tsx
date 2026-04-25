@@ -19,6 +19,7 @@ import type {
 } from "@/lib/viewer/dashboard";
 import type { OnChainSettlement } from "@/lib/design/on-chain-sale-mock";
 import { buildMockPublicProfileSoldParts } from "@/lib/design/on-chain-sale-mock";
+import { buildReceiptOnChainSettlement } from "@/lib/settlement/receipt-settlement";
 import { sellerPublicProfileSlug } from "@/lib/design/map-db-feed-to-listing";
 import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 
@@ -76,14 +77,22 @@ function WatchRating({ rating }: { rating: number }) {
 function buildSettlement(listing: MyListing): OnChainSettlement {
   const deal = listing.deal;
   if (deal) {
-    return {
-      txHash: deal.txHash ?? "",
-      blockNumber: deal.blockNumber ?? 0,
-      chainName: deal.chainName,
-      token: deal.tokenSymbol,
-      amount: deal.amountRaw,
-      confirmedAtLabel: formatConfirmed(deal.confirmedAt),
-    };
+    const { settlement: fallback } = buildMockPublicProfileSoldParts({
+      listingId: listing.id,
+      updatedAt: new Date(),
+      priceUsd: listing.price,
+    });
+    return buildReceiptOnChainSettlement(
+      {
+        txHash: deal.txHash,
+        userOpHash: deal.userOpHash,
+        chainName: deal.chainName,
+        tokenSymbol: deal.tokenSymbol,
+        amountRaw: deal.amountRaw,
+      },
+      fallback,
+      formatConfirmed(deal.confirmedAt),
+    );
   }
   const { settlement } = buildMockPublicProfileSoldParts({
     listingId: listing.id,

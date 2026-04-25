@@ -290,7 +290,6 @@ async function main() {
         chainName: settlement.chainName,
         userOpHash,
         transactionHash: settlement.txHash,
-        blockNumber: settlement.blockNumber,
         fromAddress: buyerUser.walletAddress,
         toAddress: sellerUser.walletAddress,
         tokenContract: null,
