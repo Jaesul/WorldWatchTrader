@@ -187,10 +187,29 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /* Reduces double-tap zoom on some Android WebViews; pairs with viewport max-scale */
+    touch-action: manipulation;
   }
   html {
     @apply font-sans;
     text-rendering: optimizeLegibility;
+    /* iOS: avoid automatic text size inflation on rotate / small caps */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+/*
+ * iOS Safari zooms focused fields when computed font-size < 16px.
+ * WebKit-only guard so desktop Chrome is unchanged; !important wins over ad-hoc text-sm on inputs.
+ */
+@supports (-webkit-touch-callout: none) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(
+      [type="range"]
+    ):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }
 
