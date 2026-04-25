@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { listPurchasesForUser } from '@/db/queries/dm-transactions';
+import { mapDealReviewsByDealIds } from '@/db/queries/dm-reviews';
 import { getShipmentFlagsForDealIds } from '@/db/queries/dm-shipments';
 import type { ListingStatus } from '@/db/schema';
 import type {
@@ -19,6 +20,7 @@ export async function GET() {
   const shipmentByDeal = await getShipmentFlagsForDealIds(
     rows.map((r) => r.deal.id),
   );
+  const reviewByDeal = await mapDealReviewsByDealIds(rows.map((r) => r.deal.id));
 
   const listings: ViewerDashboardListingJson[] = rows.map(
     ({ listing, deal, seller, heroUrl }) => {
@@ -49,6 +51,7 @@ export async function GET() {
           profilePictureUrl: seller.profilePictureUrl,
         },
         shipment: shipmentFlag,
+        review: reviewByDeal.get(deal.id) ?? null,
       };
       return {
         id: listing.id,

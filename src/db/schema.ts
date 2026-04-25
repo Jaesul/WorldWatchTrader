@@ -272,6 +272,71 @@ export const dmShipments = pgTable(
   ],
 );
 
+/** Seller-initiated request for buyer feedback tied to a confirmed deal. */
+export const dmReviewRequests = pgTable(
+  'dm_review_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    threadId: uuid('thread_id')
+      .notNull()
+      .references(() => dmThreads.id, { onDelete: 'cascade' }),
+    listingDealId: uuid('listing_deal_id')
+      .notNull()
+      .references(() => listingDeals.id, { onDelete: 'cascade' }),
+    sellerId: text('seller_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    buyerId: text('buyer_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    status: text('status').notNull().default('pending'),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('dm_review_requests_listing_deal_uidx').on(t.listingDealId),
+    index('dm_review_requests_thread_created_idx').on(t.threadId, t.createdAt),
+    index('dm_review_requests_buyer_status_idx').on(t.buyerId, t.status),
+    index('dm_review_requests_seller_idx').on(t.sellerId),
+  ],
+);
+
+/** Buyer-submitted review for a completed deal, signed in World App. */
+export const dmReviews = pgTable(
+  'dm_reviews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    reviewRequestId: uuid('review_request_id')
+      .notNull()
+      .references(() => dmReviewRequests.id, { onDelete: 'cascade' }),
+    listingDealId: uuid('listing_deal_id')
+      .notNull()
+      .references(() => listingDeals.id, { onDelete: 'cascade' }),
+    sellerId: text('seller_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    buyerId: text('buyer_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    rating: integer('rating').notNull(),
+    comment: text('comment'),
+    signedMessage: text('signed_message').notNull(),
+    signature: text('signature').notNull(),
+    signerAddress: text('signer_address').notNull(),
+    signedNonce: text('signed_nonce').notNull(),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('dm_reviews_review_request_uidx').on(t.reviewRequestId),
+    uniqueIndex('dm_reviews_listing_deal_uidx').on(t.listingDealId),
+    index('dm_reviews_seller_id_idx').on(t.sellerId),
+    index('dm_reviews_buyer_id_idx').on(t.buyerId),
+  ],
+);
+
 export const dmMessages = pgTable(
   'dm_messages',
   {
@@ -293,12 +358,17 @@ export const dmMessages = pgTable(
     shipmentId: uuid('shipment_id').references(() => dmShipments.id, {
       onDelete: 'set null',
     }),
+    /** Links the message to a review request so clients can render review cards. */
+    reviewRequestId: uuid('review_request_id').references(() => dmReviewRequests.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     index('dm_messages_thread_created_idx').on(t.threadId, t.createdAt),
     index('dm_messages_tx_request_id_idx').on(t.txRequestId),
     index('dm_messages_shipment_id_idx').on(t.shipmentId),
+    index('dm_messages_review_request_id_idx').on(t.reviewRequestId),
   ],
 );
 
@@ -409,6 +479,10 @@ export const dmMessagesRelations = relations(dmMessages, ({ one }) => ({
     fields: [dmMessages.shipmentId],
     references: [dmShipments.id],
   }),
+  reviewRequest: one(dmReviewRequests, {
+    fields: [dmMessages.reviewRequestId],
+    references: [dmReviewRequests.id],
+  }),
 }));
 
 export const dmTransactionRequestsRelations = relations(dmTransactionRequests, ({ one, many }) => ({
@@ -449,6 +523,50 @@ export const dmShipmentsRelations = relations(dmShipments, ({ one, many }) => ({
   messages: many(dmMessages),
 }));
 
+export const dmReviewRequestsRelations = relations(dmReviewRequests, ({ one, many }) => ({
+  thread: one(dmThreads, { fields: [dmReviewRequests.threadId], references: [dmThreads.id] }),
+  deal: one(listingDeals, {
+    fields: [dmReviewRequests.listingDealId],
+    references: [listingDeals.id],
+  }),
+  seller: one(users, {
+    fields: [dmReviewRequests.sellerId],
+    references: [users.id],
+    relationName: 'dmReviewRequestSeller',
+  }),
+  buyer: one(users, {
+    fields: [dmReviewRequests.buyerId],
+    references: [users.id],
+    relationName: 'dmReviewRequestBuyer',
+  }),
+  review: one(dmReviews, {
+    fields: [dmReviewRequests.id],
+    references: [dmReviews.reviewRequestId],
+  }),
+  messages: many(dmMessages),
+}));
+
+export const dmReviewsRelations = relations(dmReviews, ({ one }) => ({
+  request: one(dmReviewRequests, {
+    fields: [dmReviews.reviewRequestId],
+    references: [dmReviewRequests.id],
+  }),
+  deal: one(listingDeals, {
+    fields: [dmReviews.listingDealId],
+    references: [listingDeals.id],
+  }),
+  seller: one(users, {
+    fields: [dmReviews.sellerId],
+    references: [users.id],
+    relationName: 'dmReviewSeller',
+  }),
+  buyer: one(users, {
+    fields: [dmReviews.buyerId],
+    references: [users.id],
+    relationName: 'dmReviewBuyer',
+  }),
+}));
+
 export type ListingStatus = 'draft' | 'active' | 'pending' | 'sold' | 'archived';
 
 export type ListingDealStatus = 'pending' | 'submitted' | 'confirmed' | 'failed';
@@ -456,3 +574,4 @@ export type ListingDealStatus = 'pending' | 'submitted' | 'confirmed' | 'failed'
 export type DmTransactionRequestStatus = 'pending' | 'accepted' | 'declined';
 
 export type DmShipmentCarrierCode = 'ups' | 'fedex' | 'usps' | 'dhl' | 'other';
+export type DmReviewRequestStatus = 'pending' | 'completed' | 'expired' | 'cancelled';

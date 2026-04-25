@@ -48,6 +48,28 @@ export type DmShipmentSnapshotPayload = {
   updatedAt: string;
 };
 
+export type DmReviewSnapshotPayload = {
+  reviewId: string;
+  rating: number;
+  comment: string | null;
+  signedAt: string;
+};
+
+export type DmReviewRequestSnapshotPayload = {
+  requestId: string;
+  threadId: string;
+  dealId: string;
+  sellerId: string;
+  buyerId: string;
+  status: 'pending' | 'completed' | 'expired' | 'cancelled';
+  listing: DmListingSnapshotPayload;
+  review: DmReviewSnapshotPayload | null;
+  completedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type DmStreamMessage = {
   id: string;
   senderId: string;
@@ -56,6 +78,7 @@ export type DmStreamMessage = {
   listingSnapshot?: DmListingSnapshotPayload | null;
   txRequest?: DmTxRequestSnapshotPayload | null;
   shipment?: DmShipmentSnapshotPayload | null;
+  reviewRequest?: DmReviewRequestSnapshotPayload | null;
 };
 
 /**

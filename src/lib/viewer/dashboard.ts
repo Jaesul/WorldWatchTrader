@@ -36,6 +36,12 @@ export type ViewerDashboardDealSnapshot = {
   seller: ViewerDashboardDealParty | null;
   /** Latest shipment attached to this deal, if any. */
   shipment: ViewerDashboardShipmentFlag | null;
+  /** Buyer-submitted review tied to this completed transaction, if present. */
+  review: {
+    rating: number;
+    comment: string | null;
+    createdAt: string;
+  } | null;
 };
 
 /** Whether this row represents something the viewer sold or purchased. */

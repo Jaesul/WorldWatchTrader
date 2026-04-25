@@ -12,6 +12,10 @@ import {
   mapShipmentsForMessages,
   type DmShipmentSnapshot,
 } from '@/db/queries/dm-shipments';
+import {
+  mapReviewRequestsForMessages,
+  type DmReviewRequestSnapshot,
+} from '@/db/queries/dm-reviews';
 
 export type DmThreadError = 'listing_not_found' | 'cannot_message_self' | 'thread_not_found' | 'forbidden';
 
@@ -226,6 +230,7 @@ export async function listThreadsForUser(userId: string): Promise<InboxRow[]> {
               listingSnapshot: dmMessages.listingSnapshot,
               txRequestId: dmMessages.txRequestId,
               shipmentId: dmMessages.shipmentId,
+              reviewRequestId: dmMessages.reviewRequestId,
               senderId: dmMessages.senderId,
             })
             .from(dmMessages)
@@ -240,6 +245,8 @@ export async function listThreadsForUser(userId: string): Promise<InboxRow[]> {
                 ? 'Shipping update'
                 : m?.txRequestId != null
                   ? 'Transaction request'
+                  : m?.reviewRequestId != null
+                    ? 'Review request'
                   : m?.listingSnapshot != null
                     ? 'Listing'
                     : null;
@@ -345,12 +352,14 @@ export type DmMessageApi = {
   listingSnapshot: DmListingSnapshot | null;
   txRequest: DmTxRequestSnapshot | null;
   shipment: DmShipmentSnapshot | null;
+  reviewRequest: DmReviewRequestSnapshot | null;
 };
 
 export function messageToApi(
   m: DmMessageRow,
   txRequest: DmTxRequestSnapshot | null = null,
   shipment: DmShipmentSnapshot | null = null,
+  reviewRequest: DmReviewRequestSnapshot | null = null,
 ): DmMessageApi {
   const snap = m.listingSnapshot;
   const listingSnapshot: DmListingSnapshot | null =
@@ -365,6 +374,7 @@ export function messageToApi(
     listingSnapshot,
     txRequest,
     shipment,
+    reviewRequest,
   };
 }
 
@@ -374,15 +384,17 @@ export function messageToApi(
  */
 export async function messagesToApi(rows: DmMessageRow[]): Promise<DmMessageApi[]> {
   if (rows.length === 0) return [];
-  const [txMap, shipmentMap] = await Promise.all([
+  const [txMap, shipmentMap, reviewMap] = await Promise.all([
     mapTxRequestsForMessages(rows),
     mapShipmentsForMessages(rows),
+    mapReviewRequestsForMessages(rows),
   ]);
   return rows.map((m) =>
     messageToApi(
       m,
       m.txRequestId ? txMap.get(m.txRequestId) ?? null : null,
       m.shipmentId ? shipmentMap.get(m.shipmentId) ?? null : null,
+      m.reviewRequestId ? reviewMap.get(m.reviewRequestId) ?? null : null,
     ),
   );
 }

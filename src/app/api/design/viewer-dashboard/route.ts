@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getConfirmedDealsForListings } from '@/db/queries/dm-transactions';
+import { mapDealReviewsByDealIds } from '@/db/queries/dm-reviews';
 import { getShipmentFlagsForDealIds } from '@/db/queries/dm-shipments';
 import { listSellerDashboardListingsPageWithHero } from '@/db/queries/listings';
 import type { ListingStatus } from '@/db/schema';
@@ -40,6 +41,7 @@ export async function GET(req: Request) {
   const dealByListing = await getConfirmedDealsForListings(soldIds);
   const dealIds = Array.from(dealByListing.values()).map((d) => d.id);
   const shipmentByDeal = await getShipmentFlagsForDealIds(dealIds);
+  const reviewByDeal = await mapDealReviewsByDealIds(dealIds);
 
   const listings = rows.map(({ listing, heroUrl }) => {
     const deal = dealByListing.get(listing.id) ?? null;
@@ -65,6 +67,7 @@ export async function GET(req: Request) {
           },
           seller: null,
           shipment: shipmentFlag,
+          review: reviewByDeal.get(deal.id) ?? null,
         }
       : null;
     return {

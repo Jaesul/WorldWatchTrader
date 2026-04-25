@@ -212,6 +212,28 @@ export function SoldListingReceiptDrawer({
 
           <section>
             <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Review
+            </p>
+            {deal?.review ? (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-sm text-foreground">
+                <p className="font-medium">
+                  Buyer rating: {deal.review.rating}/5
+                </p>
+                {deal.review.comment ? (
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    {deal.review.comment}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-muted/30 px-3 py-3 text-xs text-muted-foreground">
+                No review submitted yet.
+              </div>
+            )}
+          </section>
+
+          <section>
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               On-chain settlement
             </p>
             <OnChainSettlementDetails

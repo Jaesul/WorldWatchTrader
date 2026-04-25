@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Inbox, Send, Truck } from 'lucide-react';
+import { ArrowRight, Inbox, Send, Star, Truck } from 'lucide-react';
 
 import {
   Drawer,
@@ -16,6 +16,7 @@ type Props = {
   onSelectSend: () => void;
   onSelectShipping: () => void;
   onSelectList: () => void;
+  onSelectReview: () => void;
   hasGlobalPending: boolean;
 };
 
@@ -25,6 +26,7 @@ export function DmThreadMenuDrawer({
   onSelectSend,
   onSelectShipping,
   onSelectList,
+  onSelectReview,
   hasGlobalPending,
 }: Props) {
   return (
@@ -54,6 +56,27 @@ export function DmThreadMenuDrawer({
               </span>
               <span className="text-xs text-muted-foreground">
                 Request a purchase of one of your listings from this buyer.
+              </span>
+            </span>
+            <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onOpenChange(false);
+              onSelectReview();
+            }}
+            className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/50"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Star className="size-4" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-sm font-semibold text-foreground">
+                Send review request
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Ask the buyer for a signed rating after a completed transaction.
               </span>
             </span>
             <ArrowRight className="size-4 shrink-0 text-muted-foreground" />

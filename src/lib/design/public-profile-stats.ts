@@ -1,7 +1,4 @@
-/**
- * Design sandbox stats for public profiles (no reviews table yet).
- * Matches seed exclusion in `src/db/seed-listings.ts` (`EXCLUDED_SEED_LOGIN`).
- */
+/** Matches seed exclusion in `src/db/seed-listings.ts` (`EXCLUDED_SEED_LOGIN`). */
 const EXCLUDED_LOGIN = 'ajemian.2718';
 
 function isExcludedPublicProfileUser(username: string, handle: string | null) {
@@ -10,26 +7,23 @@ function isExcludedPublicProfileUser(username: string, handle: string | null) {
   return u === EXCLUDED_LOGIN || h === EXCLUDED_LOGIN;
 }
 
-function deterministicPositivePercentFromUserId(userId: string): number {
-  let acc = 0;
-  for (let i = 0; i < userId.length; i++) {
-    acc = (acc * 31 + userId.charCodeAt(i)) >>> 0;
-  }
-  return 96 + (acc % 5);
-}
-
 export function publicProfileSalesAndPositivePercent(input: {
-  userId: string;
   username: string;
   handle: string | null;
   soldCountFromDb: number;
+  totalReviews: number;
+  positiveReviews: number;
 }): { sales: number; positiveRate: number } {
   if (isExcludedPublicProfileUser(input.username, input.handle)) {
     return { sales: 0, positiveRate: 0 };
   }
+  const positiveRate =
+    input.totalReviews > 0
+      ? Math.round((input.positiveReviews / input.totalReviews) * 100)
+      : 0;
   return {
     sales: input.soldCountFromDb,
-    positiveRate: deterministicPositivePercentFromUserId(input.userId),
+    positiveRate,
   };
 }
 

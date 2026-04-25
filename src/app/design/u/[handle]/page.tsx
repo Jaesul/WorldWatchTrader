@@ -16,6 +16,7 @@ import {
   listPurchasesForUser,
   type PurchaseRow,
 } from '@/db/queries/dm-transactions';
+import { mapDealReviewsByDealIds } from '@/db/queries/dm-reviews';
 import { getShipmentFlagsForDealIds } from '@/db/queries/dm-shipments';
 import { getUserByPublicProfileSlug } from '@/db/queries/users';
 import type { Badge, Listing } from '@/lib/design/data';
@@ -38,6 +39,7 @@ import {
   profileDisplayName,
   publicProfileSalesAndPositivePercent,
 } from '@/lib/design/public-profile-stats';
+import { getSellerReviewSummary } from '@/db/queries/dm-reviews';
 import type {
   ViewerDashboardDealParty,
   ViewerDashboardDealSnapshot,
@@ -89,12 +91,16 @@ export default async function PublicProfilePage({
   const user = await getUserByPublicProfileSlug(slug);
   if (!user) notFound();
 
-  const soldCountFromDb = await countSellerListingsByStatus(user.id, 'sold');
+  const [soldCountFromDb, reviewSummary] = await Promise.all([
+    countSellerListingsByStatus(user.id, 'sold'),
+    getSellerReviewSummary(user.id),
+  ]);
   const { sales, positiveRate } = publicProfileSalesAndPositivePercent({
-    userId: user.id,
     username: user.username,
     handle: user.handle,
     soldCountFromDb,
+    totalReviews: reviewSummary.totalReviews,
+    positiveReviews: reviewSummary.positiveReviews,
   });
 
   const [activeRows, soldRowsDb, purchaseRowsDb] = await Promise.all([
@@ -135,6 +141,7 @@ export default async function PublicProfilePage({
   for (const deal of confirmedDeals.values()) dealIdsForShipments.push(deal.id);
   for (const { deal } of purchaseRowsDb) dealIdsForShipments.push(deal.id);
   const shipmentFlagsByDealId = await getShipmentFlagsForDealIds(dealIdsForShipments);
+  const reviewByDealId = await mapDealReviewsByDealIds(dealIdsForShipments);
 
   const profileOwnerParty: ViewerDashboardDealParty = {
     id: user.id,
@@ -204,6 +211,7 @@ export default async function PublicProfilePage({
       buyer: buyerParty,
       seller: null,
       shipment,
+      review: reviewByDealId.get(deal.id) ?? null,
     };
     return {
       listingId: listing.id,
@@ -266,6 +274,7 @@ export default async function PublicProfilePage({
         buyer: profileOwnerParty,
         seller: sellerParty,
         shipment,
+        review: reviewByDealId.get(deal.id) ?? null,
       };
       return {
         listingId: listing.id,
@@ -278,6 +287,7 @@ export default async function PublicProfilePage({
   );
 
   const name = profileDisplayName(user);
+  const hasReviewData = reviewSummary.totalReviews > 0;
   const memberSince = memberSinceLabel(user.createdAt);
   const verified = user.orbVerified;
   const powerSeller = user.powerSeller;
@@ -361,7 +371,7 @@ export default async function PublicProfilePage({
           <div className="flex items-baseline gap-1">
             <dt className="sr-only">Positive feedback</dt>
             <dd className="text-sm font-semibold text-foreground">
-              {positiveRate}%
+              {hasReviewData ? `${positiveRate}%` : '--'}
             </dd>
             <span>positive</span>
           </div>

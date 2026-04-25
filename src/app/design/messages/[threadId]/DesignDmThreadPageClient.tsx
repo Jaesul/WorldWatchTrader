@@ -8,17 +8,21 @@ import { Forward, MoreVertical } from 'lucide-react';
 import { DesignDmThreadSkeleton } from '@/app/design/messages/DesignDmThreadSkeleton';
 import { WorldOrbIcon } from '@/components/icons/world-orb';
 import { DmListingSnapshotCard } from '@/components/dm/DmListingSnapshotCard';
+import { DmReviewRequestCard } from '@/components/dm/DmReviewRequestCard';
 import { DmShipmentCard } from '@/components/dm/DmShipmentCard';
 import { DmThreadMenuDrawer } from '@/components/dm/DmThreadMenuDrawer';
 import { DmTxRequestCard } from '@/components/dm/DmTxRequestCard';
+import { SendReviewRequestSheet } from '@/components/dm/SendReviewRequestSheet';
 import { SendShippingSheet } from '@/components/dm/SendShippingSheet';
 import { SendTransactionSheet } from '@/components/dm/SendTransactionSheet';
+import { SubmitReviewSheet } from '@/components/dm/SubmitReviewSheet';
 import { TxRequestDetailsDrawer } from '@/components/dm/TxRequestDetailsDrawer';
 import { TxRequestsListDrawer } from '@/components/dm/TxRequestsListDrawer';
 import { Button } from '@/components/ui/button';
 import {
   useDmThreadStream,
   type DmStreamMessage,
+  type DmReviewRequestSnapshotPayload,
   type DmTxRequestSnapshotPayload,
 } from '@/hooks/useDmThreadStream';
 import type { DmListingSnapshot } from '@/db/queries/dm-threads';
@@ -87,6 +91,9 @@ export function DesignDmThreadPageClient({
   const [sendTxOpen, setSendTxOpen] = useState(false);
   const [shippingOpen, setShippingOpen] = useState(false);
   const [txListOpen, setTxListOpen] = useState(false);
+  const [sendReviewOpen, setSendReviewOpen] = useState(false);
+  const [reviewRequestDetails, setReviewRequestDetails] =
+    useState<DmReviewRequestSnapshotPayload | null>(null);
   const [txDetailsRequest, setTxDetailsRequest] =
     useState<DmTxRequestSnapshotPayload | null>(null);
   const [summary, setSummary] = useState<{
@@ -138,11 +145,30 @@ export function DesignDmThreadPageClient({
         }
       }
       if (latestByReqId.size === 0) return next;
-      return next.map((row) => {
+      let nextRows = next.map((row) => {
         if (!row.txRequest) return row;
         const latest = latestByReqId.get(row.txRequest.requestId);
         return latest && latest !== row.txRequest ? { ...row, txRequest: latest } : row;
       });
+      const latestReviewByReqId = new Map<string, DmReviewRequestSnapshotPayload>();
+      for (const row of nextRows) {
+        const snap = row.reviewRequest;
+        if (
+          snap &&
+          (!latestReviewByReqId.has(snap.requestId) ||
+            new Date(snap.updatedAt).getTime() >
+              new Date(latestReviewByReqId.get(snap.requestId)!.updatedAt).getTime())
+        ) {
+          latestReviewByReqId.set(snap.requestId, snap);
+        }
+      }
+      if (latestReviewByReqId.size === 0) return nextRows;
+      nextRows = nextRows.map((row) => {
+        if (!row.reviewRequest) return row;
+        const latest = latestReviewByReqId.get(row.reviewRequest.requestId);
+        return latest && latest !== row.reviewRequest ? { ...row, reviewRequest: latest } : row;
+      });
+      return nextRows;
     });
   }, []);
 
@@ -151,6 +177,16 @@ export function DesignDmThreadPageClient({
       prev.map((row) =>
         row.txRequest && row.txRequest.requestId === updated.requestId
           ? { ...row, txRequest: updated }
+          : row,
+      ),
+    );
+  }, []);
+
+  const applyReviewRequestUpdate = useCallback((updated: DmReviewRequestSnapshotPayload) => {
+    setRows((prev) =>
+      prev.map((row) =>
+        row.reviewRequest && row.reviewRequest.requestId === updated.requestId
+          ? { ...row, reviewRequest: updated }
           : row,
       ),
     );
@@ -351,7 +387,8 @@ export function DesignDmThreadPageClient({
             const mine = m.senderId === viewerId;
             const hasShipment = m.shipment != null;
             const hasTxRequest = !hasShipment && m.txRequest != null;
-            const hasCard = !hasTxRequest && !hasShipment && m.listingSnapshot != null;
+            const hasReviewRequest = !hasShipment && !hasTxRequest && m.reviewRequest != null;
+            const hasCard = !hasReviewRequest && !hasTxRequest && !hasShipment && m.listingSnapshot != null;
             const hasText = m.body.trim().length > 0;
             if (hasShipment && m.shipment) {
               return (
@@ -387,6 +424,29 @@ export function DesignDmThreadPageClient({
                       request={m.txRequest}
                       mine={mine}
                       onOpen={() => setTxDetailsRequest(m.txRequest ?? null)}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatBubbleTime(m.createdAt)}
+                  </span>
+                </div>
+              );
+            }
+            if (hasReviewRequest && m.reviewRequest) {
+              return (
+                <div
+                  key={m.id}
+                  className={`flex flex-col gap-0.5 ${mine ? 'items-end' : 'items-start'}`}
+                >
+                  <div
+                    className={`rounded-2xl p-1 ${
+                      mine ? 'rounded-br-sm bg-[#ffc85c]' : 'rounded-bl-sm bg-muted'
+                    }`}
+                  >
+                    <DmReviewRequestCard
+                      request={m.reviewRequest}
+                      mine={mine}
+                      onOpen={() => setReviewRequestDetails(m.reviewRequest ?? null)}
                     />
                   </div>
                   <span className="text-[10px] text-muted-foreground">
@@ -463,6 +523,7 @@ export function DesignDmThreadPageClient({
         onSelectSend={() => setSendTxOpen(true)}
         onSelectShipping={() => setShippingOpen(true)}
         onSelectList={() => setTxListOpen(true)}
+        onSelectReview={() => setSendReviewOpen(true)}
         hasGlobalPending={hasGlobalPending}
       />
 
@@ -480,6 +541,15 @@ export function DesignDmThreadPageClient({
         onOpenChange={setShippingOpen}
         threadId={threadId}
         onSent={(msg) => append([msg])}
+      />
+
+      <SendReviewRequestSheet
+        open={sendReviewOpen}
+        onOpenChange={setSendReviewOpen}
+        threadId={threadId}
+        onSent={(request) => {
+          setReviewRequestDetails(request);
+        }}
       />
 
       <TxRequestsListDrawer
@@ -500,6 +570,18 @@ export function DesignDmThreadPageClient({
           applyTxUpdate(updated);
           setTxListRefreshKey((k) => k + 1);
           void loadSummary();
+        }}
+      />
+
+      <SubmitReviewSheet
+        open={reviewRequestDetails != null}
+        onOpenChange={(next) => {
+          if (!next) setReviewRequestDetails(null);
+        }}
+        request={reviewRequestDetails}
+        viewerId={viewerId}
+        onSubmitted={(updated) => {
+          applyReviewRequestUpdate(updated);
         }}
       />
     </div>

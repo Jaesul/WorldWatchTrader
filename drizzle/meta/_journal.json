@@ -71,6 +71,13 @@
       "when": 1777063704543,
       "tag": "0009_minor_xavin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1777092000000,
+      "tag": "0010_signed_reviews",
+      "breakpoints": true
     }
   ]
 }
