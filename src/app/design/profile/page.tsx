@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListingEditDrawer } from "@/components/design/ListingEditDrawer";
 import { MarkSoldSheet } from "@/components/design/MarkSoldSheet";
+import { CopyWalletButton } from "@/components/design/CopyWalletButton";
 import { ProfileEditDrawer } from "@/components/design/ProfileEditDrawer";
 import { SoldListingReceiptDrawer } from "@/components/design/SoldListingReceiptDrawer";
 import { Verify } from "@/components/Verify";
@@ -21,49 +22,6 @@ import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-inte
 import { useDrawerResident } from "@/hooks/use-drawer-resident";
 import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 type ProfileTab = "active" | "pending" | "history";
-
-function shortAddress(addr: string): string {
-  if (!addr) return "";
-  if (addr.length <= 9) return addr;
-  return `${addr.slice(0, 4)}…${addr.slice(-3)}`;
-}
-
-function CopyWalletButton({ address }: { address: string }) {
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-  async function onCopy() {
-    try {
-      await navigator.clipboard.writeText(address);
-      setCopied(true);
-      toast.success("Address copied");
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopied(false), 1500);
-    } catch {
-      toast.error("Couldn’t copy");
-    }
-  }
-  return (
-    <button
-      type="button"
-      onClick={onCopy}
-      aria-label="Copy wallet address"
-      title={address}
-      className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-    >
-      <span>{shortAddress(address)}</span>
-      {copied ? (
-        <Check className="size-3 text-emerald-600" strokeWidth={2.5} />
-      ) : (
-        <Copy className="size-3" strokeWidth={2} />
-      )}
-    </button>
-  );
-}
 
 function formatPrice(price: number, currency: string) {
   const symbol =

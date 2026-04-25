@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 
 import type { PublicProfileListingRow } from '@/components/design/PublicProfileActiveListings';
+import { CopyWalletButton } from '@/components/design/CopyWalletButton';
+import { ProfileChatShareButton } from '@/components/design/ProfileChatShareButton';
 import { PublicProfileListingsTabs } from '@/components/design/PublicProfileListingsTabs';
 import { WorldOrbIcon } from '@/components/icons/world-orb';
 import { Button } from '@/components/ui/button';
@@ -294,6 +296,16 @@ export default async function PublicProfilePage({
           />
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-semibold text-foreground">{name}</h1>
+            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+              {user.handle && user.handle !== user.username ? (
+                <>
+                  <span className="truncate">@{user.handle}</span>
+                  <span aria-hidden>·</span>
+                </>
+              ) : null}
+              <CopyWalletButton address={user.walletAddress} />
+              <ProfileChatShareButton profileSlug={slug} username={user.username} />
+            </div>
             {(verified || powerSeller) && (
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {verified && (
