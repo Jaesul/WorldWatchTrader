@@ -199,7 +199,7 @@ export const dmThreads = pgTable(
 /**
  * Seller-initiated transaction request between two users within a DM thread.
  * Status transitions: pending -> accepted | declined. On accept, a matching
- * `listing_deals` row is inserted (mocked values) and the listing is marked sold.
+ * `listing_deals` row is inserted and the listing is marked sold (WLD via MiniKit.pay).
  */
 export const dmTransactionRequests = pgTable(
   'dm_transaction_requests',
@@ -222,6 +222,14 @@ export const dmTransactionRequests = pgTable(
     status: text('status').notNull().default('pending'),
     declineReason: text('decline_reason'),
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    /** MiniKit.pay reference; set when buyer first calls prepare-accept (quote lock). */
+    payReference: text('pay_reference'),
+    settlementTokenSymbol: text('settlement_token_symbol').default('WLD'),
+    /** WLD amount in smallest units (wei) as decimal string; locked with quote. */
+    settlementAmountRaw: text('settlement_amount_raw'),
+    /** Snapshot of `DM_SETTLEMENT_USD_PER_WLD` used for this quote. */
+    usdPerWldRate: text('usd_per_wld_rate'),
+    quoteLockedAt: timestamp('quote_locked_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -234,6 +242,9 @@ export const dmTransactionRequests = pgTable(
     index('dm_transaction_requests_thread_created_idx').on(t.threadId, t.createdAt),
     index('dm_transaction_requests_sender_idx').on(t.senderId),
     index('dm_transaction_requests_listing_idx').on(t.listingId),
+    uniqueIndex('dm_transaction_requests_pay_reference_uidx')
+      .on(t.payReference)
+      .where(sql`${t.payReference} IS NOT NULL`),
   ],
 );
 

@@ -16,25 +16,19 @@ function errorToStatus(err: DmTxRequestError): number {
     case 'not_seller':
       return 403;
     case 'invalid_price':
-    case 'invalid_tx_hash':
-    case 'invalid_user_op_hash':
     case 'invalid_status':
     case 'already_resolved':
+    case 'invalid_payment_payload':
       return 400;
+    case 'payment_verify_failed':
+      return 502;
     default:
       return 400;
   }
 }
 
 type FinalizeBody = {
-  userOpHash?: unknown;
-  transactionHash?: unknown;
-  chainId?: unknown;
-  chainName?: unknown;
-  tokenSymbol?: unknown;
-  amountRaw?: unknown;
-  fromAddress?: unknown;
-  toAddress?: unknown;
+  payResult?: unknown;
 };
 
 export async function POST(
@@ -56,27 +50,18 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const userOpHash = typeof body.userOpHash === 'string' ? body.userOpHash : '';
-  const transactionHash =
-    typeof body.transactionHash === 'string' ? body.transactionHash : null;
-  const chainId = typeof body.chainId === 'number' ? body.chainId : 480;
-  const chainName = typeof body.chainName === 'string' ? body.chainName : 'World Chain';
-  const tokenSymbol = typeof body.tokenSymbol === 'string' ? body.tokenSymbol : 'ETH';
-  const amountRaw = typeof body.amountRaw === 'string' ? body.amountRaw : '';
-  const fromAddress = typeof body.fromAddress === 'string' ? body.fromAddress : '';
-  const toAddress = typeof body.toAddress === 'string' ? body.toAddress : '';
+  const payResult = body.payResult;
+  if (!payResult || typeof payResult !== 'object') {
+    return NextResponse.json({ error: 'payResult required' }, { status: 400 });
+  }
+  const pr = payResult as { executedWith?: unknown; data?: unknown };
+  const executedWith = typeof pr.executedWith === 'string' ? pr.executedWith : '';
+  const data = pr.data && typeof pr.data === 'object' ? (pr.data as Record<string, unknown>) : {};
 
   const result = await finalizeAcceptedTransactionRequest({
     requestId,
     viewerId: v.user.id,
-    userOpHash,
-    transactionHash,
-    chainId,
-    chainName,
-    tokenSymbol,
-    amountRaw,
-    fromAddress,
-    toAddress,
+    payResult: { executedWith, data },
   });
 
   if (!result.ok) {

@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useMiniKit } from '@worldcoin/minikit-js/minikit-provider';
-import { useUserOperationReceipt } from '@worldcoin/minikit-react';
-import { createPublicClient, http } from 'viem';
-import { worldchain } from 'viem/chains';
+import { Tokens } from '@worldcoin/minikit-js/commands';
+import { formatUnits } from 'viem';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -40,6 +39,15 @@ function statusBadge(status: DmTxRequestSnapshotPayload['status']) {
   }
 }
 
+function wldHumanLabel(raw: string | null | undefined): string | null {
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  try {
+    return `${formatUnits(BigInt(raw), 18)} WLD`;
+  } catch {
+    return null;
+  }
+}
+
 export function TxRequestDetailsDrawer({
   open,
   onOpenChange,
@@ -48,11 +56,6 @@ export function TxRequestDetailsDrawer({
   onResolved,
 }: Props) {
   const { isInstalled } = useMiniKit();
-  const client = createPublicClient({
-    chain: worldchain,
-    transport: http('https://worldchain-mainnet.g.alchemy.com/public'),
-  });
-  const { poll } = useUserOperationReceipt({ client });
   const [mode, setMode] = useState<'view' | 'decline'>('view');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState<'accept' | 'decline' | null>(null);
@@ -72,6 +75,7 @@ export function TxRequestDetailsDrawer({
   const viewerIsRecipient =
     !!viewerId && viewerId === residentRequest.recipientId;
   const canResolve = viewerIsRecipient && residentRequest.status === 'pending';
+  const lockedWldLabel = wldHumanLabel(residentRequest.settlementAmountWldRaw ?? null);
 
   async function declineRequest(body?: { reason?: string }) {
     if (!residentRequest) return;
@@ -119,14 +123,12 @@ export function TxRequestDetailsDrawer({
       const prepareData = (await prepareRes.json().catch(() => ({}))) as {
         request?: DmTxRequestSnapshotPayload;
         payload?: {
-          chainId: number;
-          transactions: Array<{ to: string; value: string }>;
-          settlement: {
-            chainName: string;
-            tokenSymbol: string;
-            amountRaw: string;
-            fromAddress: string;
-            toAddress: string;
+          kind: 'minikit_pay';
+          pay: {
+            reference: string;
+            to: string;
+            tokens: Array<{ symbol: 'WLD'; token_amount: string }>;
+            description: string;
           };
         };
         error?: string;
@@ -140,22 +142,20 @@ export function TxRequestDetailsDrawer({
         return;
       }
 
-      const sendResult = await MiniKit.sendTransaction({
-        chainId: prepareData.payload.chainId,
-        transactions: prepareData.payload.transactions,
-      });
-      const userOpHash = sendResult.data.userOpHash;
+      onResolved?.(prepareData.request);
 
-      let transactionHash: string | null = null;
-      try {
-        const receipt = (await poll(userOpHash)) as { transactionHash?: string } | null;
-        transactionHash =
-          receipt && typeof receipt.transactionHash === 'string'
-            ? receipt.transactionHash
-            : null;
-      } catch {
-        // Finalization stores userOpHash even if receipt polling times out.
-      }
+      const tokenEntry = prepareData.payload.pay.tokens[0];
+      const payResult = await MiniKit.pay({
+        reference: prepareData.payload.pay.reference,
+        to: prepareData.payload.pay.to,
+        tokens: [
+          {
+            symbol: Tokens.WLD,
+            token_amount: tokenEntry?.token_amount ?? '0',
+          },
+        ],
+        description: prepareData.payload.pay.description,
+      });
 
       const finalizeRes = await fetch(
         `/api/design/dm/transaction-requests/${residentRequest.requestId}/finalize-accept`,
@@ -163,16 +163,7 @@ export function TxRequestDetailsDrawer({
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userOpHash,
-            transactionHash,
-            chainId: prepareData.payload.chainId,
-            chainName: prepareData.payload.settlement.chainName,
-            tokenSymbol: prepareData.payload.settlement.tokenSymbol,
-            amountRaw: prepareData.payload.settlement.amountRaw,
-            fromAddress: prepareData.payload.settlement.fromAddress,
-            toAddress: prepareData.payload.settlement.toAddress,
-          }),
+          body: JSON.stringify({ payResult }),
         },
       );
       const finalizeData = (await finalizeRes.json().catch(() => ({}))) as {
@@ -240,6 +231,12 @@ export function TxRequestDetailsDrawer({
             <p className="mt-1 text-base font-bold text-foreground">
               ${residentRequest.priceUsd.toLocaleString('en-US')}
             </p>
+            {lockedWldLabel ? (
+              <p className="mt-0.5 text-[11px] font-medium text-foreground/80">
+                Pay {lockedWldLabel}{' '}
+                <span className="font-normal text-muted-foreground">(locked at accept)</span>
+              </p>
+            ) : null}
             <p className="mt-0.5 text-[10px] text-muted-foreground capitalize">
               {residentRequest.listing.status}
             </p>

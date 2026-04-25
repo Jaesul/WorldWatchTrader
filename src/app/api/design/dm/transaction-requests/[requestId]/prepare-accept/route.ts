@@ -15,6 +15,8 @@ function errorToStatus(err: DmTxRequestError): number {
     case 'not_participant':
     case 'not_seller':
       return 403;
+    case 'invalid_settlement_rate':
+      return 400;
     default:
       return 400;
   }

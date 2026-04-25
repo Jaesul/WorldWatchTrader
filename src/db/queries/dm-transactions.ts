@@ -12,6 +12,12 @@ import {
   type DmTransactionRequestStatus,
 } from '@/db/schema';
 import type { DmListingSnapshot } from '@/db/queries/dm-threads';
+import {
+  parseUsdPerWldScaledFromEnv,
+  readDmSettlementUsdPerWldFromEnv,
+  wldAmountRawFromPriceUsd,
+} from '@/lib/settlement/env-wld-quote';
+import { verifyMinikitPayment } from '@/lib/settlement/verify-minikit-payment';
 
 export type DmTxRequestError =
   | 'thread_not_found'
@@ -27,7 +33,10 @@ export type DmTxRequestError =
   | 'invalid_description'
   | 'invalid_reason'
   | 'invalid_tx_hash'
-  | 'invalid_user_op_hash';
+  | 'invalid_user_op_hash'
+  | 'invalid_settlement_rate'
+  | 'invalid_payment_payload'
+  | 'payment_verify_failed';
 
 export type DmTxRequestSnapshot = {
   requestId: string;
@@ -42,6 +51,11 @@ export type DmTxRequestSnapshot = {
   resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  payReference: string | null;
+  settlementTokenSymbol: string | null;
+  settlementAmountWldRaw: string | null;
+  usdPerWldRateSnapshot: string | null;
+  quoteLockedAt: string | null;
 };
 
 const MAX_DESCRIPTION_LEN = 1000;
@@ -76,6 +90,11 @@ function toSnapshot(
     resolvedAt: req.resolvedAt ? req.resolvedAt.toISOString() : null,
     createdAt: req.createdAt.toISOString(),
     updatedAt: req.updatedAt.toISOString(),
+    payReference: req.payReference ?? null,
+    settlementTokenSymbol: req.settlementTokenSymbol ?? null,
+    settlementAmountWldRaw: req.settlementAmountRaw ?? null,
+    usdPerWldRateSnapshot: req.usdPerWldRate ?? null,
+    quoteLockedAt: req.quoteLockedAt ? req.quoteLockedAt.toISOString() : null,
   };
 }
 
@@ -211,20 +230,56 @@ export async function createTransactionRequest(input: {
 }
 
 export type DmTxAcceptPreparePayload = {
-  chainId: number;
-  transactions: Array<{
+  kind: 'minikit_pay';
+  pay: {
+    reference: string;
     to: string;
-    value: string;
-  }>;
+    tokens: Array<{ symbol: 'WLD'; token_amount: string }>;
+    description: string;
+  };
   settlement: {
+    chainId: number;
     chainName: string;
     tokenSymbol: string;
     amountRaw: string;
-    executedWith: 'minikit_send_transaction';
+    executedWith: 'minikit_pay';
     fromAddress: string;
     toAddress: string;
   };
 };
+
+function buildPreparePayloadFromLockedRow(
+  reqRow: typeof dmTransactionRequests.$inferSelect,
+  sellerWallet: string,
+  buyerWallet: string,
+): DmTxAcceptPreparePayload | null {
+  if (
+    !reqRow.payReference ||
+    !reqRow.settlementAmountRaw ||
+    !reqRow.quoteLockedAt ||
+    !reqRow.usdPerWldRate
+  ) {
+    return null;
+  }
+  return {
+    kind: 'minikit_pay',
+    pay: {
+      reference: reqRow.payReference,
+      to: sellerWallet,
+      tokens: [{ symbol: 'WLD', token_amount: reqRow.settlementAmountRaw }],
+      description: `Listing purchase (request ${reqRow.id.slice(0, 8)})`,
+    },
+    settlement: {
+      chainId: WORLD_CHAIN_ID,
+      chainName: WORLD_CHAIN_NAME,
+      tokenSymbol: reqRow.settlementTokenSymbol ?? 'WLD',
+      amountRaw: reqRow.settlementAmountRaw,
+      executedWith: 'minikit_pay',
+      fromAddress: buyerWallet,
+      toAddress: sellerWallet,
+    },
+  };
+}
 
 export async function prepareAcceptTransactionRequest(
   requestId: string,
@@ -234,86 +289,154 @@ export async function prepareAcceptTransactionRequest(
   | { ok: false; error: DmTxRequestError }
 > {
   const db = getDb();
-  const [reqRow] = await db
-    .select()
-    .from(dmTransactionRequests)
-    .where(eq(dmTransactionRequests.id, requestId))
-    .limit(1);
-  if (!reqRow) return { ok: false as const, error: 'request_not_found' as const };
-  if (reqRow.recipientId !== viewerId) {
-    return { ok: false as const, error: 'not_recipient' as const };
-  }
-  if (reqRow.status !== 'pending') {
-    return { ok: false as const, error: 'invalid_status' as const };
-  }
+  return db.transaction(async (tx) => {
+    const [reqRow] = await tx
+      .select()
+      .from(dmTransactionRequests)
+      .where(eq(dmTransactionRequests.id, requestId))
+      .limit(1);
+    if (!reqRow) return { ok: false as const, error: 'request_not_found' as const };
+    if (reqRow.recipientId !== viewerId) {
+      return { ok: false as const, error: 'not_recipient' as const };
+    }
+    if (reqRow.status !== 'pending') {
+      return { ok: false as const, error: 'invalid_status' as const };
+    }
 
-  const [buyer] = await db.select().from(users).where(eq(users.id, reqRow.recipientId)).limit(1);
-  const [seller] = await db.select().from(users).where(eq(users.id, reqRow.senderId)).limit(1);
-  if (!buyer || !seller) {
-    return { ok: false as const, error: 'not_participant' as const };
-  }
-  if (!buyer.walletAddress || !seller.walletAddress) {
-    return { ok: false as const, error: 'not_participant' as const };
-  }
-  const [listing] = await db.select().from(listings).where(eq(listings.id, reqRow.listingId)).limit(1);
-  if (!listing) return { ok: false as const, error: 'listing_not_found' as const };
-  if (listing.sellerId !== reqRow.senderId) {
-    return { ok: false as const, error: 'not_seller' as const };
-  }
+    const [buyer] = await tx.select().from(users).where(eq(users.id, reqRow.recipientId)).limit(1);
+    const [seller] = await tx.select().from(users).where(eq(users.id, reqRow.senderId)).limit(1);
+    if (!buyer || !seller) {
+      return { ok: false as const, error: 'not_participant' as const };
+    }
+    if (!buyer.walletAddress || !seller.walletAddress) {
+      return { ok: false as const, error: 'not_participant' as const };
+    }
+    const [listing] = await tx
+      .select()
+      .from(listings)
+      .where(eq(listings.id, reqRow.listingId))
+      .limit(1);
+    if (!listing) return { ok: false as const, error: 'listing_not_found' as const };
+    if (listing.sellerId !== reqRow.senderId) {
+      return { ok: false as const, error: 'not_seller' as const };
+    }
 
-  const snap = await buildListingSnapshotRow(reqRow.listingId, reqRow.priceUsd);
-  if (!snap) return { ok: false as const, error: 'listing_not_found' as const };
+    const snap = await buildListingSnapshotRow(reqRow.listingId, reqRow.priceUsd);
+    if (!snap) return { ok: false as const, error: 'listing_not_found' as const };
 
-  const valueWei = BigInt(Math.max(reqRow.priceUsd, 1)).toString();
-  return {
-    ok: true as const,
-    request: toSnapshot(reqRow, snap),
-    payload: {
-      chainId: WORLD_CHAIN_ID,
-      transactions: [{ to: seller.walletAddress, value: `0x${BigInt(valueWei).toString(16)}` }],
-      settlement: {
-        chainName: WORLD_CHAIN_NAME,
-        tokenSymbol: 'ETH',
-        amountRaw: valueWei,
-        executedWith: 'minikit_send_transaction',
-        fromAddress: buyer.walletAddress,
-        toAddress: seller.walletAddress,
-      },
-    },
-  };
-}
+    if (reqRow.quoteLockedAt && reqRow.payReference && reqRow.settlementAmountRaw) {
+      const payload = buildPreparePayloadFromLockedRow(reqRow, seller.walletAddress, buyer.walletAddress);
+      if (!payload) return { ok: false as const, error: 'invalid_status' as const };
+      return { ok: true as const, request: toSnapshot(reqRow, snap), payload };
+    }
 
-function isHexHash(value: string | null | undefined): value is string {
-  return !!value && /^0x[0-9a-fA-F]{64}$/.test(value);
+    const rateParsed = parseUsdPerWldScaledFromEnv(readDmSettlementUsdPerWldFromEnv());
+    if (!rateParsed.ok) {
+      return { ok: false as const, error: 'invalid_settlement_rate' as const };
+    }
+    const { amountRaw, rateSnapshot } = wldAmountRawFromPriceUsd(reqRow.priceUsd, rateParsed.scaled);
+    const amountStr = amountRaw.toString();
+    const payReference = crypto.randomUUID().replace(/-/g, '');
+    const now = new Date();
+
+    const [updated] = await tx
+      .update(dmTransactionRequests)
+      .set({
+        payReference,
+        settlementTokenSymbol: 'WLD',
+        settlementAmountRaw: amountStr,
+        usdPerWldRate: rateSnapshot,
+        quoteLockedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(dmTransactionRequests.id, requestId),
+          eq(dmTransactionRequests.status, 'pending'),
+          sql`${dmTransactionRequests.quoteLockedAt} IS NULL`,
+        ),
+      )
+      .returning();
+
+    let finalRow = updated;
+    if (!finalRow) {
+      const [again] = await tx
+        .select()
+        .from(dmTransactionRequests)
+        .where(eq(dmTransactionRequests.id, requestId))
+        .limit(1);
+      if (!again?.quoteLockedAt || !again.payReference || !again.settlementAmountRaw) {
+        return { ok: false as const, error: 'invalid_status' as const };
+      }
+      finalRow = again;
+    }
+
+    const payload = buildPreparePayloadFromLockedRow(
+      finalRow,
+      seller.walletAddress,
+      buyer.walletAddress,
+    );
+    if (!payload) return { ok: false as const, error: 'invalid_status' as const };
+    return { ok: true as const, request: toSnapshot(finalRow, snap), payload };
+  });
 }
 
 export async function finalizeAcceptedTransactionRequest(input: {
   requestId: string;
   viewerId: string;
-  userOpHash: string;
-  transactionHash: string | null;
-  chainId: number;
-  chainName: string;
-  tokenSymbol: string;
-  amountRaw: string;
-  fromAddress: string;
-  toAddress: string;
+  payResult: { executedWith: string; data: Record<string, unknown> };
 }): Promise<
   | { ok: true; request: DmTxRequestSnapshot; messageId: string; dealId: string }
   | { ok: false; error: DmTxRequestError }
 > {
-  if (!isHexHash(input.userOpHash)) {
-    return { ok: false, error: 'invalid_user_op_hash' };
+  const { executedWith, data } = input.payResult;
+  if (executedWith !== 'minikit') {
+    return { ok: false, error: 'invalid_payment_payload' };
   }
-  if (input.transactionHash && !isHexHash(input.transactionHash)) {
-    return { ok: false, error: 'invalid_tx_hash' };
-  }
-  const amountRaw = input.amountRaw.trim();
-  if (!/^\d+$/.test(amountRaw)) {
-    return { ok: false, error: 'invalid_price' };
+  const transactionId = typeof data.transactionId === 'string' ? data.transactionId.trim() : '';
+  const reference = typeof data.reference === 'string' ? data.reference.trim() : '';
+  const from = typeof data.from === 'string' ? data.from.trim().toLowerCase() : '';
+  if (!transactionId || !reference) {
+    return { ok: false, error: 'invalid_payment_payload' };
   }
 
   const db = getDb();
+  const [preReq] = await db
+    .select()
+    .from(dmTransactionRequests)
+    .where(eq(dmTransactionRequests.id, input.requestId))
+    .limit(1);
+  if (!preReq) return { ok: false, error: 'request_not_found' };
+  if (preReq.recipientId !== input.viewerId) return { ok: false, error: 'not_recipient' };
+  if (preReq.status !== 'pending') return { ok: false, error: 'already_resolved' };
+  if (!preReq.payReference || !preReq.settlementAmountRaw) {
+    return { ok: false, error: 'invalid_status' };
+  }
+  if (reference !== preReq.payReference) {
+    return { ok: false, error: 'invalid_payment_payload' };
+  }
+
+  const [preBuyer] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, preReq.recipientId))
+    .limit(1);
+  if (!preBuyer?.walletAddress) return { ok: false, error: 'not_participant' };
+  if (from && from !== preBuyer.walletAddress.toLowerCase()) {
+    return { ok: false, error: 'invalid_payment_payload' };
+  }
+
+  const verify = await verifyMinikitPayment(transactionId);
+  if (verify.ok === false && verify.reason !== 'missing_config') {
+    return { ok: false, error: 'payment_verify_failed' };
+  }
+  if (verify.ok === true) {
+    const blob = JSON.stringify(verify.json).toLowerCase();
+    if (!blob.includes(reference.toLowerCase())) {
+      return { ok: false, error: 'payment_verify_failed' };
+    }
+  }
+
   const now = new Date();
   return db.transaction(async (tx) => {
     const [reqRow] = await tx
@@ -328,6 +451,21 @@ export async function finalizeAcceptedTransactionRequest(input: {
     if (reqRow.status !== 'pending') {
       return { ok: false as const, error: 'already_resolved' as const };
     }
+    if (!reqRow.payReference || !reqRow.settlementAmountRaw) {
+      return { ok: false as const, error: 'invalid_status' as const };
+    }
+    if (reference !== reqRow.payReference) {
+      return { ok: false as const, error: 'invalid_payment_payload' as const };
+    }
+
+    const [buyer] = await tx.select().from(users).where(eq(users.id, reqRow.recipientId)).limit(1);
+    const [seller] = await tx.select().from(users).where(eq(users.id, reqRow.senderId)).limit(1);
+    if (!buyer?.walletAddress || !seller?.walletAddress) {
+      return { ok: false as const, error: 'not_participant' as const };
+    }
+    if (from && from !== buyer.walletAddress.toLowerCase()) {
+      return { ok: false as const, error: 'invalid_payment_payload' as const };
+    }
 
     const [updatedReq] = await tx
       .update(dmTransactionRequests)
@@ -336,6 +474,11 @@ export async function finalizeAcceptedTransactionRequest(input: {
       .returning();
     if (!updatedReq) throw new Error('Failed to update request to accepted');
 
+    const lockedAmount = reqRow.settlementAmountRaw.trim();
+    if (!/^\d+$/.test(lockedAmount)) {
+      return { ok: false as const, error: 'invalid_price' as const };
+    }
+
     const [deal] = await tx
       .insert(listingDeals)
       .values({
@@ -343,16 +486,16 @@ export async function finalizeAcceptedTransactionRequest(input: {
         sellerId: reqRow.senderId,
         buyerId: reqRow.recipientId,
         status: 'confirmed',
-        chainId: input.chainId,
-        chainName: input.chainName,
-        userOpHash: input.userOpHash,
-        transactionHash: input.transactionHash,
-        fromAddress: input.fromAddress,
-        toAddress: input.toAddress,
-        tokenSymbol: input.tokenSymbol,
-        amountRaw,
+        chainId: WORLD_CHAIN_ID,
+        chainName: WORLD_CHAIN_NAME,
+        userOpHash: transactionId,
+        transactionHash: null,
+        fromAddress: buyer.walletAddress,
+        toAddress: seller.walletAddress,
+        tokenSymbol: 'WLD',
+        amountRaw: lockedAmount,
         priceUsd: reqRow.priceUsd,
-        executedWith: 'minikit_send_transaction',
+        executedWith: 'minikit_pay',
         confirmedAt: now,
         updatedAt: now,
       })

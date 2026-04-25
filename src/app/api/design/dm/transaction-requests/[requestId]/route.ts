@@ -23,7 +23,11 @@ function errorToStatus(err: DmTxRequestError): number {
     case 'invalid_description':
     case 'invalid_tx_hash':
     case 'invalid_user_op_hash':
+    case 'invalid_settlement_rate':
+    case 'invalid_payment_payload':
       return 400;
+    case 'payment_verify_failed':
+      return 502;
     default:
       return 400;
   }

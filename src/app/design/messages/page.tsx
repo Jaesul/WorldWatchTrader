@@ -203,17 +203,19 @@ export default function DesignMessagesPage() {
           </button>
         </div>
         <div className="relative">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.8}
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
+          <span className="pointer-events-none absolute inset-y-0 left-3 z-[1] flex items-center">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              className="size-4 shrink-0 text-muted-foreground"
+              aria-hidden
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
           <input
             type="search"
             placeholder="Search by name or recent listing…"
@@ -221,7 +223,7 @@ export default function DesignMessagesPage() {
             onChange={(e) => setSearch(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setTimeout(() => setFocused(false), 150)}
-            className="h-10 w-full rounded-full border border-border bg-muted/40 pl-9 pr-4 text-sm outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="h-10 w-full appearance-none rounded-full border border-border bg-muted/40 py-0 pl-9 pr-4 text-sm leading-10 outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
           />
         </div>
 

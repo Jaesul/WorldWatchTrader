@@ -1,5 +1,7 @@
 'use client';
 
+import { formatUnits } from 'viem';
+
 import type { DmTxRequestSnapshotPayload } from '@/hooks/useDmThreadStream';
 
 type Props = {
@@ -28,8 +30,18 @@ function statusChip(status: DmTxRequestSnapshotPayload['status']) {
   }
 }
 
+function wldHumanLabel(raw: string | null | undefined): string | null {
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  try {
+    return `${formatUnits(BigInt(raw), 18)} WLD`;
+  } catch {
+    return null;
+  }
+}
+
 export function DmTxRequestCard({ request, mine, onOpen }: Props) {
   const chip = statusChip(request.status);
+  const lockedWld = wldHumanLabel(request.settlementAmountWldRaw ?? null);
   const firstLine = request.description
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -84,6 +96,15 @@ export function DmTxRequestCard({ request, mine, onOpen }: Props) {
           >
             ${request.priceUsd.toLocaleString('en-US')}
           </p>
+          {lockedWld ? (
+            <p
+              className={`mt-0.5 text-[11px] font-medium ${
+                mine ? 'text-white/85' : 'text-foreground/85'
+              }`}
+            >
+              {lockedWld}
+            </p>
+          ) : null}
           {firstLine ? (
             <p
               className={`mt-0.5 line-clamp-1 text-[11px] ${

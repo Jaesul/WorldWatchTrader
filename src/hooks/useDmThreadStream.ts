@@ -23,6 +23,12 @@ export type DmTxRequestSnapshotPayload = {
   resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Set after buyer’s first prepare-accept (WLD quote lock). */
+  payReference?: string | null;
+  settlementTokenSymbol?: string | null;
+  settlementAmountWldRaw?: string | null;
+  usdPerWldRateSnapshot?: string | null;
+  quoteLockedAt?: string | null;
 };
 
 export type DmShipmentLinkedDealPayload = {
