@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { DesignDmInboxSkeleton } from '@/app/design/messages/DesignDmInboxSkeleton';
 import { WorldOrbIcon } from '@/components/icons/world-orb';
 import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
+import { useRouteMode } from '@/lib/route-mode/RouteModeProvider';
 
 type ApiThread = {
   id: string;
@@ -48,10 +49,11 @@ function formatTime(iso: string): string {
 }
 
 function ThreadRow({ thread }: { thread: ApiThread }) {
+  const { basePath } = useRouteMode();
   const c = thread.counterpart;
   return (
     <Link
-      href={`/design/messages/${thread.id}`}
+      href={`${basePath}/messages/${thread.id}`}
       className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-muted/30"
     >
       <div className="relative shrink-0">
@@ -106,6 +108,7 @@ function ThreadRow({ thread }: { thread: ApiThread }) {
 
 export default function DesignMessagesPage() {
   const { viewer } = useDesignViewer();
+  const { basePath } = useRouteMode();
   const viewerId = viewer?.id ?? null;
 
   const [threads, setThreads] = useState<ApiThread[] | null>(null);
@@ -231,7 +234,7 @@ export default function DesignMessagesPage() {
               {searchMatches.slice(0, 5).map((t) => (
                 <Link
                   key={t.id}
-                  href={`/design/messages/${t.id}`}
+                  href={`${basePath}/messages/${t.id}`}
                   className="flex items-center gap-3 border-b border-border px-3 py-2.5 transition-colors hover:bg-muted/30 last:border-0"
                 >
                   <img
@@ -278,7 +281,7 @@ export default function DesignMessagesPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 {search.trim() !== '' ? 'Try another search.' : 'Reply from a listing to start a thread.'}
               </p>
-              <Link href="/design" className="mt-4 inline-block text-sm font-medium text-primary underline-offset-2 hover:underline">
+              <Link href={basePath || '/'} className="mt-4 inline-block text-sm font-medium text-primary underline-offset-2 hover:underline">
                 Back to feed
               </Link>
             </div>

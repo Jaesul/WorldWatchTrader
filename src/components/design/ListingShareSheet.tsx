@@ -16,6 +16,7 @@ import { addMessage } from '@/lib/design/thread-store';
 import { DESIGN_SHARE_RECIPIENTS } from '@/lib/design/share-recipients';
 import { formatPrice, type Listing } from '@/lib/design/data';
 import { useDrawerResident } from '@/hooks/use-drawer-resident';
+import { useRouteMode } from '@/lib/route-mode/RouteModeProvider';
 import { cn } from '@/lib/utils';
 
 function buildListingUrl(listingId: string) {
@@ -48,6 +49,7 @@ export function ListingShareSheet({
   onOpenChange: (open: boolean) => void;
 }) {
   const residentListing = useDrawerResident(listing);
+  const { basePath } = useRouteMode();
   if (!residentListing) return null;
 
   /** Captured for async handlers — props may be typed as nullable at call time. */
@@ -176,7 +178,7 @@ export function ListingShareSheet({
               })}
             </div>
             <Button variant="link" className="mt-1 h-auto px-1 py-2 text-xs text-muted-foreground" asChild>
-              <Link href="/design/messages" onClick={() => onOpenChange(false)}>
+              <Link href={`${basePath}/messages`} onClick={() => onOpenChange(false)}>
                 Open messages
               </Link>
             </Button>

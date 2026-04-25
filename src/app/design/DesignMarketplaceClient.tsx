@@ -68,6 +68,7 @@ import { useDesignListingSaves } from "@/lib/design/use-design-listing-saves";
 import { designDmReplyHref } from "@/lib/design/dm-reply";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { useDrawerResident } from "@/hooks/use-drawer-resident";
+import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -375,6 +376,7 @@ export function DesignMarketplaceClient({
   initialListings: DesignFeedListing[];
 }) {
   const { viewer } = useDesignViewer();
+  const { basePath } = useRouteMode();
 
   const [search, setSearch] = useState("");
   const [searchDrawerOpen, setSearchDrawerOpen] = useState(false);
@@ -1175,7 +1177,7 @@ export function DesignMarketplaceClient({
                 <CardHeader className="border-b px-4 py-3">
                   <div className="flex items-center gap-3">
                     <Link
-                      href={`/design/u/${listing.seller.handle}`}
+                      href={`${basePath}/u/${listing.seller.handle}`}
                       className="shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -1192,7 +1194,7 @@ export function DesignMarketplaceClient({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Link
-                          href={`/design/u/${listing.seller.handle}`}
+                          href={`${basePath}/u/${listing.seller.handle}`}
                           className="text-sm font-semibold text-foreground hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -1388,7 +1390,7 @@ export function DesignMarketplaceClient({
                       asChild
                       className="h-11 flex-1 rounded-none text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                     >
-                      <Link href={designDmReplyHref(listing.id)} aria-label="Reply to seller">
+                      <Link href={designDmReplyHref(listing.id, basePath)} aria-label="Reply to seller">
                         <Reply className="size-[18px] -scale-x-100" />
                       </Link>
                     </Button>
@@ -1530,7 +1532,7 @@ export function DesignMarketplaceClient({
                       </span>
                     ) : (
                       <Link
-                        href={designDmReplyHref(listing.id)}
+                        href={designDmReplyHref(listing.id, basePath)}
                         onClick={(e) => {
                           e.stopPropagation();
                         }}

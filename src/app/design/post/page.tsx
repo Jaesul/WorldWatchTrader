@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { BOX_PAPERS, CONDITIONS } from "@/lib/design/listing-form-constants";
+import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 
 const MAX_PHOTOS = 8;
 
@@ -23,6 +24,7 @@ function parsePriceUsd(raw: string): number | null {
 
 export default function NewListingPage() {
   const router = useRouter();
+  const { basePath } = useRouteMode();
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<PhotoRow[]>([]);
@@ -143,10 +145,10 @@ export default function NewListingPage() {
         </p>
         <div className="flex gap-3">
           <Button asChild>
-            <Link href="/design">Back to feed</Link>
+            <Link href={basePath || '/'}>Back to feed</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/design/profile">View my listings</Link>
+            <Link href={`${basePath}/profile`}>View my listings</Link>
           </Button>
         </div>
       </div>

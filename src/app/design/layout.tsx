@@ -4,6 +4,7 @@ import { DesignAppShell } from '@/components/design/DesignAppShell';
 import { DesignEngagementProvider } from '@/lib/design/use-design-engagement';
 import { DesignListingSavesProvider } from '@/lib/design/use-design-listing-saves';
 import { DesignViewerProvider } from '@/lib/design/DesignViewerProvider';
+import { RouteModeProvider } from '@/lib/route-mode/RouteModeProvider';
 import { resolveDesignViewer } from '@/lib/server/resolve-design-viewer-user-id';
 import { dbUserRowToAppViewer } from '@/lib/viewer/from-db-user';
 
@@ -16,12 +17,14 @@ export default async function DesignLayout({ children }: { children: ReactNode }
   const initialViewer = viewerRow ? dbUserRowToAppViewer(viewerRow) : null;
 
   return (
-    <DesignViewerProvider initialViewer={initialViewer} initialViewers={[]}>
-      <DesignListingSavesProvider>
-        <DesignEngagementProvider>
-          <DesignAppShell>{children}</DesignAppShell>
-        </DesignEngagementProvider>
-      </DesignListingSavesProvider>
-    </DesignViewerProvider>
+    <RouteModeProvider basePath="/design" isSandbox>
+      <DesignViewerProvider initialViewer={initialViewer} initialViewers={[]}>
+        <DesignListingSavesProvider>
+          <DesignEngagementProvider>
+            <DesignAppShell>{children}</DesignAppShell>
+          </DesignEngagementProvider>
+        </DesignListingSavesProvider>
+      </DesignViewerProvider>
+    </RouteModeProvider>
   );
 }

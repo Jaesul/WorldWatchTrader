@@ -18,6 +18,7 @@ import { useViewerDashboardListingsInfinite } from "@/lib/design/use-viewer-dash
 import { useViewerPurchases } from "@/lib/design/use-viewer-purchases";
 import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-interaction-gate";
 import { useDrawerResident } from "@/hooks/use-drawer-resident";
+import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 type ProfileTab = "active" | "pending" | "history";
 
 function shortAddress(addr: string): string {
@@ -193,6 +194,7 @@ function ListingCard({
 export default function ProfilePage() {
   const { viewer, allViewers, allViewersLoading, ensureAllViewersLoaded, setViewerId } =
     useDesignViewer();
+  const { basePath, isSandbox } = useRouteMode();
   const orbGate = { viewerOrbVerified: viewer?.orbVerified === true };
   const [sessionViewer, setSessionViewer] = useState<{
     id: string;
@@ -393,7 +395,7 @@ export default function ProfilePage() {
         <p className="px-4 py-2 text-center text-xs text-rose-600">{error}</p>
       ) : null}
 
-      {(allViewersLoading || allViewers.length > 0) && (
+      {isSandbox && (allViewersLoading || allViewers.length > 0) && (
         <div className="border-b border-border px-4 pb-3">
           <label
             htmlFor="design-viewer-select"
@@ -525,7 +527,7 @@ export default function ProfilePage() {
               ? "If you became orb verified after logging in, verify here to refresh your badge on this account."
               : "You're signed in with a different account. Verifying here will update your signed-in account, not the sandbox profile currently selected above."}
           </p>
-          {!isViewingSignedInUser && sessionViewer ? (
+          {isSandbox && !isViewingSignedInUser && sessionViewer ? (
             <div className="mt-3">
               <Button
                 type="button"
@@ -609,7 +611,7 @@ export default function ProfilePage() {
             {activeTab === "active" && (
               <Button className="mt-4" size="sm" asChild>
                 <Link
-                  href="/design/post"
+                  href={`${basePath}/post`}
                   onClick={(e) => {
                     if (blockDesignInteractionWithoutWorldId(orbGate)) e.preventDefault();
                   }}
@@ -641,7 +643,7 @@ export default function ProfilePage() {
             {activeTab === "active" && (
               <Button variant="outline" size="sm" className="mt-1 w-full" asChild>
                 <Link
-                  href="/design/post"
+                  href={`${basePath}/post`}
                   onClick={(e) => {
                     if (blockDesignInteractionWithoutWorldId(orbGate)) e.preventDefault();
                   }}

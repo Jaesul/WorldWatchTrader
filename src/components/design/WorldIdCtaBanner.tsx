@@ -10,10 +10,12 @@ import {
   readWorldIdVerified,
   WORLD_ID_PROTOTYPE_EVENT,
 } from "@/lib/design/world-id-prototype";
+import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 
 export function WorldIdCtaBanner() {
   const [ready, setReady] = useState(false);
   const [show, setShow] = useState(false);
+  const { basePath } = useRouteMode();
 
   const sync = useCallback(() => {
     setShow(!readWorldIdVerified() && !readBannerDismissed());
@@ -64,7 +66,7 @@ export function WorldIdCtaBanner() {
               className="h-8 rounded-full bg-world-verified px-3 text-xs text-world-verified-foreground hover:bg-world-verified/90"
               asChild
             >
-              <Link href="/design/profile">Get started</Link>
+              <Link href={`${basePath}/profile`}>Get started</Link>
             </Button>
             <a
               href="https://docs.world.org/world-id"

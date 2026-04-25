@@ -20,6 +20,7 @@ import type {
 import type { OnChainSettlement } from "@/lib/design/on-chain-sale-mock";
 import { buildMockPublicProfileSoldParts } from "@/lib/design/on-chain-sale-mock";
 import { sellerPublicProfileSlug } from "@/lib/design/map-db-feed-to-listing";
+import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 
 type Props = {
   open: boolean;
@@ -75,6 +76,7 @@ function buildSettlement(listing: MyListing): OnChainSettlement {
 }
 
 function CounterpartyCard({ party }: { party: ViewerDashboardDealParty }) {
+  const { basePath } = useRouteMode();
   const slug = sellerPublicProfileSlug({
     id: party.id,
     handle: party.handle,
@@ -85,7 +87,7 @@ function CounterpartyCard({ party }: { party: ViewerDashboardDealParty }) {
 
   return (
     <Link
-      href={`/design/u/${slug}`}
+      href={`${basePath}/u/${slug}`}
       className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-3 transition-colors hover:bg-muted/40"
     >
       <img

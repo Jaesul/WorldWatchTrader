@@ -1,12 +1,19 @@
 import { cookies } from 'next/headers';
 
+import { auth } from '@/auth';
 import { getDefaultDesignViewer, getDefaultDesignViewerUserId, getUserById } from '@/db/queries/users';
 import { DESIGN_VIEWER_COOKIE } from '@/lib/viewer/constants';
 
 /**
- * Resolves the design sandbox viewer id from cookie, else first user by `created_at`.
- * Uses cheap lookups only so hot routes (`/api/design/listing-saves`, etc.) do not run
- * `listUsersForPicker` (which was piling up behind `postgres({ max: 1 })` and timing out).
+ * Resolves the calling viewer's id.
+ *
+ * Order of precedence:
+ *  1. `DESIGN_VIEWER_COOKIE` (the /design sandbox picker — lets QA impersonate users).
+ *  2. NextAuth session id — used when the request originates from a base route.
+ *  3. First user by `created_at` (legacy default for unauth /design hits).
+ *
+ * Uses cheap PK lookups only so hot routes (`/api/design/listing-saves`, etc.) do not
+ * run `listUsersForPicker` (which was piling up behind `postgres({ max: 1 })`).
  */
 export async function resolveDesignViewerUserId(): Promise<string | null> {
   const cookieStore = await cookies();
@@ -15,6 +22,14 @@ export async function resolveDesignViewerUserId(): Promise<string | null> {
     const user = await getUserById(raw);
     if (user) return user.id;
   }
+
+  const session = await auth();
+  const sessionId = session?.user?.id?.trim() ?? '';
+  if (sessionId) {
+    const user = await getUserById(sessionId);
+    if (user) return user.id;
+  }
+
   return getDefaultDesignViewerUserId();
 }
 
@@ -25,5 +40,13 @@ export async function resolveDesignViewer() {
     const user = await getUserById(raw);
     if (user) return user;
   }
+
+  const session = await auth();
+  const sessionId = session?.user?.id?.trim() ?? '';
+  if (sessionId) {
+    const user = await getUserById(sessionId);
+    if (user) return user;
+  }
+
   return getDefaultDesignViewer();
 }

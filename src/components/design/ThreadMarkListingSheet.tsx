@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { updateListing, type MyListing } from '@/lib/design/listing-store';
+import { useRouteMode } from '@/lib/route-mode/RouteModeProvider';
 import Link from 'next/link';
 
 type Step = 'pick' | 'outcome';
@@ -72,6 +73,7 @@ export function ThreadMarkListingSheet({
 }: ThreadMarkListingSheetProps) {
   const [step, setStep] = useState<Step>('pick');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { basePath } = useRouteMode();
 
   useEffect(() => {
     if (open) {
@@ -122,7 +124,7 @@ export function ThreadMarkListingSheet({
                   You don&apos;t have any active listings right now.
                 </p>
                 <Button asChild className="mt-4 w-full" variant="secondary">
-                  <Link href="/design/post" onClick={() => onOpenChange(false)}>
+                  <Link href={`${basePath}/post`} onClick={() => onOpenChange(false)}>
                     Create a listing
                   </Link>
                 </Button>

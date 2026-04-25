@@ -43,6 +43,7 @@ import {
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { guardBooleanOpenChange } from "@/lib/guard-boolean-open-change";
 import { blockDesignInteractionWithoutWorldId } from "@/lib/design/world-id-interaction-gate";
+import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 import { cn } from "@/lib/utils";
 
 export type ListingDetailDrawerProps = {
@@ -183,6 +184,7 @@ export function ListingDetailDrawer({
   soldHistory,
 }: ListingDetailDrawerProps) {
   const { viewer } = useDesignViewer();
+  const { basePath } = useRouteMode();
   const orbGate = { viewerOrbVerified: viewer?.orbVerified === true };
   const isOwnListing = Boolean(
     viewer?.id &&
@@ -281,7 +283,7 @@ export function ListingDetailDrawer({
             </Collapsible>
 
             <Link
-              href={`/design/u/${listing.seller.handle}`}
+              href={`${basePath}/u/${listing.seller.handle}`}
               className="mt-4 mb-4 flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/30"
             >
               <Avatar className="size-9 bg-foreground text-background after:border-foreground/10">
@@ -336,7 +338,7 @@ export function ListingDetailDrawer({
               ) : (
                 <Button asChild size="sm" className="shrink-0 rounded-full">
                   <Link
-                    href={designDmReplyHref(listing.id)}
+                    href={designDmReplyHref(listing.id, basePath)}
                     onClick={(e) => {
                       if (blockDesignInteractionWithoutWorldId(orbGate)) {
                         e.preventDefault();

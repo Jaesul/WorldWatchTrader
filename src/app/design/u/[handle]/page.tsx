@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import type { PublicProfileListingRow } from '@/components/design/PublicProfileActiveListings';
 import { PublicProfileListingsTabs } from '@/components/design/PublicProfileListingsTabs';
 import { WorldOrbIcon } from '@/components/icons/world-orb';
 import { Button } from '@/components/ui/button';
+import { RoutedLink } from '@/lib/route-mode/RoutedLink';
 import {
   countSellerListingsByStatus,
   listSellerListingsWithPhotosByStatus,
@@ -364,7 +364,7 @@ export default async function PublicProfilePage({
 
         <div className="mt-4">
           <Button className="w-full text-white" asChild>
-            <Link href="/design/messages">Message seller</Link>
+            <RoutedLink to="/messages">Message seller</RoutedLink>
           </Button>
         </div>
       </div>

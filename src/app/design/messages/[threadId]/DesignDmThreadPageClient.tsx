@@ -24,6 +24,7 @@ import {
 import type { DmListingSnapshot } from '@/db/queries/dm-threads';
 import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
 import { sellerPublicProfileSlug } from '@/lib/design/map-db-feed-to-listing';
+import { useRouteMode } from '@/lib/route-mode/RouteModeProvider';
 
 type ThreadMeta = {
   thread: { id: string; buyerId: string; sellerId: string; listingId: string | null; lastMessageAt: string };
@@ -71,6 +72,7 @@ export function DesignDmThreadPageClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { viewer } = useDesignViewer();
+  const { basePath } = useRouteMode();
   const viewerId = viewer?.id ?? null;
 
   const [meta, setMeta] = useState<ThreadMeta | null>(null);
@@ -281,7 +283,7 @@ export function DesignDmThreadPageClient({
       <div className="px-4 py-10 text-center">
         <p className="text-sm text-red-600">{metaError}</p>
         <Button asChild variant="link" className="mt-2">
-          <Link href="/design/messages">Back to inbox</Link>
+          <Link href={`${basePath}/messages`}>Back to inbox</Link>
         </Button>
       </div>
     );
@@ -301,13 +303,13 @@ export function DesignDmThreadPageClient({
   return (
     <div className="flex min-h-full flex-col">
       <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-background px-3 py-3 sm:px-4">
-        <Link href="/design/messages" className="shrink-0 text-muted-foreground transition-colors hover:text-foreground" aria-label="Back to inbox">
+        <Link href={`${basePath}/messages`} className="shrink-0 text-muted-foreground transition-colors hover:text-foreground" aria-label="Back to inbox">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-5">
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
           </svg>
         </Link>
-        <Link href={`/design/u/${profileSlug}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+        <Link href={`${basePath}/u/${profileSlug}`} className="flex min-w-0 flex-1 items-center gap-2.5">
           <div className="relative shrink-0">
             <img src={avatarUrl(c)} alt="" className="size-9 rounded-full object-cover bg-foreground" />
             {c.orbVerified && (

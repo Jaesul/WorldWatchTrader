@@ -7,12 +7,14 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { DesignDmThreadSkeleton } from '@/app/design/messages/DesignDmThreadSkeleton';
 import { Button } from '@/components/ui/button';
 import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
+import { useRouteMode } from '@/lib/route-mode/RouteModeProvider';
 
 function DesignDmStartPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const listingId = searchParams.get('listingId');
   const { viewer } = useDesignViewer();
+  const { basePath } = useRouteMode();
   const viewerId = viewer?.id ?? null;
   const [error, setError] = useState<string | null>(null);
   const ran = useRef(false);
@@ -48,10 +50,12 @@ function DesignDmStartPageInner() {
       }
       const data = (await res.json()) as { threadId: string };
       router.replace(
-        `/design/messages/${data.threadId}?compose=1&listingContext=${encodeURIComponent(listingId.trim())}`,
+        `${basePath}/messages/${data.threadId}?compose=1&listingContext=${encodeURIComponent(listingId.trim())}`,
       );
     })();
-  }, [listingId, viewerId, router]);
+  }, [listingId, viewerId, router, basePath]);
+
+  const feedHref = basePath || '/';
 
   if (!viewerId) {
     return (
@@ -59,7 +63,7 @@ function DesignDmStartPageInner() {
         Pick a design profile user to message sellers.
         <div className="mt-4">
           <Button asChild variant="outline" size="sm">
-            <Link href="/design">Back</Link>
+            <Link href={feedHref}>Back</Link>
           </Button>
         </div>
       </div>
@@ -72,10 +76,10 @@ function DesignDmStartPageInner() {
         No listing selected.
         <div className="mt-4 flex justify-center gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="/design/messages">Inbox</Link>
+            <Link href={`${basePath}/messages`}>Inbox</Link>
           </Button>
           <Button asChild variant="default" size="sm">
-            <Link href="/design">Marketplace</Link>
+            <Link href={feedHref}>Marketplace</Link>
           </Button>
         </div>
       </div>
@@ -88,10 +92,10 @@ function DesignDmStartPageInner() {
         <p className="text-sm text-red-600">{error}</p>
         <div className="mt-4 flex justify-center gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="/design/messages">Inbox</Link>
+            <Link href={`${basePath}/messages`}>Inbox</Link>
           </Button>
           <Button asChild variant="default" size="sm">
-            <Link href="/design">Marketplace</Link>
+            <Link href={feedHref}>Marketplace</Link>
           </Button>
         </div>
       </div>

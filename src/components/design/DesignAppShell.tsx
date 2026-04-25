@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/avatar";
 import { Toaster } from "@/components/ui/sonner";
 import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
+import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 
 /**
  * Design route shell: compact brand row, scroll root for page content,
@@ -22,7 +23,9 @@ import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
  */
 export function DesignAppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isWelcome = pathname === "/design/welcome";
+  const { basePath } = useRouteMode();
+  const isWelcome =
+    pathname === "/design/welcome" || pathname === "/welcome";
   const { viewer } = useDesignViewer();
   const avatarUrl = viewer?.profilePictureUrl?.trim() || undefined;
   const avatarLabel = viewer?.username ?? "Profile";
@@ -55,7 +58,7 @@ export function DesignAppShell({ children }: { children: ReactNode }) {
           </h1>
         </header>
         <Link
-          href="/design/profile"
+          href={`${basePath}/profile`}
           aria-label="Profile"
           className="ml-auto shrink-0 rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >

@@ -50,12 +50,8 @@ async function sessionUserIdFromRequest(req: NextRequest): Promise<string | null
 
 async function resolveUploaderUserId(req: NextRequest): Promise<string> {
   try {
-    const sessionUserId = await sessionUserIdFromRequest(req);
-    if (sessionUserId) {
-      utLog('middleware resolved userId from session JWT');
-      return sessionUserId;
-    }
-
+    // Cookie first preserves the /design sandbox impersonation picker so QA can
+    // upload as any seeded user. Session falls in next so base routes still work.
     const raw = req.cookies.get(DESIGN_VIEWER_COOKIE)?.value?.trim() ?? '';
     utLog('design viewer cookie', {
       name: DESIGN_VIEWER_COOKIE,
@@ -74,6 +70,12 @@ async function resolveUploaderUserId(req: NextRequest): Promise<string> {
         utErr('getUserById(design cookie) threw', e);
         throw e;
       }
+    }
+
+    const sessionUserId = await sessionUserIdFromRequest(req);
+    if (sessionUserId) {
+      utLog('middleware resolved userId from session JWT');
+      return sessionUserId;
     }
 
     let fallbackId: string | null = null;

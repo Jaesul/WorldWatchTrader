@@ -13,61 +13,77 @@ import {
 import { cn } from '@/lib/utils';
 import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
 import { blockDesignInteractionWithoutWorldId } from '@/lib/design/world-id-interaction-gate';
+import { useRouteMode } from '@/lib/route-mode/RouteModeProvider';
 
 const ACTIVE_NAV_CLASS = 'text-[#ffc85c]';
 
-const tabs = [
-  {
-    key: 'feed',
-    href: '/design',
-    icon: (active: boolean) => (
-      <House fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2 : 1.75} className="size-[22px]" />
-    ),
-  },
-  {
-    key: 'messages',
-    href: '/design/messages',
-    icon: (active: boolean) => (
-      <MessageCircle fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2 : 1.75} className="size-[22px]" />
-    ),
-  },
-  {
-    key: 'new-listing',
-    href: '/design/post',
-    icon: () => <BadgePlus strokeWidth={1.75} className="size-[22px]" />,
-  },
-  {
-    key: 'saved',
-    href: '/design/saved',
-    icon: (active: boolean) => (
-      <Bookmark
-        fill={active ? 'currentColor' : 'none'}
-        strokeWidth={active ? 2 : 1.75}
-        className="size-[22px]"
-      />
-    ),
-  },
-  {
-    key: 'profile',
-    href: '/design/profile',
-    icon: (active: boolean) => (
-      <User fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2 : 1.75} className="size-[22px]" />
-    ),
-  },
-];
+type TabKey = 'feed' | 'messages' | 'new-listing' | 'saved' | 'profile';
+
+function buildTabs(basePath: '' | '/design') {
+  const feedHref = basePath || '/';
+  return [
+    {
+      key: 'feed' as TabKey,
+      href: feedHref,
+      icon: (active: boolean) => (
+        <House fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2 : 1.75} className="size-[22px]" />
+      ),
+    },
+    {
+      key: 'messages' as TabKey,
+      href: `${basePath}/messages`,
+      icon: (active: boolean) => (
+        <MessageCircle fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2 : 1.75} className="size-[22px]" />
+      ),
+    },
+    {
+      key: 'new-listing' as TabKey,
+      href: `${basePath}/post`,
+      icon: () => <BadgePlus strokeWidth={1.75} className="size-[22px]" />,
+    },
+    {
+      key: 'saved' as TabKey,
+      href: `${basePath}/saved`,
+      icon: (active: boolean) => (
+        <Bookmark
+          fill={active ? 'currentColor' : 'none'}
+          strokeWidth={active ? 2 : 1.75}
+          className="size-[22px]"
+        />
+      ),
+    },
+    {
+      key: 'profile' as TabKey,
+      href: `${basePath}/profile`,
+      icon: (active: boolean) => (
+        <User fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 2 : 1.75} className="size-[22px]" />
+      ),
+    },
+  ];
+}
 
 export function DesignNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { viewer } = useDesignViewer();
+  const { basePath } = useRouteMode();
   const orbGate = { viewerOrbVerified: viewer?.orbVerified === true };
 
-  function isActive(key: string) {
-    if (key === 'feed') return pathname === '/design';
-    if (key === 'messages') return pathname.startsWith('/design/messages');
-    if (key === 'new-listing') return pathname.startsWith('/design/post');
-    if (key === 'saved') return pathname === '/design/saved';
-    if (key === 'profile') return pathname === '/design/profile' || pathname.startsWith('/design/profile/') || pathname.startsWith('/design/u/');
+  const tabs = buildTabs(basePath);
+  const feedRoot = basePath || '/';
+
+  function isActive(key: TabKey) {
+    if (key === 'feed') return pathname === feedRoot;
+    if (key === 'messages') return pathname.startsWith(`${basePath}/messages`);
+    if (key === 'new-listing') return pathname.startsWith(`${basePath}/post`);
+    if (key === 'saved') return pathname === `${basePath}/saved`;
+    if (key === 'profile') {
+      return (
+        pathname === `${basePath}/profile` ||
+        pathname.startsWith(`${basePath}/profile/`) ||
+        pathname.startsWith(`${basePath}/u/`)
+      );
+    }
     return false;
   }
 

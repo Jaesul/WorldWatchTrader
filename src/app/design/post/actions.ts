@@ -78,6 +78,8 @@ export async function createDesignListingAction(
     await publishListing(sellerId, listing.id);
     revalidatePath('/design');
     revalidatePath('/design/profile');
+    revalidatePath('/');
+    revalidatePath('/profile');
     return { ok: true, listingId: listing.id };
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Could not create listing.';

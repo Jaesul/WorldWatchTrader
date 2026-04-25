@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 
+import { auth } from '@/auth';
 import { getDb } from '@/db';
 import { countCommentLikesByCommentIds } from '@/db/queries/comment-likes';
 import { createComment, listCommentsForListing } from '@/db/queries/comments';
@@ -9,6 +10,22 @@ import { getUserById } from '@/db/queries/users';
 import { listings } from '@/db/schema';
 import { mapDbCommentRowToFake } from '@/lib/design/map-db-comments-to-fake';
 import { DESIGN_VIEWER_COOKIE } from '@/lib/viewer/constants';
+
+async function resolveViewerId(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const cookieId = cookieStore.get(DESIGN_VIEWER_COOKIE)?.value?.trim();
+  if (cookieId) {
+    const user = await getUserById(cookieId);
+    if (user) return user.id;
+  }
+  const session = await auth();
+  const sessionId = session?.user?.id?.trim();
+  if (sessionId) {
+    const user = await getUserById(sessionId);
+    if (user) return user.id;
+  }
+  return null;
+}
 
 export async function GET(
   _request: Request,
@@ -28,14 +45,9 @@ export async function POST(
   { params }: { params: Promise<{ listingId: string }> },
 ) {
   const { listingId } = await params;
-  const cookieStore = await cookies();
-  const viewerId = cookieStore.get(DESIGN_VIEWER_COOKIE)?.value ?? null;
+  const viewerId = await resolveViewerId();
   if (!viewerId) {
-    return NextResponse.json({ error: 'No design viewer' }, { status: 401 });
-  }
-  const viewerRow = await getUserById(viewerId);
-  if (!viewerRow) {
-    return NextResponse.json({ error: 'Invalid design viewer' }, { status: 401 });
+    return NextResponse.json({ error: 'No viewer' }, { status: 401 });
   }
 
   let bodyJson: unknown;

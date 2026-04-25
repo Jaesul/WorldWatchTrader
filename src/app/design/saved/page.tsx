@@ -10,6 +10,7 @@ import { formatPrice } from "@/lib/design/data";
 import { useDesignListingSaves } from "@/lib/design/use-design-listing-saves";
 import type { DesignFeedListing } from "@/lib/design/map-db-feed-to-listing";
 import { FeedListingPreviewDrawer } from "@/components/design/FeedListingPreviewDrawer";
+import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 
 function SavedListingSkeleton() {
   return (
@@ -33,6 +34,7 @@ function SavedListingSkeleton() {
 export default function SavedPage() {
   const { savedListings, loading, savedListingsLoaded, ensureSavedListingsLoaded } =
     useDesignListingSaves();
+  const { basePath } = useRouteMode();
   const [drawerListing, setDrawerListing] = useState<DesignFeedListing | null>(
     null,
   );
@@ -79,7 +81,7 @@ export default function SavedPage() {
             are stored for the profile you pick in Design.
           </p>
           <Button asChild>
-            <Link href="/design">Browse listings</Link>
+            <Link href={basePath || '/'}>Browse listings</Link>
           </Button>
         </div>
       ) : (
