@@ -165,6 +165,7 @@ export function MarkSoldSheet({
   const [search, setSearch] = useState('');
   const [punctuality, setPunctuality] = useState<boolean | null>(null);
   const [customerService, setCustomerService] = useState<boolean | null>(null);
+  const [persistError, setPersistError] = useState<string | null>(null);
 
   // Reset state each time the sheet opens
   useEffect(() => {
@@ -174,6 +175,7 @@ export function MarkSoldSheet({
       setSearch('');
       setPunctuality(null);
       setCustomerService(null);
+      setPersistError(null);
     }
   }, [open, prefilledBuyer]);
 
@@ -220,8 +222,10 @@ export function MarkSoldSheet({
       } else {
         updateListing(listing.id, { status: 'sold' });
       }
-    } catch {
-      toast.error('Could not mark listing as sold.');
+    } catch (e) {
+      setPersistError(
+        e instanceof Error ? e.message : 'Could not mark listing as sold.',
+      );
       return;
     }
     showSoldLuxuryCelebration(pickRandomLuxurySoldGif());
@@ -366,10 +370,19 @@ export function MarkSoldSheet({
               {buyer?.kind === 'off-platform' && <Check className="size-4 shrink-0 text-foreground" />}
             </button>
 
+            {persistError ? (
+              <p
+                className="mb-3 text-center text-sm text-destructive"
+                role="alert"
+              >
+                {persistError}
+              </p>
+            ) : null}
             <Button
               className="w-full"
               disabled={!buyer}
               onClick={() => {
+                setPersistError(null);
                 if (buyer?.kind === 'off-platform') {
                   void finalize(true);
                 } else {
@@ -407,11 +420,28 @@ export function MarkSoldSheet({
               />
             </div>
 
-            <Button className="w-full" onClick={() => void finalize(false)}>
+            {persistError ? (
+              <p
+                className="mb-3 text-center text-sm text-destructive"
+                role="alert"
+              >
+                {persistError}
+              </p>
+            ) : null}
+            <Button
+              className="w-full"
+              onClick={() => {
+                setPersistError(null);
+                void finalize(false);
+              }}
+            >
               Submit review & mark as sold
             </Button>
             <button
-              onClick={() => void finalize(true)}
+              onClick={() => {
+                setPersistError(null);
+                void finalize(true);
+              }}
               className="mt-3 w-full text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Skip review

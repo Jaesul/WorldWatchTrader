@@ -41,6 +41,7 @@ export function ProfileEditDrawer({
   );
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export function ProfileEditDrawer({
       setBio(viewer.bio);
       setAvatarUrl(viewer.profilePictureUrl ?? fallbackAvatarUrl);
       setPendingFile(null);
+      setSaveError(null);
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current);
         previewUrlRef.current = null;
@@ -63,12 +65,13 @@ export function ProfileEditDrawer({
 
   const { startUpload } = useUploadThing("profileAvatar", {
     onUploadError: (e) => {
-      toast.error(e.message || "Upload failed");
+      setSaveError(e.message || "Upload failed");
     },
   });
 
   function applyImageFile(file: File | undefined) {
     if (!file || !file.type.startsWith("image/")) return;
+    setSaveError(null);
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     const url = URL.createObjectURL(file);
     previewUrlRef.current = url;
@@ -80,6 +83,7 @@ export function ProfileEditDrawer({
     if (saving) return;
     const trimmedBio = bio.slice(0, MAX_BIO_LENGTH);
 
+    setSaveError(null);
     setSaving(true);
     try {
       let nextPictureUrl: string | null | undefined;
@@ -87,7 +91,7 @@ export function ProfileEditDrawer({
         const uploaded = await startUpload([pendingFile]);
         const url = uploaded?.[0]?.ufsUrl;
         if (!url) {
-          toast.error("Couldn’t upload photo");
+          setSaveError("Couldn’t upload photo");
           return;
         }
         nextPictureUrl = url;
@@ -104,7 +108,7 @@ export function ProfileEditDrawer({
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
-        toast.error(j.error || "Could not save profile");
+        setSaveError(j.error || "Could not save profile");
         return;
       }
 
@@ -113,7 +117,9 @@ export function ProfileEditDrawer({
       router.refresh();
     } catch (e) {
       console.error("profile save failed", e);
-      toast.error("Could not save profile");
+      setSaveError(
+        e instanceof Error ? e.message : "Could not save profile",
+      );
     } finally {
       setSaving(false);
     }
@@ -203,7 +209,10 @@ export function ProfileEditDrawer({
             <Textarea
               id="profile-edit-bio"
               value={bio}
-              onChange={(e) => setBio(e.target.value.slice(0, MAX_BIO_LENGTH))}
+              onChange={(e) => {
+                setSaveError(null);
+                setBio(e.target.value.slice(0, MAX_BIO_LENGTH));
+              }}
               rows={5}
               placeholder="Tell buyers about your collecting style, shipping, and authenticity practices."
               className="resize-none text-sm"
@@ -216,6 +225,14 @@ export function ProfileEditDrawer({
         </div>
 
         <DrawerFooter className="border-t border-border pt-2">
+          {saveError ? (
+            <p
+              className="mb-2 text-center text-sm text-destructive"
+              role="alert"
+            >
+              {saveError}
+            </p>
+          ) : null}
           <Button
             type="button"
             className="w-full rounded-xl"

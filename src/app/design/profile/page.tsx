@@ -312,8 +312,9 @@ export default function ProfilePage() {
     });
     const j = (await r.json().catch(() => ({}))) as { error?: string };
     if (!r.ok) {
-      toast.error(typeof j.error === "string" ? j.error : "Update failed");
-      throw new Error("persist failed");
+      const msg =
+        typeof j.error === "string" ? j.error : "Update failed";
+      throw new Error(msg);
     }
     await refresh();
   }, [refresh]);

@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 
 import { DesignAppShell } from '@/components/design/DesignAppShell';
-import { AutoVerifyDialog } from '@/components/Verify/AutoVerifyDialog';
 import { getUserById } from '@/db/queries/users';
 import { getCachedSession } from '@/lib/auth/get-session';
 import { DesignEngagementProvider } from '@/lib/design/use-design-engagement';
@@ -25,20 +24,13 @@ export default async function MainAppLayout({ children }: { children: ReactNode 
   if (!userRow) redirect('/welcome');
 
   const initialViewer = dbUserRowToAppViewer(userRow);
-  const initiallyVerified = Boolean(session.user.orbVerified);
 
   return (
     <RouteModeProvider basePath="" isSandbox={false}>
       <DesignViewerProvider initialViewer={initialViewer} initialViewers={[]}>
         <DesignListingSavesProvider>
           <DesignEngagementProvider>
-            <DesignAppShell>
-              <AutoVerifyDialog
-                initiallyVerified={initiallyVerified}
-                action="test-action"
-              />
-              {children}
-            </DesignAppShell>
+            <DesignAppShell>{children}</DesignAppShell>
           </DesignEngagementProvider>
         </DesignListingSavesProvider>
       </DesignViewerProvider>

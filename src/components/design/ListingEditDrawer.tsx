@@ -57,6 +57,7 @@ export function ListingEditDrawer({
   const [showDetails, setShowDetails] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [footerError, setFooterError] = useState<string | null>(null);
 
   const usdOnly = listing.currency === 'USD';
 
@@ -72,17 +73,18 @@ export function ListingEditDrawer({
   async function handleSave() {
     if (blockDesignInteractionWithoutWorldId(orbGate)) return;
     if (usdOnly && currency !== 'USD') {
-      toast.error('Listings are priced in USD only.');
+      setFooterError('Listings are priced in USD only.');
       return;
     }
     const priceUsd = Math.round(Number.parseFloat(price) || listing.price);
     if (!Number.isFinite(priceUsd) || priceUsd < 0) {
-      toast.error('Enter a valid whole-dollar price.');
+      setFooterError('Enter a valid whole-dollar price.');
       return;
     }
     const details = buildDetailsBody(description, boxPapers);
     const teaser = teaserFromDetails(details);
 
+    setFooterError(null);
     setSaving(true);
     try {
       const r = await fetch(`/api/design/listings/${listing.id}`, {
@@ -100,7 +102,7 @@ export function ListingEditDrawer({
       });
       const j = (await r.json().catch(() => ({}))) as { error?: string };
       if (!r.ok) {
-        toast.error(typeof j.error === 'string' ? j.error : 'Save failed');
+        setFooterError(typeof j.error === 'string' ? j.error : 'Save failed');
         return;
       }
       await onAfterMutate?.();
@@ -114,6 +116,7 @@ export function ListingEditDrawer({
   async function handleDelete() {
     if (blockDesignInteractionWithoutWorldId(orbGate)) return;
     if (!window.confirm('Delete this listing? This cannot be undone.')) return;
+    setFooterError(null);
     setDeleting(true);
     try {
       const r = await fetch(`/api/design/listings/${listing.id}`, {
@@ -122,7 +125,7 @@ export function ListingEditDrawer({
       });
       const j = (await r.json().catch(() => ({}))) as { error?: string };
       if (!r.ok) {
-        toast.error(typeof j.error === 'string' ? j.error : 'Delete failed');
+        setFooterError(typeof j.error === 'string' ? j.error : 'Delete failed');
         return;
       }
       await onAfterMutate?.();
@@ -145,6 +148,7 @@ export function ListingEditDrawer({
       setBoxPapers(listing.boxPapers);
       setStatus(listing.status);
       setShowDetails(false);
+      setFooterError(null);
     }
   }
 
@@ -324,6 +328,14 @@ export function ListingEditDrawer({
         </div>
 
         <DrawerFooter className="border-t border-border pt-3">
+          {footerError ? (
+            <p
+              className="mb-2 text-center text-sm text-destructive"
+              role="alert"
+            >
+              {footerError}
+            </p>
+          ) : null}
           <Button onClick={() => void handleSave()} disabled={!isDirty || saving}>
             {saving ? 'Saving…' : 'Save changes'}
           </Button>
