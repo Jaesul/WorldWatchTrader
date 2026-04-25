@@ -1173,7 +1173,7 @@ export function DesignMarketplaceClient({
             const commentDraft = commentDrafts[listing.id] ?? "";
 
             return (
-              <Card key={listing.id} className="gap-0 border border-white/80 py-0 shadow-[0_8px_22px_rgba(11,19,43,0.16)]">
+              <Card key={listing.id} className="gap-0 border border-border py-0 shadow-none">
                 <CardHeader className="border-b px-4 py-3">
                   <div className="flex items-center gap-3">
                     <Link
