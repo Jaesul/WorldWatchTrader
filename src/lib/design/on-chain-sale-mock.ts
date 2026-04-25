@@ -7,15 +7,11 @@ import type { ViewerDashboardDealSnapshot } from '@/lib/viewer/dashboard';
 
 export type OnChainSettlement = {
   txHash: string;
+  blockNumber: number;
   chainName: string;
   token: string;
   amount: string;
   confirmedAtLabel: string;
-  /**
-   * When false, do not link to Worldscan even if {@link txHash} matches a 32-byte hex pattern
-   * (e.g. deterministic design mocks are not real chain transactions).
-   */
-  explorerLinkEligible?: boolean;
 };
 
 export type PublicProfileSoldRow = {
@@ -99,11 +95,11 @@ export function buildMockPublicProfileSoldParts(input: {
     soldAtLabel,
     settlement: {
       txHash: hexFromSeed(`tx:${seed}`),
+      blockNumber: 18_000_000 + (h % 900_000),
       chainName: 'World Chain',
       token,
       amount,
       confirmedAtLabel,
-      explorerLinkEligible: false,
     },
   };
 }
@@ -112,15 +108,16 @@ export const WORLD_CHAIN_MAINNET_ID = 480;
 export const WORLD_CHAIN_SEPOLIA_ID = 4801;
 
 /**
- * Worldscan URLs for World Chain mainnet and Sepolia.
- * @see https://docs.worldcoin.org/world-chain/providers/explorers
+ * Placeholder explorer URL. Branches on chain id between World Chain Mainnet
+ * (worldscan.org) and Sepolia (worldchain-sepolia.explorer.alchemy.com). Links
+ * are illustrative — hashes are mocked and will resolve to 404s.
  */
 export function explorerTxUrl(
   txHash: string,
   chainId: number = WORLD_CHAIN_MAINNET_ID,
 ): string {
   if (chainId === WORLD_CHAIN_SEPOLIA_ID) {
-    return `https://sepolia.worldscan.org/tx/${txHash}`;
+    return `https://worldchain-sepolia.explorer.alchemy.com/tx/${txHash}`;
   }
   return `https://worldscan.org/tx/${txHash}`;
 }

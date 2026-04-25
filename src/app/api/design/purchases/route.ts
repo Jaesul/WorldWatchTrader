@@ -32,9 +32,9 @@ export async function GET() {
         chainName: deal.chainName,
         txHash: deal.transactionHash,
         userOpHash: deal.userOpHash,
+        blockNumber: deal.blockNumber ?? null,
         tokenSymbol: deal.tokenSymbol,
         amountRaw: deal.amountRaw,
-        executedWith: deal.executedWith ?? null,
         confirmedAt: deal.confirmedAt ? deal.confirmedAt.toISOString() : null,
         buyer: {
           id: viewerRow.id,

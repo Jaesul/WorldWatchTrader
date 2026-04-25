@@ -26,10 +26,9 @@ export type ViewerDashboardDealSnapshot = {
   chainName: string;
   txHash: string | null;
   userOpHash: string | null;
+  blockNumber: number | null;
   tokenSymbol: string;
   amountRaw: string;
-  /** How the deal was executed (`minikit_pay`, `minikit_send_transaction`, `mock`, etc.). */
-  executedWith: string | null;
   confirmedAt: string | null;
   /** Always populated for sale rows. For purchase rows this echoes the viewer. */
   buyer: ViewerDashboardDealParty;

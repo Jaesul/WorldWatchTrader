@@ -17,10 +17,7 @@ import {
   readDmSettlementUsdPerWldFromEnv,
   wldAmountRawFromPriceUsd,
 } from '@/lib/settlement/env-wld-quote';
-import {
-  extractExplorerTransactionHash,
-  verifyMinikitPayment,
-} from '@/lib/settlement/verify-minikit-payment';
+import { verifyMinikitPayment } from '@/lib/settlement/verify-minikit-payment';
 
 export type DmTxRequestError =
   | 'thread_not_found'
@@ -433,13 +430,11 @@ export async function finalizeAcceptedTransactionRequest(input: {
   if (verify.ok === false && verify.reason !== 'missing_config') {
     return { ok: false, error: 'payment_verify_failed' };
   }
-  let verifiedChainTx: string | null = null;
   if (verify.ok === true) {
     const blob = JSON.stringify(verify.json).toLowerCase();
     if (!blob.includes(reference.toLowerCase())) {
       return { ok: false, error: 'payment_verify_failed' };
     }
-    verifiedChainTx = extractExplorerTransactionHash(verify.json);
   }
 
   const now = new Date();
@@ -494,7 +489,7 @@ export async function finalizeAcceptedTransactionRequest(input: {
         chainId: WORLD_CHAIN_ID,
         chainName: WORLD_CHAIN_NAME,
         userOpHash: transactionId,
-        transactionHash: verifiedChainTx,
+        transactionHash: null,
         fromAddress: buyer.walletAddress,
         toAddress: seller.walletAddress,
         tokenSymbol: 'WLD',

@@ -34,7 +34,6 @@ import {
   type OnChainSettlement,
   type PublicProfileSoldRow,
 } from '@/lib/design/on-chain-sale-mock';
-import { buildReceiptOnChainSettlement } from '@/lib/settlement/receipt-settlement';
 import {
   memberSinceLabel,
   profileDisplayName,
@@ -179,18 +178,14 @@ export default async function PublicProfilePage({
       hour: 'numeric',
       minute: '2-digit',
     }).format(confirmedDate);
-    const settlement = buildReceiptOnChainSettlement(
-      {
-        txHash: deal.transactionHash,
-        userOpHash: deal.userOpHash,
-        chainName: deal.chainName,
-        tokenSymbol: deal.tokenSymbol,
-        amountRaw: deal.amountRaw,
-        executedWith: deal.executedWith ?? null,
-      },
-      fallback.settlement,
+    const settlement: OnChainSettlement = {
+      txHash: deal.transactionHash ?? fallback.settlement.txHash,
+      blockNumber: deal.blockNumber ?? fallback.settlement.blockNumber,
+      chainName: deal.chainName ?? fallback.settlement.chainName,
+      token: deal.tokenSymbol ?? fallback.settlement.token,
+      amount: deal.amountRaw ?? fallback.settlement.amount,
       confirmedAtLabel,
-    );
+    };
     const buyerParty: ViewerDashboardDealParty = {
       id: deal.buyer.id,
       username: deal.buyer.username,
@@ -209,9 +204,9 @@ export default async function PublicProfilePage({
       chainName: deal.chainName,
       txHash: deal.transactionHash,
       userOpHash: deal.userOpHash,
+      blockNumber: deal.blockNumber,
       tokenSymbol: deal.tokenSymbol,
       amountRaw: deal.amountRaw,
-      executedWith: deal.executedWith ?? null,
       confirmedAt: deal.confirmedAt ? deal.confirmedAt.toISOString() : null,
       buyer: buyerParty,
       seller: null,
@@ -246,18 +241,14 @@ export default async function PublicProfilePage({
         hour: 'numeric',
         minute: '2-digit',
       }).format(confirmedDate);
-      const settlement = buildReceiptOnChainSettlement(
-        {
-          txHash: deal.transactionHash,
-          userOpHash: deal.userOpHash,
-          chainName: deal.chainName,
-          tokenSymbol: deal.tokenSymbol,
-          amountRaw: deal.amountRaw,
-          executedWith: deal.executedWith ?? null,
-        },
-        fallback.settlement,
+      const settlement: OnChainSettlement = {
+        txHash: deal.transactionHash ?? fallback.settlement.txHash,
+        blockNumber: deal.blockNumber ?? fallback.settlement.blockNumber,
+        chainName: deal.chainName ?? fallback.settlement.chainName,
+        token: deal.tokenSymbol ?? fallback.settlement.token,
+        amount: deal.amountRaw ?? fallback.settlement.amount,
         confirmedAtLabel,
-      );
+      };
       const sellerParty: ViewerDashboardDealParty = {
         id: seller.id,
         username: seller.username,
@@ -276,9 +267,9 @@ export default async function PublicProfilePage({
         chainName: deal.chainName,
         txHash: deal.transactionHash,
         userOpHash: deal.userOpHash,
+        blockNumber: deal.blockNumber,
         tokenSymbol: deal.tokenSymbol,
         amountRaw: deal.amountRaw,
-        executedWith: deal.executedWith ?? null,
         confirmedAt: deal.confirmedAt ? deal.confirmedAt.toISOString() : null,
         buyer: profileOwnerParty,
         seller: sellerParty,
