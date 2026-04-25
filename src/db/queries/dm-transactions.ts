@@ -11,10 +11,6 @@ import {
   users,
   type DmTransactionRequestStatus,
 } from '@/db/schema';
-import {
-  buildMockPublicProfileSoldParts,
-  mockUserOpHashForListing,
-} from '@/lib/design/on-chain-sale-mock';
 import type { DmListingSnapshot } from '@/db/queries/dm-threads';
 
 export type DmTxRequestError =
@@ -26,9 +22,12 @@ export type DmTxRequestError =
   | 'duplicate_pending'
   | 'request_not_found'
   | 'invalid_status'
+  | 'already_resolved'
   | 'invalid_price'
   | 'invalid_description'
-  | 'invalid_reason';
+  | 'invalid_reason'
+  | 'invalid_tx_hash'
+  | 'invalid_user_op_hash';
 
 export type DmTxRequestSnapshot = {
   requestId: string;
@@ -47,6 +46,8 @@ export type DmTxRequestSnapshot = {
 
 const MAX_DESCRIPTION_LEN = 1000;
 const MAX_REASON_LEN = 500;
+const WORLD_CHAIN_ID = 480;
+const WORLD_CHAIN_NAME = 'World Chain';
 
 function normaliseText(s: string | null | undefined, max: number): string {
   if (!s) return '';
@@ -209,66 +210,131 @@ export async function createTransactionRequest(input: {
   });
 }
 
-/**
- * Accepts a pending request: marks the request accepted, inserts a mocked
- * `listing_deals` row, flips the listing to `sold`, and emits a follow-up chat
- * message referencing the same request id so clients render the updated card.
- */
-export async function acceptTransactionRequest(
+export type DmTxAcceptPreparePayload = {
+  chainId: number;
+  transactions: Array<{
+    to: string;
+    value: string;
+  }>;
+  settlement: {
+    chainName: string;
+    tokenSymbol: string;
+    amountRaw: string;
+    executedWith: 'minikit_send_transaction';
+    fromAddress: string;
+    toAddress: string;
+  };
+};
+
+export async function prepareAcceptTransactionRequest(
   requestId: string,
   viewerId: string,
 ): Promise<
-  | { ok: true; request: DmTxRequestSnapshot; messageId: string; dealId: string }
+  | { ok: true; request: DmTxRequestSnapshot; payload: DmTxAcceptPreparePayload }
   | { ok: false; error: DmTxRequestError }
 > {
   const db = getDb();
-  const now = new Date();
+  const [reqRow] = await db
+    .select()
+    .from(dmTransactionRequests)
+    .where(eq(dmTransactionRequests.id, requestId))
+    .limit(1);
+  if (!reqRow) return { ok: false as const, error: 'request_not_found' as const };
+  if (reqRow.recipientId !== viewerId) {
+    return { ok: false as const, error: 'not_recipient' as const };
+  }
+  if (reqRow.status !== 'pending') {
+    return { ok: false as const, error: 'invalid_status' as const };
+  }
 
+  const [buyer] = await db.select().from(users).where(eq(users.id, reqRow.recipientId)).limit(1);
+  const [seller] = await db.select().from(users).where(eq(users.id, reqRow.senderId)).limit(1);
+  if (!buyer || !seller) {
+    return { ok: false as const, error: 'not_participant' as const };
+  }
+  if (!buyer.walletAddress || !seller.walletAddress) {
+    return { ok: false as const, error: 'not_participant' as const };
+  }
+  const [listing] = await db.select().from(listings).where(eq(listings.id, reqRow.listingId)).limit(1);
+  if (!listing) return { ok: false as const, error: 'listing_not_found' as const };
+  if (listing.sellerId !== reqRow.senderId) {
+    return { ok: false as const, error: 'not_seller' as const };
+  }
+
+  const snap = await buildListingSnapshotRow(reqRow.listingId, reqRow.priceUsd);
+  if (!snap) return { ok: false as const, error: 'listing_not_found' as const };
+
+  const valueWei = BigInt(Math.max(reqRow.priceUsd, 1)).toString();
+  return {
+    ok: true as const,
+    request: toSnapshot(reqRow, snap),
+    payload: {
+      chainId: WORLD_CHAIN_ID,
+      transactions: [{ to: seller.walletAddress, value: `0x${BigInt(valueWei).toString(16)}` }],
+      settlement: {
+        chainName: WORLD_CHAIN_NAME,
+        tokenSymbol: 'ETH',
+        amountRaw: valueWei,
+        executedWith: 'minikit_send_transaction',
+        fromAddress: buyer.walletAddress,
+        toAddress: seller.walletAddress,
+      },
+    },
+  };
+}
+
+function isHexHash(value: string | null | undefined): value is string {
+  return !!value && /^0x[0-9a-fA-F]{64}$/.test(value);
+}
+
+export async function finalizeAcceptedTransactionRequest(input: {
+  requestId: string;
+  viewerId: string;
+  userOpHash: string;
+  transactionHash: string | null;
+  chainId: number;
+  chainName: string;
+  tokenSymbol: string;
+  amountRaw: string;
+  fromAddress: string;
+  toAddress: string;
+}): Promise<
+  | { ok: true; request: DmTxRequestSnapshot; messageId: string; dealId: string }
+  | { ok: false; error: DmTxRequestError }
+> {
+  if (!isHexHash(input.userOpHash)) {
+    return { ok: false, error: 'invalid_user_op_hash' };
+  }
+  if (input.transactionHash && !isHexHash(input.transactionHash)) {
+    return { ok: false, error: 'invalid_tx_hash' };
+  }
+  const amountRaw = input.amountRaw.trim();
+  if (!/^\d+$/.test(amountRaw)) {
+    return { ok: false, error: 'invalid_price' };
+  }
+
+  const db = getDb();
+  const now = new Date();
   return db.transaction(async (tx) => {
     const [reqRow] = await tx
       .select()
       .from(dmTransactionRequests)
-      .where(eq(dmTransactionRequests.id, requestId))
+      .where(eq(dmTransactionRequests.id, input.requestId))
       .limit(1);
     if (!reqRow) return { ok: false as const, error: 'request_not_found' as const };
-    if (reqRow.recipientId !== viewerId) {
+    if (reqRow.recipientId !== input.viewerId) {
       return { ok: false as const, error: 'not_recipient' as const };
     }
     if (reqRow.status !== 'pending') {
-      return { ok: false as const, error: 'invalid_status' as const };
-    }
-
-    const [buyer] = await tx
-      .select()
-      .from(users)
-      .where(eq(users.id, reqRow.recipientId))
-      .limit(1);
-    const [seller] = await tx
-      .select()
-      .from(users)
-      .where(eq(users.id, reqRow.senderId))
-      .limit(1);
-    if (!buyer || !seller) {
-      return { ok: false as const, error: 'not_participant' as const };
+      return { ok: false as const, error: 'already_resolved' as const };
     }
 
     const [updatedReq] = await tx
       .update(dmTransactionRequests)
       .set({ status: 'accepted', resolvedAt: now, updatedAt: now })
-      .where(eq(dmTransactionRequests.id, requestId))
+      .where(eq(dmTransactionRequests.id, input.requestId))
       .returning();
     if (!updatedReq) throw new Error('Failed to update request to accepted');
-
-    const mockParts = buildMockPublicProfileSoldParts({
-      listingId: reqRow.listingId,
-      updatedAt: now,
-      priceUsd: reqRow.priceUsd,
-    });
-    const userOpHash = mockUserOpHashForListing({
-      listingId: reqRow.listingId,
-      updatedAt: now,
-      priceUsd: reqRow.priceUsd,
-    });
 
     const [deal] = await tx
       .insert(listingDeals)
@@ -277,17 +343,16 @@ export async function acceptTransactionRequest(
         sellerId: reqRow.senderId,
         buyerId: reqRow.recipientId,
         status: 'confirmed',
-        chainId: 480,
-        chainName: 'World Chain',
-        userOpHash,
-        transactionHash: mockParts.settlement.txHash,
-        blockNumber: mockParts.settlement.blockNumber,
-        fromAddress: buyer.walletAddress,
-        toAddress: seller.walletAddress,
-        tokenSymbol: mockParts.settlement.token,
-        amountRaw: mockParts.settlement.amount,
+        chainId: input.chainId,
+        chainName: input.chainName,
+        userOpHash: input.userOpHash,
+        transactionHash: input.transactionHash,
+        fromAddress: input.fromAddress,
+        toAddress: input.toAddress,
+        tokenSymbol: input.tokenSymbol,
+        amountRaw,
         priceUsd: reqRow.priceUsd,
-        executedWith: 'mock',
+        executedWith: 'minikit_send_transaction',
         confirmedAt: now,
         updatedAt: now,
       })
@@ -318,7 +383,6 @@ export async function acceptTransactionRequest(
 
     const snap = await buildListingSnapshotRow(reqRow.listingId, reqRow.priceUsd);
     if (!snap) throw new Error('Listing vanished mid-transaction');
-
     return {
       ok: true as const,
       request: toSnapshot(updatedReq, snap),

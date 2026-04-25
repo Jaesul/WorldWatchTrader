@@ -22,6 +22,8 @@ function errorToStatus(err: DmTxRequestError): number {
     case 'invalid_reason':
     case 'invalid_status':
       return 400;
+    default:
+      return 400;
   }
 }
 

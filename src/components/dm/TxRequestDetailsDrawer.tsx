@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { MiniKit } from '@worldcoin/minikit-js';
+import { useMiniKit } from '@worldcoin/minikit-js/minikit-provider';
+import { useUserOperationReceipt } from '@worldcoin/minikit-react';
+import { createPublicClient, http } from 'viem';
+import { worldchain } from 'viem/chains';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +47,12 @@ export function TxRequestDetailsDrawer({
   viewerId,
   onResolved,
 }: Props) {
+  const { isInstalled } = useMiniKit();
+  const client = createPublicClient({
+    chain: worldchain,
+    transport: http('https://worldchain-mainnet.g.alchemy.com/public'),
+  });
+  const { poll } = useUserOperationReceipt({ client });
   const [mode, setMode] = useState<'view' | 'decline'>('view');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState<'accept' | 'decline' | null>(null);
@@ -62,18 +73,15 @@ export function TxRequestDetailsDrawer({
     !!viewerId && viewerId === residentRequest.recipientId;
   const canResolve = viewerIsRecipient && residentRequest.status === 'pending';
 
-  async function patchRequest(
-    action: 'accept' | 'decline',
-    body?: { reason?: string },
-  ) {
+  async function declineRequest(body?: { reason?: string }) {
     if (!residentRequest) return;
-    setSubmitting(action);
+    setSubmitting('decline');
     try {
       const res = await fetch(`/api/design/dm/transaction-requests/${residentRequest.requestId}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...body }),
+        body: JSON.stringify({ action: 'decline', ...body }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         request?: DmTxRequestSnapshotPayload;
@@ -85,9 +93,105 @@ export function TxRequestDetailsDrawer({
         );
         return;
       }
-      toast.success(action === 'accept' ? 'Transaction accepted' : 'Request declined');
+      toast.success('Request declined');
       onResolved?.(data.request);
       onOpenChange(false);
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
+  async function acceptRequest() {
+    if (!residentRequest) return;
+    if (!isInstalled) {
+      toast.error('Open this in World App to accept the transaction on-chain.');
+      return;
+    }
+    setSubmitting('accept');
+    try {
+      const prepareRes = await fetch(
+        `/api/design/dm/transaction-requests/${residentRequest.requestId}/prepare-accept`,
+        {
+          method: 'POST',
+          credentials: 'include',
+        },
+      );
+      const prepareData = (await prepareRes.json().catch(() => ({}))) as {
+        request?: DmTxRequestSnapshotPayload;
+        payload?: {
+          chainId: number;
+          transactions: Array<{ to: string; value: string }>;
+          settlement: {
+            chainName: string;
+            tokenSymbol: string;
+            amountRaw: string;
+            fromAddress: string;
+            toAddress: string;
+          };
+        };
+        error?: string;
+      };
+      if (!prepareRes.ok || !prepareData.payload || !prepareData.request) {
+        toast.error(
+          typeof prepareData.error === 'string'
+            ? prepareData.error
+            : 'Could not prepare transaction',
+        );
+        return;
+      }
+
+      const sendResult = await MiniKit.sendTransaction({
+        chainId: prepareData.payload.chainId,
+        transactions: prepareData.payload.transactions,
+      });
+      const userOpHash = sendResult.data.userOpHash;
+
+      let transactionHash: string | null = null;
+      try {
+        const receipt = (await poll(userOpHash)) as { transactionHash?: string } | null;
+        transactionHash =
+          receipt && typeof receipt.transactionHash === 'string'
+            ? receipt.transactionHash
+            : null;
+      } catch {
+        // Finalization stores userOpHash even if receipt polling times out.
+      }
+
+      const finalizeRes = await fetch(
+        `/api/design/dm/transaction-requests/${residentRequest.requestId}/finalize-accept`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userOpHash,
+            transactionHash,
+            chainId: prepareData.payload.chainId,
+            chainName: prepareData.payload.settlement.chainName,
+            tokenSymbol: prepareData.payload.settlement.tokenSymbol,
+            amountRaw: prepareData.payload.settlement.amountRaw,
+            fromAddress: prepareData.payload.settlement.fromAddress,
+            toAddress: prepareData.payload.settlement.toAddress,
+          }),
+        },
+      );
+      const finalizeData = (await finalizeRes.json().catch(() => ({}))) as {
+        request?: DmTxRequestSnapshotPayload;
+        error?: string;
+      };
+      if (!finalizeRes.ok || !finalizeData.request) {
+        toast.error(
+          typeof finalizeData.error === 'string'
+            ? finalizeData.error
+            : 'Could not finalize transaction',
+        );
+        return;
+      }
+      toast.success('Transaction accepted');
+      onResolved?.(finalizeData.request);
+      onOpenChange(false);
+    } catch {
+      toast.error('Could not complete transaction');
     } finally {
       setSubmitting(null);
     }
@@ -168,7 +272,7 @@ export function TxRequestDetailsDrawer({
           <div className="mt-5 flex flex-col gap-2">
             <Button
               type="button"
-              onClick={() => void patchRequest('accept')}
+              onClick={() => void acceptRequest()}
               disabled={submitting != null}
               className="w-full"
             >
@@ -222,7 +326,7 @@ export function TxRequestDetailsDrawer({
                 type="button"
                 variant="destructive"
                 className="flex-1"
-                onClick={() => void patchRequest('decline', { reason })}
+                onClick={() => void declineRequest({ reason })}
                 disabled={submitting != null}
               >
                 {submitting === 'decline' ? 'Declining…' : 'Confirm decline'}

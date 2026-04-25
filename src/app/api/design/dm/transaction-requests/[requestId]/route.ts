@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 
 import { requireDesignViewer } from '@/app/api/design/dm/_viewer';
 import {
-  acceptTransactionRequest,
   declineTransactionRequest,
   getTransactionRequestById,
   type DmTxRequestError,
@@ -18,9 +17,12 @@ function errorToStatus(err: DmTxRequestError): number {
     case 'not_seller':
       return 403;
     case 'invalid_status':
+    case 'already_resolved':
     case 'invalid_reason':
     case 'invalid_price':
     case 'invalid_description':
+    case 'invalid_tx_hash':
+    case 'invalid_user_op_hash':
       return 400;
     default:
       return 400;
@@ -68,21 +70,6 @@ export async function PATCH(
   }
   const action = (body as { action?: unknown }).action;
 
-  if (action === 'accept') {
-    const result = await acceptTransactionRequest(requestId, v.user.id);
-    if (!result.ok) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: errorToStatus(result.error) },
-      );
-    }
-    return NextResponse.json({
-      request: result.request,
-      messageId: result.messageId,
-      dealId: result.dealId,
-    });
-  }
-
   if (action === 'decline') {
     const reasonRaw = (body as { reason?: unknown }).reason;
     const reason = typeof reasonRaw === 'string' ? reasonRaw : null;
@@ -99,5 +86,11 @@ export async function PATCH(
     });
   }
 
+  if (action === 'accept') {
+    return NextResponse.json(
+      { error: 'Use prepare-accept and finalize-accept actions' },
+      { status: 400 },
+    );
+  }
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
