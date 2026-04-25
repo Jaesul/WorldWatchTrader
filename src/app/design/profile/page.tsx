@@ -391,11 +391,9 @@ export default function ProfilePage() {
   const isViewingSignedInUser =
     !!viewer && !!sessionViewer && viewer.id === sessionViewer.id;
   /**
-   * On the main route the viewer always *is* the signed-in user, so we always
-   * surface the Verify CTA (re-verify if already orb-verified, first-time
-   * verify otherwise). In the sandbox we only show it when the picker is on
-   * the signed-in user; if the picker is on someone else we still show a
-   * "Switch to your profile" prompt below.
+   * Main route: viewer is always the signed-in user — show verify status / CTA.
+   * Sandbox: only when the picker matches the signed-in account; otherwise the
+   * "Switch to your profile" block below applies.
    */
   const showVerifyCta = !isSandbox || isViewingSignedInUser;
   const showSandboxSwitchCta =
@@ -403,8 +401,6 @@ export default function ProfilePage() {
     !!sessionViewer &&
     !sessionViewer.orbVerified &&
     !isViewingSignedInUser;
-  const signedInUserOrbVerified =
-    isSandbox ? Boolean(sessionViewer?.orbVerified) : Boolean(viewer?.orbVerified);
 
   if (!viewer) {
     return (
@@ -560,36 +556,44 @@ export default function ProfilePage() {
         fallbackAvatarUrl={avatarUrl}
       />
 
-      {showVerifyCta && (
-        <div className="mx-4 mb-4 rounded-xl border border-world-verified/35 bg-world-verified/10 p-4">
-          <div className="flex items-center gap-2">
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-world-verified text-world-verified-foreground">
-              <WorldOrbIcon className="size-4" />
+      {showVerifyCta &&
+        (viewer.orbVerified ? (
+          <div className="mx-4 mb-4 rounded-xl border border-world-verified/35 bg-world-verified/10 p-4">
+            <div className="flex items-center gap-2">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-world-verified text-world-verified-foreground">
+                <WorldOrbIcon className="size-4" />
+              </div>
+              <p className="text-sm font-semibold text-world-verified">World ID verified</p>
             </div>
-            <p className="text-sm font-semibold text-world-verified">
-              {signedInUserOrbVerified
-                ? "World ID verified"
-                : "Verify with World ID"}
+            <p className="mt-2 text-xs text-foreground/70">
+              Orb verification is on file for this account.
             </p>
           </div>
-          <p className="mt-2 text-xs text-foreground/70">
-            {signedInUserOrbVerified
-              ? "Your account is orb-verified. Re-run verification any time to refresh your badge."
-              : "Verify with the Orb to unlock the World Verified badge on your profile and listings."}
-          </p>
-          <div className="mt-3">
-            <Verify
-              action="test-action"
-              showHeading={false}
-              onVerified={() =>
-                setSessionViewer((current) =>
-                  current ? { ...current, orbVerified: true } : current,
-                )
-              }
-            />
+        ) : (
+          <div className="mx-4 mb-4 rounded-xl border border-world-verified/35 bg-world-verified/10 p-4">
+            <div className="flex items-center gap-2">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-world-verified text-world-verified-foreground">
+                <WorldOrbIcon className="size-4" />
+              </div>
+              <p className="text-sm font-semibold text-world-verified">Verify with World ID</p>
+            </div>
+            <p className="mt-2 text-xs text-foreground/70">
+              Verify with the Orb to unlock the World Verified badge on your profile and
+              listings.
+            </p>
+            <div className="mt-3">
+              <Verify
+                action="test-action"
+                showHeading={false}
+                onVerified={() =>
+                  setSessionViewer((current) =>
+                    current ? { ...current, orbVerified: true } : current,
+                  )
+                }
+              />
+            </div>
           </div>
-        </div>
-      )}
+        ))}
 
       {showSandboxSwitchCta && (
         <div className="mx-4 mb-4 rounded-xl border border-world-verified/35 bg-world-verified/10 p-4">
