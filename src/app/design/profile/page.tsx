@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -255,6 +256,18 @@ export default function ProfilePage() {
   }, [ensureAllViewersLoaded]);
 
   useEffect(() => {
+    // Main route: the viewer IS the signed-in user, no extra session fetch.
+    if (!isSandbox) {
+      setSessionViewer(
+        viewer?.id
+          ? { id: viewer.id, orbVerified: Boolean(viewer.orbVerified) }
+          : null,
+      );
+      return;
+    }
+
+    // Sandbox: only fetch the session when the picked viewer isn't orb verified
+    // (we surface a CTA to switch to the signed-in account).
     if (viewer?.orbVerified) {
       setSessionViewer(null);
       return;
@@ -288,7 +301,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [viewer?.orbVerified]);
+  }, [isSandbox, viewer?.id, viewer?.orbVerified]);
 
   const persistStatusChange = useCallback(async (listingId: string, status: ListingStatus) => {
     const r = await fetch(`/api/design/listings/${listingId}`, {
@@ -375,9 +388,23 @@ export default function ProfilePage() {
   const avatarUrl =
     viewer?.profilePictureUrl ??
     "https://i.pravatar.cc/150?u=design-profile";
-  const canVerifySignedInUser = !!sessionViewer && !sessionViewer.orbVerified;
   const isViewingSignedInUser =
     !!viewer && !!sessionViewer && viewer.id === sessionViewer.id;
+  /**
+   * On the main route the viewer always *is* the signed-in user, so we always
+   * surface the Verify CTA (re-verify if already orb-verified, first-time
+   * verify otherwise). In the sandbox we only show it when the picker is on
+   * the signed-in user; if the picker is on someone else we still show a
+   * "Switch to your profile" prompt below.
+   */
+  const showVerifyCta = !isSandbox || isViewingSignedInUser;
+  const showSandboxSwitchCta =
+    isSandbox &&
+    !!sessionViewer &&
+    !sessionViewer.orbVerified &&
+    !isViewingSignedInUser;
+  const signedInUserOrbVerified =
+    isSandbox ? Boolean(sessionViewer?.orbVerified) : Boolean(viewer?.orbVerified);
 
   if (!viewer) {
     return (
@@ -421,15 +448,29 @@ export default function ProfilePage() {
       )}
 
       <div className="relative px-4 pb-4 pt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="absolute right-4 top-2 shrink-0 text-xs"
-          type="button"
-          onClick={() => setProfileEditOpen(true)}
-        >
-          Edit
-        </Button>
+        <div className="absolute right-4 top-2 flex flex-col items-stretch gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0 text-xs"
+            type="button"
+            onClick={() => setProfileEditOpen(true)}
+          >
+            Edit
+          </Button>
+          {!isSandbox && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive"
+              type="button"
+              onClick={() => void signOut({ callbackUrl: "/welcome" })}
+            >
+              <LogOut className="size-3" aria-hidden />
+              Sign out
+            </Button>
+          )}
+        </div>
 
         <div className="flex items-center gap-4">
           <img
@@ -519,26 +560,23 @@ export default function ProfilePage() {
         fallbackAvatarUrl={avatarUrl}
       />
 
-      {canVerifySignedInUser && (
+      {showVerifyCta && (
         <div className="mx-4 mb-4 rounded-xl border border-world-verified/35 bg-world-verified/10 p-4">
-          <p className="text-sm font-semibold text-world-verified">Verify with World ID</p>
-          <p className="mt-0.5 text-xs text-foreground/70">
-            {isViewingSignedInUser
-              ? "If you became orb verified after logging in, verify here to refresh your badge on this account."
-              : "You're signed in with a different account. Verifying here will update your signed-in account, not the sandbox profile currently selected above."}
-          </p>
-          {isSandbox && !isViewingSignedInUser && sessionViewer ? (
-            <div className="mt-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => void setViewerId(sessionViewer.id)}
-              >
-                Switch to your profile
-              </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-world-verified text-world-verified-foreground">
+              <WorldOrbIcon className="size-4" />
             </div>
-          ) : null}
+            <p className="text-sm font-semibold text-world-verified">
+              {signedInUserOrbVerified
+                ? "World ID verified"
+                : "Verify with World ID"}
+            </p>
+          </div>
+          <p className="mt-2 text-xs text-foreground/70">
+            {signedInUserOrbVerified
+              ? "Your account is orb-verified. Re-run verification any time to refresh your badge."
+              : "Verify with the Orb to unlock the World Verified badge on your profile and listings."}
+          </p>
           <div className="mt-3">
             <Verify
               action="test-action"
@@ -553,17 +591,26 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {viewer.orbVerified && (
-        <div className="mx-4 mb-4 flex items-center gap-3 rounded-xl border border-world-verified/30 bg-world-verified/10 p-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-world-verified text-world-verified-foreground">
-            <WorldOrbIcon className="size-5" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-world-verified">World ID verified</p>
-            <p className="text-xs text-world-verified/70">
-              Orb verification on this account in the database.
-            </p>
-          </div>
+      {showSandboxSwitchCta && (
+        <div className="mx-4 mb-4 rounded-xl border border-world-verified/35 bg-world-verified/10 p-4">
+          <p className="text-sm font-semibold text-world-verified">Verify with World ID</p>
+          <p className="mt-0.5 text-xs text-foreground/70">
+            You&apos;re signed in with a different account. Switch to your
+            profile to verify, or pick the signed-in user from the sandbox
+            picker above.
+          </p>
+          {sessionViewer ? (
+            <div className="mt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void setViewerId(sessionViewer.id)}
+              >
+                Switch to your profile
+              </Button>
+            </div>
+          ) : null}
         </div>
       )}
 
