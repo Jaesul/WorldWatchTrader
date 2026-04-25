@@ -10,6 +10,7 @@ import { formatPrice } from "@/lib/design/data";
 import { useDesignListingSaves } from "@/lib/design/use-design-listing-saves";
 import type { DesignFeedListing } from "@/lib/design/map-db-feed-to-listing";
 import { FeedListingPreviewDrawer } from "@/components/design/FeedListingPreviewDrawer";
+import { useDesignViewer } from "@/lib/design/DesignViewerProvider";
 import { useRouteMode } from "@/lib/route-mode/RouteModeProvider";
 
 function SavedListingSkeleton() {
@@ -34,7 +35,13 @@ function SavedListingSkeleton() {
 export default function SavedPage() {
   const { savedListings, loading, savedListingsLoaded, ensureSavedListingsLoaded } =
     useDesignListingSaves();
-  const { basePath } = useRouteMode();
+  const { viewer } = useDesignViewer();
+  const { basePath, isSandbox } = useRouteMode();
+  const accountLabel = viewer
+    ? viewer.handle && viewer.handle !== viewer.username
+      ? `@${viewer.handle}`
+      : viewer.username
+    : null;
   const [drawerListing, setDrawerListing] = useState<DesignFeedListing | null>(
     null,
   );
@@ -55,6 +62,12 @@ export default function SavedPage() {
     <div className="flex flex-col">
       <div className="px-4 pb-3">
         <h1 className="text-xl font-semibold text-foreground">Saved</h1>
+        {accountLabel ? (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {isSandbox ? "Sandbox account" : "Your account"}:{" "}
+            <span className="font-medium text-foreground">{accountLabel}</span>
+          </p>
+        ) : null}
         <p className="mt-1 text-sm text-muted-foreground">
           {loading
             ? "Loading…"
@@ -77,8 +90,10 @@ export default function SavedPage() {
             No saved listings yet
           </h2>
           <p className="mb-6 max-w-xs text-sm text-muted-foreground">
-            Tap the bookmark on any listing in the feed to save it here. Saves
-            are stored for the profile you pick in Design.
+            Tap the bookmark on any listing in the feed to save it here.{" "}
+            {isSandbox
+              ? "Saves are tied to the user selected in the design sandbox picker."
+              : "Saves are stored for your signed-in account only."}
           </p>
           <Button asChild>
             <Link href={basePath || '/'}>Browse listings</Link>

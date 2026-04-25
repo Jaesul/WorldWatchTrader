@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 
 import { useDesignViewer } from '@/lib/design/DesignViewerProvider';
 import type { DesignFeedListing } from '@/lib/design/map-db-feed-to-listing';
+import { useRouteMode } from '@/lib/route-mode/RouteModeProvider';
 
 type ListingSavesResponse = {
   listingIds: string[];
@@ -54,6 +55,7 @@ const DesignListingSavesContext =
   createContext<DesignListingSavesContextValue | null>(null);
 
 export function DesignListingSavesProvider({ children }: { children: ReactNode }) {
+  const { isSandbox } = useRouteMode();
   const { viewer } = useDesignViewer();
   const viewerId = viewer?.id ?? null;
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -108,7 +110,11 @@ export function DesignListingSavesProvider({ children }: { children: ReactNode }
   const toggleSave = useCallback(
     async (listingId: string) => {
       if (!viewerId) {
-        toast.info('Pick a profile user in Design to save listings.');
+        toast.info(
+          isSandbox
+            ? 'Pick a user in the design sandbox picker to save listings.'
+            : 'Sign in to save listings.',
+        );
         return;
       }
       const wasSaved = savedIdsRef.current.has(listingId);
@@ -141,7 +147,7 @@ export function DesignListingSavesProvider({ children }: { children: ReactNode }
         toast.error(wasSaved ? 'Could not remove save' : 'Could not save listing');
       }
     },
-    [viewerId, loadSaves, savedListingsLoaded],
+    [viewerId, isSandbox, loadSaves, savedListingsLoaded],
   );
 
   const refresh = useCallback(() => {
@@ -179,8 +185,9 @@ export function DesignListingSavesProvider({ children }: { children: ReactNode }
 }
 
 /**
- * DB-backed bookmarks for the design sandbox, keyed to the selected design viewer (cookie).
- * Must be used under {@link DesignListingSavesProvider} (wrapped in `design/layout.tsx`).
+ * DB-backed bookmarks. On `/design`, keyed to the sandbox viewer cookie; on base
+ * routes, keyed to the signed-in user (see `/api/design/listing-saves` + Referer).
+ * Must be used under {@link DesignListingSavesProvider} (in both app shells).
  */
 export function useDesignListingSaves(): DesignListingSavesContextValue {
   const ctx = useContext(DesignListingSavesContext);

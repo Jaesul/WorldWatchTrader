@@ -1,52 +1,52 @@
-import { cookies } from 'next/headers';
+import { getDefaultDesignViewer, getDefaultDesignViewerUserId } from '@/db/queries/users';
+import {
+  isApiCallFromDesignSurface,
+  resolveApiViewer,
+  type ViewerSurface,
+} from '@/lib/viewer/resolve-api-viewer';
 
-import { auth } from '@/auth';
-import { getDefaultDesignViewer, getDefaultDesignViewerUserId, getUserById } from '@/db/queries/users';
-import { DESIGN_VIEWER_COOKIE } from '@/lib/viewer/constants';
-
-/**
- * Resolves the calling viewer's id.
- *
- * Order of precedence:
- *  1. `DESIGN_VIEWER_COOKIE` (the /design sandbox picker — lets QA impersonate users).
- *  2. NextAuth session id — used when the request originates from a base route.
- *  3. First user by `created_at` (legacy default for unauth /design hits).
- *
- * Uses cheap PK lookups only so hot routes (`/api/design/listing-saves`, etc.) do not
- * run `listUsersForPicker` (which was piling up behind `postgres({ max: 1 })`).
- */
-export async function resolveDesignViewerUserId(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const raw = cookieStore.get(DESIGN_VIEWER_COOKIE)?.value?.trim() ?? '';
-  if (raw) {
-    const user = await getUserById(raw);
-    if (user) return user.id;
-  }
-
-  const session = await auth();
-  const sessionId = session?.user?.id?.trim() ?? '';
-  if (sessionId) {
-    const user = await getUserById(sessionId);
-    if (user) return user.id;
-  }
-
-  return getDefaultDesignViewerUserId();
+async function resolveIsSandbox(surface: ViewerSurface): Promise<boolean> {
+  if (surface === 'sandbox') return true;
+  if (surface === 'main') return false;
+  return isApiCallFromDesignSurface();
 }
 
-export async function resolveDesignViewer() {
-  const cookieStore = await cookies();
-  const raw = cookieStore.get(DESIGN_VIEWER_COOKIE)?.value?.trim() ?? '';
-  if (raw) {
-    const user = await getUserById(raw);
-    if (user) return user;
-  }
+/**
+ * Resolves the calling viewer's id for `/api/design/*` and other server
+ * helpers that piggyback on the design viewer model.
+ *
+ * Order of precedence (see `resolveApiViewer` for the details):
+ *  1. Sandbox surface only — `DESIGN_VIEWER_COOKIE` (sandbox impersonation).
+ *  2. NextAuth session id.
+ *  3. Sandbox surface only — first user by `created_at` (legacy default for
+ *     fully anonymous /design hits so the picker still works without auth).
+ *
+ * On a main-route surface step 3 is skipped: an unauthenticated request
+ * resolves to `null` so the API returns 401 instead of mutating the legacy
+ * default user.
+ *
+ * Pass `surface='sandbox'` from `/design/layout.tsx` SSR (where `Referer`
+ * points at the previous page, not the current one). API routes and server
+ * actions can leave it on the default `'auto'`.
+ */
+export async function resolveDesignViewerUserId(
+  surface: ViewerSurface = 'auto',
+): Promise<string | null> {
+  const user = await resolveApiViewer(surface);
+  if (user) return user.id;
 
-  const session = await auth();
-  const sessionId = session?.user?.id?.trim() ?? '';
-  if (sessionId) {
-    const user = await getUserById(sessionId);
-    if (user) return user;
+  if (await resolveIsSandbox(surface)) {
+    return getDefaultDesignViewerUserId();
   }
+  return null;
+}
 
-  return getDefaultDesignViewer();
+export async function resolveDesignViewer(surface: ViewerSurface = 'auto') {
+  const user = await resolveApiViewer(surface);
+  if (user) return user;
+
+  if (await resolveIsSandbox(surface)) {
+    return getDefaultDesignViewer();
+  }
+  return null;
 }

@@ -48,27 +48,45 @@ async function sessionUserIdFromRequest(req: NextRequest): Promise<string | null
   }
 }
 
+/**
+ * Whether the upload was kicked off from a `/design/*` page. Used to decide
+ * whether the design picker cookie should beat the session — we never want a
+ * leftover sandbox cookie to redirect a real-user upload to the wrong row.
+ */
+function isUploadFromDesignSurface(req: NextRequest): boolean {
+  const referer = req.headers.get('referer');
+  if (!referer) return false;
+  try {
+    return new URL(referer).pathname.startsWith('/design');
+  } catch {
+    return false;
+  }
+}
+
 async function resolveUploaderUserId(req: NextRequest): Promise<string> {
   try {
-    // Cookie first preserves the /design sandbox impersonation picker so QA can
-    // upload as any seeded user. Session falls in next so base routes still work.
-    const raw = req.cookies.get(DESIGN_VIEWER_COOKIE)?.value?.trim() ?? '';
-    utLog('design viewer cookie', {
-      name: DESIGN_VIEWER_COOKIE,
-      present: Boolean(raw),
-      length: raw.length,
-    });
-    if (raw) {
-      try {
-        const user = await getUserById(raw);
-        if (user) {
-          utLog('middleware resolved userId from design cookie');
-          return user.id;
+    const fromDesign = isUploadFromDesignSurface(req);
+    utLog('upload surface', { fromDesign });
+
+    if (fromDesign) {
+      const raw = req.cookies.get(DESIGN_VIEWER_COOKIE)?.value?.trim() ?? '';
+      utLog('design viewer cookie', {
+        name: DESIGN_VIEWER_COOKIE,
+        present: Boolean(raw),
+        length: raw.length,
+      });
+      if (raw) {
+        try {
+          const user = await getUserById(raw);
+          if (user) {
+            utLog('middleware resolved userId from design cookie');
+            return user.id;
+          }
+          utLog('design cookie value did not match a user row');
+        } catch (e) {
+          utErr('getUserById(design cookie) threw', e);
+          throw e;
         }
-        utLog('design cookie value did not match a user row');
-      } catch (e) {
-        utErr('getUserById(design cookie) threw', e);
-        throw e;
       }
     }
 
@@ -78,16 +96,18 @@ async function resolveUploaderUserId(req: NextRequest): Promise<string> {
       return sessionUserId;
     }
 
-    let fallbackId: string | null = null;
-    try {
-      fallbackId = await getDefaultDesignViewerUserId();
-    } catch (e) {
-      utErr('getDefaultDesignViewerUserId threw', e);
-      throw e;
-    }
-    if (fallbackId) {
-      utLog('middleware resolved userId from DB default viewer');
-      return fallbackId;
+    if (fromDesign) {
+      let fallbackId: string | null = null;
+      try {
+        fallbackId = await getDefaultDesignViewerUserId();
+      } catch (e) {
+        utErr('getDefaultDesignViewerUserId threw', e);
+        throw e;
+      }
+      if (fallbackId) {
+        utLog('middleware resolved userId from DB default viewer');
+        return fallbackId;
+      }
     }
 
     utErr('middleware: no session, invalid design cookie, and no default user — Unauthorized');

@@ -4,5 +4,9 @@
  */
 export function navUsesBlueEnergy(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
-  return pathname === '/home' || pathname.startsWith('/home/');
+  return (
+    pathname === '/' ||
+    pathname === '/home' ||
+    pathname.startsWith('/home/')
+  );
 }

@@ -13,7 +13,7 @@ import { dbUserRowToAppViewer } from '@/lib/viewer/from-db-user';
  * Jae merges these layouts into (protected) routes when wiring real auth & MiniKit.
  */
 export default async function DesignLayout({ children }: { children: ReactNode }) {
-  const viewerRow = await resolveDesignViewer();
+  const viewerRow = await resolveDesignViewer('sandbox');
   const initialViewer = viewerRow ? dbUserRowToAppViewer(viewerRow) : null;
 
   return (
