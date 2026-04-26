@@ -31,7 +31,6 @@ import {
 } from '@/lib/design/listing-details-parse';
 import {
   buildMockPublicProfileSoldParts,
-  type OnChainSettlement,
   type PublicProfileSoldRow,
 } from '@/lib/design/on-chain-sale-mock';
 import { buildReceiptOnChainSettlement } from '@/lib/settlement/receipt-settlement';
