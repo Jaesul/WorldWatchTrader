@@ -10,7 +10,7 @@
  */
 import { config as loadEnv } from 'dotenv';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { and, asc, eq, inArray, ne, or, sql } from 'drizzle-orm';
+import { asc, eq, ne, or, sql } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 import postgres from 'postgres';
 
